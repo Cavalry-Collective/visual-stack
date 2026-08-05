@@ -60,16 +60,26 @@ if (fs.existsSync(vdir)) {
     .sort((a, b) => a.n - b.n)
 }
 
-/* Reviews so far, so the shared copy shows what is already answered. */
-const reviews = {}
-const rdir = path.join(STORE, 'reviews')
-if (fs.existsSync(rdir)) {
-  for (const d of fs.readdirSync(rdir)) {
-    const m = /^v(\d+)$/.exec(d)
-    if (!m) continue
-    const saved = readJSON(path.join(rdir, d, 'annotations.json'))
-    if (saved) reviews[m[1]] = saved
+/* The comments so far, so the shared copy shows what is already answered. A
+   store filled by an older version keeps them one directory per version, newest
+   copy of each id winning. */
+let comments = readJSON(path.join(STORE, 'comments.json'))?.comments
+if (!comments) {
+  const newest = new Map()
+  const rdir = path.join(STORE, 'reviews')
+  const versions = fs.existsSync(rdir)
+    ? fs.readdirSync(rdir).flatMap(d => { const m = /^v(\d+)$/.exec(d); return m ? [Number(m[1])] : [] }).sort((a, b) => a - b)
+    : []
+  for (const v of versions) {
+    for (const old of readJSON(path.join(rdir, `v${v}`, 'annotations.json'))?.annotations || []) {
+      newest.set(old.id, {
+        ...old,
+        state: old.status === 'addressed' || old.dismissed ? 'closed' : 'open',
+        deliveredAt: old.sentAt || null,
+      })
+    }
   }
+  comments = [...newest.values()]
 }
 
 const bundle = {
@@ -77,7 +87,7 @@ const bundle = {
   name,
   fileName: path.basename(FILE),
   currentVersion: state.version || 1,
-  html, versions, reviews,
+  html, versions, comments,
 }
 
 const shell = fs.readFileSync(path.join(HERE, 'workspace.html'), 'utf8')

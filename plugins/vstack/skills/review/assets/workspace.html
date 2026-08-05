@@ -1013,8 +1013,6 @@ body.viewing #toolbar button[aria-pressed=true]{background:var(--surface-2);colo
               aria-label="More">▾</button>
     </div>
     <div id="sendMenu">
-      <button id="btnSendNow"><span class="t"></span><span class="d"></span></button>
-      <div class="mrule" id="sendNowRule"></div>
       <button id="btnShare"><span class="t"></span><span class="d"></span></button>
       <div class="mrule" id="shareRule"></div>
       <button id="btnApprove"><span class="t"></span><span class="d"></span></button>
@@ -1651,7 +1649,7 @@ const MARK = 'var(--brand)';
    appears — mark, list card, composer. Each of those sets `--mk` once and every
    part it is made of picks the colour up from there. */
 const MARK_DONE = 'var(--ok)';
-const markColour = a => a.status === 'addressed' ? MARK_DONE : MARK;
+const markColour = a => isClosed(a) ? MARK_DONE : MARK;
 
 /* ── language ─────────────────────────────────────────────────────────
    The workspace chrome speaks two languages; the page under review is
@@ -1671,7 +1669,7 @@ const STR = {
     del: 'Delete comment', clearAll: 'Clear all',
     cleared: n => `Cleared ${n} comment${n > 1 ? 's' : ''}`,
     clearDialogTitle: 'Clear all comments?',
-    clearImpact: n => `This removes ${n} comment${n === 1 ? '' : 's'} from the review, including any carried from earlier versions.`,
+    clearImpact: n => `This takes back ${n} comment${n === 1 ? '' : 's'} still waiting here. Anything {agent} already has stays — reply on those to ask for them back.`,
     clearKept: 'The wireframe and version history will stay.',
     clearCancel: 'Cancel', clearConfirm: 'Clear all',
     clearHistory: 'Clear history',
@@ -1731,9 +1729,6 @@ const STR = {
     notPickedUp: n => `${n} comment${n > 1 ? 's' : ''} sent — not picked up yet`,
     workingAndQueued: (w, q) => `{agent} is working on ${w} · ${q} waiting`,
     queuedTag: 'queued',
-    heldOn: n => `${n} comment${n > 1 ? 's' : ''} queued — sends when this round ends`,
-    sendNow: 'Send the queue now',
-    sendNowDesc: n => `${n} queued comment${n > 1 ? 's' : ''} — don't wait for this round to finish`,
     addressedGroup: n => `Addressed (${n})`, earlierGroup: n => `Earlier (${n})`,
     revert: 'Revert', refine: 'Refine',
     revertTitle: 'Ask {agent} to put this back the way it was',
@@ -1743,12 +1738,11 @@ const STR = {
     dismiss: 'Dismiss',
     dismissTitle: 'Take this off the list',
     more: 'More', sendOne: 'Send just this one to {agent}',
-    landedTag: v => 'refresh to see',
-    landedTitle: '{agent} changed this. Bring the new version in to see it.',
-    dismissed: 'Dismissed',
+    dismissed: 'Taken back',
+    withdrawByReply: '{agent} already has this one — say what you want undone.',
+    closedSome: n => `{agent} closed ${n} comment${n > 1 ? 's' : ''}`,
     undoReply: 'Take back this reply',
     revertNote: 'Revert this change — put it back the way it was before.',
-    wantsRevert: 'Revert requested',
     approve: 'Approve & finish', approveSure: 'Approve & close the review?',
     approvedTitle: 'Approved — the review is closed',
     approvedBody: '{agent} has been told the design is signed off and can carry on. You can close this tab.',
@@ -1764,7 +1758,6 @@ const STR = {
     sendReply: 'Reply', addReply: 'Reply',
     coversN: n => `${n} element${n > 1 ? 's' : ''} inside`,
     offscreen: 'not on screen', offscreenToast: 'Not on the page right now',
-    fromEarlier: cap => `from ${cap}`,
     anchorGone: 'not on screen', anchorLoose: 'moved since this version',
     inRegion: (k, l) => k === 'region' ? (l ? `in “${l}”` : '') : (l ? `in ${k} “${l}”` : `in ${k}`),
     /* live review */
@@ -1790,7 +1783,7 @@ const STR = {
     del: '删除批注', clearAll: '全部清除',
     cleared: n => `已清除 ${n} 条批注`,
     clearDialogTitle: '清除所有批注？',
-    clearImpact: n => `这会从评审中移除 ${n} 条批注，包括从过往版本延续的批注。`,
+    clearImpact: n => `这会收回还在等待的 ${n} 条批注。{agent} 已收到的不受影响 — 请在那些批注上回复说明。`,
     clearKept: '线框图和版本历史都会保留。',
     clearCancel: '取消', clearConfirm: '全部清除',
     clearHistory: '清除历史',
@@ -1845,9 +1838,6 @@ const STR = {
     notPickedUp: n => `${n} 条批注已发送，尚未被接收`,
     workingAndQueued: (w, q) => `{agent} 正在处理 ${w} 条 · ${q} 条等待中`,
     queuedTag: '等待中',
-    heldOn: n => `${n} 条已排队 — 本轮结束后发送`,
-    sendNow: '立即发送队列',
-    sendNowDesc: n => `${n} 条排队中 — 不等本轮结束`,
     addressedGroup: n => `已处理（${n}）`, earlierGroup: n => `更早（${n}）`,
     revert: '撤回', refine: '继续完善',
     revertTitle: '让 {agent} 把这处改回原样',
@@ -1857,12 +1847,11 @@ const STR = {
     dismiss: '不用管了',
     dismissTitle: '从列表中移除',
     more: '更多', sendOne: '只发送这一条给 {agent}',
-    landedTag: v => '刷新查看',
-    landedTitle: '{agent} 改过这处。加载新版本即可看到。',
-    dismissed: '已移除',
+    dismissed: '已收回',
+    withdrawByReply: '{agent} 已收到这条 — 请说明需要撤销什么。',
+    closedSome: n => `{agent} 关闭了 ${n} 条批注`,
     undoReply: '撤回这条回复',
     revertNote: '撤销这处改动——恢复成修改之前的样子。',
-    wantsRevert: '要求撤回',
     approve: '批准并结束', approveSure: '确定批准并关闭评审？',
     approvedTitle: '已批准 — 评审已关闭',
     approvedBody: '{agent} 已收到定稿通知，可以继续下一步。你可以关闭此标签页。',
@@ -1878,7 +1867,6 @@ const STR = {
     sendReply: '发送', addReply: '回复',
     coversN: n => `框内 ${n} 个元素`,
     offscreen: '当前不可见', offscreenToast: '页面上当前看不到这个元素',
-    fromEarlier: cap => `来自 ${cap}`,
     anchorGone: '当前不可见', anchorLoose: '页面已改动，位置为大致位置',
     inRegion: (k, l) => k === 'region' ? (l ? `位于「${l}」` : '') : (l ? `位于 ${k}「${l}」` : `位于 ${k}`),
     /* 实时评审 */
@@ -1927,7 +1915,7 @@ const SIZES = [
 const S = {
   runtime: 'local',
   name: 'Review', fileName: 'page.html',
-  html: '', versions: [], reviews: {},
+  html: '', versions: [], comments: [],
   version: 1, viewing: 1,
   historyClearedAt: null, clearingHistory: false,
   /* `mode` is what the pointer does right now — View, or one of the annotate
@@ -1938,25 +1926,13 @@ const S = {
   // `fitted` says the zoom is the one that fills the canvas rather than one the
   // reviewer chose, so it is free to follow the canvas when the canvas changes.
   zoom: 1, fitted: true,
-  ann: [], carried: [],
+  ann: [],
   sel: null,
   // Comments whose element is not on the page as it stands right now.
   offscreen: new Set(),
   // Threads opened in the panel, and which reply box the cursor is in.
   threadOpen: new Set(), focusReply: null,
-  awaiting: false, pendingUpdate: null, sentSig: null,
-  activeRoundId: null,
-  queued: new Set(),      // sent, but the brief has not been collected yet
-  collected: new Set(),   // ids Claude has taken delivery of
-  landed: new Set(),      // dealt with by a version this page has not adopted yet
-  landedVersion: null,
-  // Which comments went out with the last send and have not come back yet.
-  working: new Set(),
-  /* Sent while a round was already collected and underway. Nothing goes on the
-     wire: the ids wait here — and as a `held` flag on the comment itself, which
-     is what survives a reload — then go out as one batch when the round ends. */
-  held: new Set(),
-  // A stop has been asked for and the round has not ended yet.
+  pendingUpdate: null,
   linked: null,   // null until the connection has actually said one way or other
   // The shareable Artifact: asked for here, published by Claude, link comes back.
   share: { url: null, version: null, pending: false },
@@ -1990,7 +1966,7 @@ async function boot () {
   S.fileName = data.fileName || 'page.html';
   S.html = data.html || '';
   S.versions = data.versions || [];
-  S.reviews = data.reviews || {};
+  S.comments = data.comments || [];
   S.version = S.viewing = data.currentVersion || 1;
   S.historyClearedAt = data.historyClearedAt || null;
   S.app = data.app || null;
@@ -2002,28 +1978,11 @@ async function boot () {
   VSShell.setServerVersion(data.version);
 
   const phase = S.runtime === 'phase';
+  /* Work in flight belongs to the review, not to the tab that started it. Each
+     comment carries whether it has been sent and whether Claude has been handed
+     it, so a reload — or a second tab — picks the progress back up instead of
+     showing a workspace where nothing ever happened. */
   loadAnnotations();
-  /* A round in flight belongs to the review, not to the tab that started it.
-     The brief on disk names the comments that went out, so a reload — or a
-     second tab — picks the progress back up instead of showing a workspace
-     where nothing ever happened. */
-  S.activeRoundId = data.activeReview?.id || null;
-  const out = data.activeReview?.comments || data.pendingReview?.comments;
-  if (out?.length) {
-    S.awaiting = true;
-    const sentAt = data.pendingReview?.sentAt || data.activeReview?.createdAt;
-    const at = sentAt || new Date().toISOString();
-    for (const id of out) { const a = annById(id); if (a && !a.sentAt) a.sentAt = at }
-    setWorking(out);
-  }
-  readFlight(data);
-  /* Holds outlive the tab that made them: the flag rides the saved annotation.
-     A round still out keeps them held; a review at rest gets them now — the
-     send the closing tab still owed. */
-  S.held = new Set(S.ann
-    .filter(a => a.held && a.status === 'open' && !a.dismissed && hasSubstance(a))
-    .map(a => a.id));
-  if (S.held.size && !S.working.size && served()) flushHeld();
   // Review is the whole product for now, so the word beside the mark says the
   // product rather than which of one tool you are in. Which page you are on is
   // already on the window below, twice. Phase preview is a different tool and
@@ -2040,42 +1999,31 @@ async function boot () {
   if (served()) liveReload();
 }
 
-/** Claude spoke last and nobody has answered — the one state that stalls a round. */
-const awaitsReply = a => a.status === 'question' ||
-  (a.status !== 'addressed' && isAgent((a.replies || []).at(-1)?.by));
+/* Everything the panel says about a comment is read off the comment. A comment
+   is open or closed; two timestamps say where it has got to between the
+   reviewer and Claude. Nothing here is remembered separately, so a reload and a
+   second tab see the same review as the tab that wrote it. */
+const isClosed = a => a.state === 'closed';
+const isOpen = a => !isClosed(a);
+/** Let go of by the reviewer: it is Claude's to answer, and its words are set. */
+const sent = a => !!a.sentAt;
+/** Written and released, but Claude has not been handed it yet. */
+const isQueued = a => !!a.sentAt && !a.deliveredAt;
+/** In Claude's hands: it went out with a delivery and has not come back closed. */
+const isWorking = a => !!a.deliveredAt && isOpen(a);
+/** Claude spoke last and nobody has answered — the one state that waits on you. */
+const awaitsReply = a => isOpen(a) && isAgent((a.replies || []).at(-1)?.by);
 
 function loadAnnotations () {
   const local = S.runtime === 'artifact' ? lsGet() : null;
-  S.ann = (local ?? S.reviews[S.version]?.annotations ?? []).map(normalise);
-  /* What earlier versions still have to say. Open comments ride along because
-     they are unfinished, addressed ones because "Claude changed it" is not the
-     same as "that was the change I wanted", and questions because they are the
-     one thing waiting on the reviewer — leaving those behind took Claude's
-     question off the screen at the next version and left nobody to answer it.
-     A comment leaves the screen when the reviewer dismisses it, and not before.
-     A later copy overwrites an earlier one, so walk the versions in order. */
-  const ghosts = new Map();
-  const earlier = Object.entries(S.reviews)
-    .map(([v, rev]) => [Number(v), rev])
-    .filter(([v]) => v < S.version)
-    .sort(([a], [b]) => a - b);
-  for (const [v, rev] of earlier) {
-    for (const a of rev.annotations || []) {
-      if (!['open', 'addressed', 'question'].includes(a.status)) continue;
-      ghosts.set(a.id, { ...normalise(a), fromVersion: v });
-    }
-  }
-  for (const a of S.ann) ghosts.delete(a.id);   // this version's copy is the live one
-  S.carried = [...ghosts.values()].filter(a => !a.dismissed);
-  // Anything Claude has said back is waiting on you, whether or not it was
-  // filed as a question — open the thread so the words are visible and the box
-  // to answer in is already there. A question asked several versions ago is
-  // still a question, so the carried ones count too.
-  for (const a of S.ann.concat(S.carried)) if (awaitsReply(a)) S.threadOpen.add(a.id);
+  S.ann = (local ?? S.comments ?? []).map(normalise);
+  // Anything Claude has said back is waiting on you: open the thread so the
+  // words are visible and the box to answer in is already there.
+  for (const a of S.ann) if (awaitsReply(a)) S.threadOpen.add(a.id);
 }
-// status: open (waiting on Claude) · question (Claude asked, waiting on you) ·
-// addressed (Claude changed it). Only Claude moves a comment to addressed.
-const normalise = a => ({ status: 'open', note: '', size: 'desktop', replies: [], ...a });
+// state: open (still to be dealt with) · closed (Claude says it is done).
+// Only Claude closes one; answering a closed one puts it back to open.
+const normalise = a => ({ state: 'open', note: '', size: 'desktop', replies: [], sentAt: null, deliveredAt: null, ...a });
 const lsKey = () => `vstack:review:${S.fileName}:v${S.version}`;
 const lsGet = () => { try { return JSON.parse(localStorage.getItem(lsKey())) } catch { return null } };
 
@@ -2088,9 +2036,11 @@ function save () {
     const real = S.ann.filter(hasSubstance);
     if (S.runtime === 'artifact') { try { localStorage.setItem(lsKey(), JSON.stringify(real)) } catch {} ; return }
     try {
-      await fetch(API + '/annotations', {
+      // The server keeps what this tab is not allowed to change: a comment
+      // already sent keeps its words, and only the thread grows on it.
+      await fetch(API + '/comments', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ version: S.version, annotations: real }),
+        body: JSON.stringify({ comments: real }),
       });
     } catch {}
   }, 700);
@@ -2132,26 +2082,17 @@ async function onReloadEvent () {
     toast(T('historyCleared'));
     return;
   }
-  /* A missing brief means Claude picked it up and deleted it, which is the
-     *start* of the work, not the end of it — reading that as "round over" is
-     what took the progress bars off comments the moment anything else touched
-     the store. */
-  const finishedRound = readFlight(data);   // collected, active, or complete?
   const bumped = (data.currentVersion || 1) !== S.version;
   if (!bumped && data.html === S.html) {
-    // Only the conversation moved — fold it in without touching the page.
-    const latest = new Map();
-    for (const version of Object.keys(data.reviews || {}).map(Number).sort((a, b) => a - b)) {
-      for (const comment of data.reviews?.[version]?.annotations || []) latest.set(comment.id, comment);
-    }
-    const merged = mergeThreads([...latest.values()]);
-    if (finishedRound) roundEnded();
+    // Only the comments moved — fold them in without touching the page.
+    const merged = mergeComments(data.comments || []);
     if (merged.changed) {
       render();
       if (S.sel) openComposer(S.sel, false);
       // The reviewer's own reply comes back the same way Claude's does. Only
       // announce the one the reviewer did not write.
       if (merged.agentSpoke) toast(T('replied'));
+      if (merged.closed) toast(T('closedSome')(merged.closed));
     }
     return;
   }
@@ -2159,11 +2100,14 @@ async function onReloadEvent () {
   // Mid-edit saves are not news — the comments being worked on already say so.
   // Only a version that has actually landed is worth interrupting for.
   if (bumped) {
-    closeAddressed(data);
+    /* What Claude closed is news whether or not the reviewer brings the new
+       page in — the cards say so straight away, and the banner is only about
+       the picture. */
+    if (mergeComments(data.comments || []).changed) render();
     const meta = (data.versions || []).find(v => v.n === data.currentVersion);
     showWork((live() ? T('roundReady')(data.currentVersion) : T('ready')(data.currentVersion))
       + (meta?.label ? ' — ' + esc(meta.label) : ''));
-  } else if (!S.awaiting) showWork(live() ? T('appChanged') : T('changed'));
+  } else if (!S.ann.some(isWorking)) showWork(live() ? T('appChanged') : T('changed'));
 }
 function showWork (html) {
   $('#workBanner').classList.add('on');
@@ -2180,121 +2124,64 @@ function setLink (up) {
 }
 
 /* ─────────────── work in flight ───────────────
-   A sent comment is out of the reviewer's hands until Claude publishes or
-   answers. Saying so on the comment itself — and offering to call it off there —
-   beats a banner that covers the page it is talking about. */
-const setWorking = ids => { S.working = new Set(ids); renderPanel() };
-
-/* Sent is not the same as being worked on. A brief sits in the store until
-   Claude collects it, and a comment added to a round already underway waits in
-   the next brief — so the workspace can tell the two apart without guessing:
-   anything in a brief still on disk is queued; everything else that went out
-   has been collected, and is being worked on. */
-function readFlight (data) {
-  const brief = data?.pendingReview?.comments;
-  const active = data?.activeReview;
-  const wasActive = S.activeRoundId;
-  if (active) {
-    S.activeRoundId = active.id;
-    S.working = new Set(active.comments || []);
-    S.awaiting = true;
-  } else if (wasActive) {
-    S.activeRoundId = null;
-    S.working.clear();
-  }
-  const next = new Set(brief ? brief.filter(id => !S.collected.has(id)) : []);
-  // The cards carry this, not just the strip: collecting a brief turns "queued"
-  // into "being worked on", and repainting only the strip left every card
-  // saying queued while the strip said Claude was working on them.
-  const moved = next.size !== S.queued.size || [...next].some(id => !S.queued.has(id));
-  S.queued = next;
-  if (active && !data?.pendingReview) for (const id of S.working) S.collected.add(id);
-  moved ? renderPanel() : renderWork();
-  return !!wasActive && !active;
-}
-function clearWorking () {
-  if (!S.working.size) return;
-  S.working.clear();
-  renderPanel();
-}
+   Where a comment has got to is written on the comment, so this reads it rather
+   than remembering it: sent and not yet handed over is queued, handed over is
+   being worked on. A reload, a second tab and the tab that pressed Send all see
+   the same thing. */
 function renderWork () {
-  // A comment Claude has finished with, or asked about, is no longer in flight.
-  // Carried comments go out with a round too, so look for them as well — a
-  // reloaded workspace reads its in-flight list from the brief, which has both.
-  for (const id of [...S.working]) {
-    const a = annById(id);
-    if (!a || a.dismissed || a.status !== 'open') S.working.delete(id);
-  }
-  for (const id of [...S.queued]) if (!S.working.has(id)) S.queued.delete(id);
-  // Held comments are waiting too — just here rather than in a brief on disk.
-  const n = S.working.size, q = S.queued.size, h = S.held.size;
-  $('#pwork').hidden = !n;
-  if (n) $('#pworkText').textContent =
-    q === n && !h ? (S.watching === false ? T('notPickedUp')(q) : T('queuedOn')(q))
-    : q + h ? T('workingAndQueued')(n - q, q + h)
-    : T('workingOn')(n);
-  composer.classList.toggle('working', !!S.sel && S.working.has(S.sel));
+  const working = S.ann.filter(isWorking).length;
+  const queued = S.ann.filter(a => isQueued(a) && isOpen(a)).length;
+  $('#pwork').hidden = !working && !queued;
+  if (working || queued) $('#pworkText').textContent =
+    !working ? (S.watching === false ? T('notPickedUp')(queued) : T('queuedOn')(queued))
+    : queued ? T('workingAndQueued')(working, queued)
+    : T('workingOn')(working);
+  composer.classList.toggle('working', !!S.sel && isWorking(annById(S.sel) || {}));
 }
 
-/** The round is over — however it ended. Claude publishing, replying or
-    closing the review all land here, and the button goes back to Send. */
-function roundEnded () {
-  S.awaiting = false;
-  clearWorking();
-  renderCounts();
-  // The queue fires as the round ends — one round out at a time is the deal.
-  flushHeld();
-}
-
-/** Everything held back during the round, out as one send. The set is cleared
-    before the send starts, so a second call is a no-op rather than a second
-    brief. */
-function flushHeld () {
-  if (!S.held.size) return;
-  const ids = [...S.held].filter(id => {
-    const a = annById(id);
-    return a && !a.dismissed && a.status !== 'addressed' && hasSubstance(a);
-  });
-  S.held.clear();
-  for (const a of S.ann.concat(S.carried)) delete a.held;
-  if (ids.length) openSend(ids);
-  else { save(); renderPanel(); }
-}
-
-/** Fold in what arrived from the server without rolling back a local action
-    that is still inside the autosave window. The longer thread wins; a local
-    dismissal or explicit reopen also wins until the server has received it. */
-function mergeThreads (serverAnn) {
-  let changed = false, agentSpoke = false;
-  for (const sa of serverAnn) {
-    const local = annById(sa.id);
-    if (!local) { S.ann.push(normalise(sa)); changed = true; continue }
-    // Dismissal is a deliberate tombstone. A stale reload may still carry the
-    // visible server copy, but it must never make the card reappear.
-    if (local.dismissed) continue;
-    const sr = (sa.replies || []).length, lr = (local.replies || []).length;
-    // Claude has said something — open that thread in the list, where the
-    // answer is going to be typed. A shorter server thread is simply older
-    // than the reply the reviewer just wrote, so leave the local one alone.
-    if (sr > lr) {
-      local.replies = sa.replies || [];
+/**
+ * Fold in the server's list without rolling back something typed here a moment
+ * ago and not yet saved.
+ *
+ * The thread is append-only on both sides, so the union of the two copies is
+ * the whole of it and neither can lose a line by being stale. State is the
+ * server's alone: this tab never closes a comment and never reopens one, so
+ * whatever it says goes.
+ */
+function mergeComments (serverComments) {
+  let changed = false, agentSpoke = false, closed = 0;
+  const seen = new Set();
+  for (const incoming of serverComments) {
+    seen.add(incoming.id);
+    const local = annById(incoming.id);
+    if (!local) { S.ann.push(normalise(incoming)); changed = true; continue }
+    const merged = mergeReplies(local.replies, incoming.replies);
+    if (merged.length !== (local.replies || []).length) {
+      local.replies = merged;
       S.threadOpen.add(local.id); changed = true;
-      if (isAgent((sa.replies || []).at(-1)?.by)) agentSpoke = true;
+      if (isAgent(merged.at(-1)?.by)) agentSpoke = true;
     }
-    const localAhead = lr > sr;
-    const locallyReopened = local.status === 'open' && !!local.reopenedAt && sa.status === 'addressed';
-    if (sa.status !== local.status && !localAhead && !locallyReopened) {
-      local.status = sa.status;
-      if (sa.status === 'question') { S.threadOpen.add(local.id); agentSpoke = true }
-      // A comment that has been addressed again starts clean: whatever was
-      // asked for on the way here has now been answered.
-      if (sa.status === 'addressed') { delete local.revert; delete local.reopenedAt }
-      changed = true;
+    if (incoming.state !== local.state) {
+      if (isClosed(incoming)) closed++;
+      local.state = incoming.state; changed = true;
     }
+    // Delivery and sending are the server's to stamp — it is the one that knows.
+    if (incoming.deliveredAt !== local.deliveredAt) { local.deliveredAt = incoming.deliveredAt; changed = true }
+    if (incoming.sentAt !== local.sentAt) { local.sentAt = incoming.sentAt; changed = true }
   }
-  // A question stalls the round, so it should not wait behind a closed drawer.
+  // Withdrawn somewhere else — another tab, or this one before a reload.
+  const gone = S.ann.filter(a => !seen.has(a.id) && sent(a));
+  if (gone.length) { S.ann = S.ann.filter(a => seen.has(a.id) || !sent(a)); changed = true }
+  // A question waits on the reviewer, so it should not sit behind a closed drawer.
   if (agentSpoke) setPanel(true);
-  return { changed, agentSpoke };
+  return { changed, agentSpoke, closed };
+}
+
+/** Two copies of one append-only thread, merged into the whole of it. */
+function mergeReplies (mine = [], theirs = []) {
+  const byKey = new Map();
+  for (const reply of [...mine, ...theirs]) byKey.set(`${reply.by}|${reply.at}|${reply.text}`, reply);
+  return [...byKey.values()].sort((a, b) => Date.parse(a.at || 0) - Date.parse(b.at || 0));
 }
 
 /**
@@ -2306,36 +2193,19 @@ function mergeThreads (serverAnn) {
  * one left the other putting comments back to Open the moment you looked at the
  * change they were not part of.
  */
-function closeAddressed (data) {
-  const closed = (data.versions || []).find(v => v.n === data.currentVersion)?.addressed || [];
-  /* A landed version has already dealt with these, but the page you are looking
-     at is still the old one and their status here is still open. The banner
-     announces the version; the cards say which comments it was about, and are
-     the second way to bring it in. Cleared when the new version is adopted. */
-  for (const id of closed) S.landed.add(id);
-  if (closed.length) S.landedVersion = data.currentVersion;
-  for (const id of closed) { S.working.delete(id); S.queued.delete(id) }
-  if (!S.working.size) roundEnded();
-  /* Always repaint. `roundEnded` only refreshes the counts, and `clearWorking`
-     returns early when the set is already empty — so a version that finished
-     everything left the cards exactly as they were: still queued, still open,
-     still claiming to be worked on, next to a banner saying it was all done. */
-  renderPanel();
-}
-
 function adoptUpdate () {
   const data = S.pendingUpdate;
   S.pendingUpdate = null; hideWork();
   if (!data) { loadFrame(true); return }
   const bumped = (data.currentVersion || 1) !== S.version;
-  // Looking at a change is not finishing the work: a mid-round save moves the
-  // page and nothing else.
-  if (bumped) { closeAddressed(data); S.landed.clear(); S.landedVersion = null }
-  S.html = data.html; S.versions = data.versions; S.reviews = data.reviews;
+  S.html = data.html; S.versions = data.versions; S.comments = data.comments;
   S.version = data.currentVersion; S.name = data.name || S.name;
-  if (bumped) { S.viewing = S.version; loadAnnotations(); S.sentSig = null }
+  /* A version is a picture of the page, not a verdict on the comments: which
+     of those are done was already said by Claude closing them, and is on the
+     cards before this banner is touched. */
+  mergeComments(data.comments || []);
+  if (bumped) S.viewing = S.version;
   closeComposer();
-  readFlight(data);   // collected, or still sitting in a brief?
   buildTimeline(); loadFrame(); render();
   if (bumped) toast(live() ? T('nowRound')(S.version) : T('nowReviewing')(S.version));
 }
@@ -3256,7 +3126,7 @@ function anchorState (a) {
   if (!a.anchor || !fdoc) return { rect: drawn, show: true };
   const el = findAnchor(a);
   if (!el) {
-    const madeHere = (a.anchorVersion ?? a.fromVersion ?? S.viewing) === S.viewing;
+    const madeHere = (a.anchorVersion ?? S.viewing) === S.viewing;
     return madeHere ? { show: false } : { rect: drawn, show: true, loose: true };
   }
   if (!isShown(el)) return { show: false, el };
@@ -3462,11 +3332,10 @@ function addGeneral () {
 
 function removeComment (id) {
   S.ann = S.ann.filter(a => a.id !== id);
-  S.held.delete(id);
   if (S.sel === id) { S.sel = null; composer.classList.remove('on') }
   save(); render();
 }
-const annById = id => S.ann.find(a => a.id === id) || S.carried.find(a => a.id === id);
+const annById = id => S.ann.find(a => a.id === id);
 /**
  * A comment is its words. Never typing any, or clearing the ones that were
  * there, means there is no comment — dismissing it takes it away.
@@ -3475,32 +3344,21 @@ const annById = id => S.ann.find(a => a.id === id) || S.carried.find(a => a.id =
    struck out. Words on top of one are welcome and never required. */
 const SELF_EVIDENT = new Set(['move', 'strike']);
 const hasSubstance = a => !!(a.note || '').trim() || SELF_EVIDENT.has(a.kind);
-/** Everything the current panel can actually clear. Carried comments are just
-    as present as current-version comments, despite living in an older file. */
-const activeComments = () => S.ann.concat(S.carried)
-  .filter(a => !a.dismissed && hasSubstance(a));
+/** Everything the panel can actually clear: what is still queued here. Once
+    Claude has been handed a comment, asking for it back is a reply on it. */
+const activeComments = () => S.ann.filter(a => hasSubstance(a) && !a.deliveredAt);
 /** A general comment that has just been made and has nothing in it yet. */
 const blank = a => !!a._fresh && a.kind === 'general';
-/* Once a comment has gone to Claude it is a record of what was asked, not a
-   draft: editing it here would change the words without changing the brief
-   that already left. Reply to add to it. */
-/* Having gone out is a fact about the comment, not a phase of this tab's
-   memory. Deriving it from the in-flight set meant that when a round ended —
-   Claude publishing a version that did not name this comment — every general
-   comment already handed over turned back into an open text box, inviting an
-   edit that would never reach the brief that had already left. */
-const sent = a => !!a.sentAt || a.status !== 'open' ||
-  !!(a.replies || []).length || !!a.reopenedAt ||
-  S.working.has(a.id) || S.queued.has(a.id);
-/* One sequence over every comment on screen, this version's and the ones
-   carried in from earlier ones. Which version a comment came from is the
-   group it sits under, not a different kind of number on its badge. */
+/* Once a comment is sent it is a record of what was asked, not a draft: the
+   words are what Claude was given, and the server keeps them whatever this tab
+   saves. Reply to add to it. `sent` is defined with the state helpers above. */
+/* One sequence over every comment on screen. */
 let numbers = new Map();
 function numberComments () {
   numbers = new Map();
   let n = 0;
-  for (const a of S.ann.concat(S.carried)) {
-    if ((!hasSubstance(a) && !blank(a)) || a.dismissed) continue;
+  for (const a of S.ann) {
+    if (!hasSubstance(a) && !blank(a)) continue;
     numbers.set(a.id, ++n);
   }
 }
@@ -3538,8 +3396,8 @@ function openComposer (id, focus) {
   composer.querySelector('.ckind').textContent = kindLabel(a);
 
   const st = composer.querySelector('.cstatus');
-  st.className = 'cstatus' + (a.status === 'open' ? '' : ' ' + a.status);
-  st.textContent = a.status === 'addressed' ? T('statusAddressed') : a.status === 'question' ? T('statusAsked') : '';
+  st.className = 'cstatus' + (isClosed(a) ? ' addressed' : awaitsReply(a) ? ' question' : '');
+  st.textContent = isClosed(a) ? T('statusAddressed') : awaitsReply(a) ? T('statusAsked') : '';
 
   // Say what this is attached to, so "it did not know what I meant" is answered
   // while the note is being written rather than after the next round.
@@ -3576,17 +3434,17 @@ function openComposer (id, focus) {
      </div>`).join('');
 
   const reply = composer.querySelector('.creply');
-  const canReply = !isHistory() && (replies.length > 0 || a.status === 'question');
+  const canReply = !isHistory() && (replies.length > 0 || awaitsReply(a));
   reply.classList.toggle('on', canReply);
   reply.value = '';
-  reply.placeholder = T(a.status === 'question' ? 'answerPlaceholder' : 'replyPlaceholder');
+  reply.placeholder = T(awaitsReply(a) ? 'answerPlaceholder' : 'replyPlaceholder');
 
   // Nothing written yet means dismissing already throws it away — a second
   // button for the same outcome is just noise.
   composer.querySelector('.cdel').style.display = hasSubstance(a) && !isHistory() ? '' : 'none';
   composer.querySelector('.cdel').title = T('del');
   composer.querySelector('.csave').style.display = isHistory() ? 'none' : '';
-  composer.classList.toggle('working', S.working.has(id));
+  composer.classList.toggle('working', isWorking(a));
   placeComposer();
   if (focus !== false) setTimeout(() => (canReply && a.note ? reply : note).focus(), 0);
   drawMarks(); renderPanel();
@@ -3600,7 +3458,7 @@ function closeComposer () {
     // Both of these write, so both work on this version's copy — an edit to a
     // comment carried in from an earlier version is saved nowhere otherwise.
     if (reply) a = postReply(a, reply);
-    if (note !== (a.note || '')) { a = adopt(a); a.note = note; save() }
+    if (!sent(a) && note !== (a.note || '')) { a.note = note; save() }
     // No words and no thread is not feedback — clearing a comment removes it,
     // which is also how you take one back.
     if (!hasSubstance(a)) S.ann = S.ann.filter(x => x.id !== a.id);
@@ -3615,100 +3473,63 @@ function closeComposer () {
     is no separate button for it, because a reply nobody reads is worse than no
     button at all. */
 function postReply (a, text) {
-  /* Onto this version's copy, always. Answering is the one thing a carried
-     comment invites — it is on the list because Claude asked something — and a
-     reply written onto the ghost was saved nowhere, since `save()` posts only
-     `S.ann`. The answer was on screen until the next reload took it away, and
-     the question came back unanswered with nobody able to tell it had been. */
-  const live = adopt(a);
-  live.replies = (live.replies || []).concat({ by: 'reviewer', text, at: new Date().toISOString() });
-  if (live.status === 'question') live.status = 'open';
-  else if (live.status === 'addressed') { live.status = 'open'; live.reopenedAt = new Date().toISOString() }
-  // A reply is new review input regardless of which reply surface wrote it.
-  // Reset this here so both the canvas composer and panel thread enable Send.
-  S.sentSig = null;
+  a.replies = (a.replies || []).concat({ by: 'reviewer', text, at: new Date().toISOString() });
+  /* Answering something Claude called done says it is not done. The server
+     turns that into reopening it — the one place the rule lives — and this tab
+     hears the state back on the next refresh. */
   save();
-  return live;
+  return a;
 }
 
 /**
- * A comment from an earlier version becomes this version's business the moment
- * you act on it — copy it in, because `save()` only ever writes the round you
- * are in, and a change made to a ghost would vanish with the next reload.
+ * The × on a card. A comment still waiting here is simply taken back. One
+ * Claude already holds is not: it may already have been acted on, so asking for
+ * it back is a reply saying so, and Claude closes it when the undoing is done.
  */
-function adopt (a) {
-  const live = S.ann.find(x => x.id === a.id);
-  if (live) return live;
-  const copy = { ...a };
-  delete copy.fromVersion;
-  S.ann.push(copy);
-  S.carried = S.carried.filter(x => x.id !== a.id);
-  return copy;
-}
-
-/**
- * The × on a card, and the one way anything leaves this list. A comment you
- * wrote and have not handed over is simply taken back; one that has entered a
- * conversation, been addressed, or came from an earlier round is kept on file
- * and hidden — the record of what was asked outlives the list it was asked in.
- */
-function takeOff (a) {
+async function takeOff (a) {
   if (isHistory()) return;
-  // Only a draft that has never left this tab can disappear outright. Once it
-  // has words it has been autosaved, and once Claude has replied, asked, or
-  // addressed it there is a thread — either way keep a dismissed record, so
-  // neither the server nor a slightly older snapshot brings it back.
-  if (!a.fromVersion && !sent(a) && !hasSubstance(a)) { removeComment(a.id); return }
-  const live = adopt(a);
-  live.dismissed = true;
-  delete live.reopenedAt; delete live.revert;
-  S.threadOpen.delete(live.id);
-  replyDrafts.delete(live.id);
-  if (S.sel === live.id) closeComposer();
-  S.sentSig = null;
-  save();
-  render();
+  if (!sent(a)) { removeComment(a.id); return }
+  if (a.deliveredAt) {
+    S.threadOpen.add(a.id);
+    S.focusReply = a.id;
+    render();
+    toast(T('withdrawByReply'));
+    return;
+  }
+  S.threadOpen.delete(a.id);
+  replyDrafts.delete(a.id);
+  if (S.sel === a.id) closeComposer();
+  try {
+    await fetch(API + '/comments/dismiss', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: a.id }),
+    });
+  } catch {}
+  removeComment(a.id);
   toast(T('dismissed'));
 }
 
 /** Take back the reply you just wrote, while Claude has yet to see it. */
 function undoReply (a, i) {
   if (isHistory()) return;
-  const live = adopt(a);
-  const reps = live.replies || [];
+  const reps = a.replies || [];
   if (i !== reps.length - 1 || reps[i]?.by !== 'reviewer') return;
   reps.splice(i, 1);
-  // Unsaying the answer puts the question back — it is unanswered again.
-  if (isAgent(reps.at(-1)?.by)) live.status = 'question';
-  S.sentSig = null;
   save();
   render();
 }
 
 /**
- * Addressed is Claude's word for it, not the last word. Reopening a comment puts
- * it back in play for the next round: refine adds to what was asked, revert asks
- * for the change to be undone. `reopenedAt` is what lets the server take a
- * status going backwards from a client — nothing else can un-address a comment.
+ * Closed is Claude's word for it, not the last word. Both ways back in are the
+ * same act — saying something on the comment — so both write into the thread
+ * and let the server reopen it: revert writes the line for you, refine leaves
+ * the cursor where your own words go.
  */
 function reopen (a, mode) {
   if (isHistory()) return;
-  a = adopt(a);
-  a.status = 'open';
-  a.reopenedAt = new Date().toISOString();
-  if (mode === 'revert') {
-    a.revert = true;
-    postReply(a, T('revertNote'));
-  } else {
-    delete a.revert;
-    save();
-  }
-  /* Both of these are things to say, so both are said in the thread: revert has
-     already written its line, refine leaves the cursor where yours goes. The
-     thread opens either way, so the ask is visible where the answer will be. */
+  if (mode === 'revert') postReply(a, T('revertNote'));
   S.threadOpen.add(a.id);
   S.focusReply = a.id;
-  S.sentSig = null;
   render();
   toast(T(mode === 'revert' ? 'revertAsked' : 'refineAsked'));
 }
@@ -3760,11 +3581,10 @@ function wireComposer () {
 /** The one line the list shows about a comment's conversation — and the way in. */
 function threadNote (a, open) {
   const n = (a.replies || []).length;
-  const asked = a.status === 'question' || (a.revert && a.status !== 'addressed');
+  const asked = awaitsReply(a);
   // Nothing here says "addressed" — the green rule along the foot of the card
   // says it already, and saying it twice on one card is once too many.
-  const txt = a.revert && a.status !== 'addressed' ? T('wantsRevert')
-    : a.status === 'question' ? T('claudeAsked')
+  const txt = awaitsReply(a) ? T('claudeAsked')
     : n ? `${n} ${T(n > 1 ? 'replies' : 'reply')}`
     : T('addReply');
   if (isHistory()) return `<div class="thread${asked ? ' asked' : ''}">${esc(txt)}</div>`;
@@ -3788,7 +3608,7 @@ function threadBox (a) {
   return `<div class="tbox">${msgs}
     <div class="treplyrow">
       <textarea class="treply" rows="1"
-        placeholder="${esc(T(a.status === 'question' ? 'answerPlaceholder' : 'replyPlaceholder'))}"></textarea>
+        placeholder="${esc(T(awaitsReply(a) ? 'answerPlaceholder' : 'replyPlaceholder'))}"></textarea>
       <button class="tsend" title="${esc(T('sendReply'))}" aria-label="${esc(T('sendReply'))}">
         <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor"
              stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
@@ -3811,7 +3631,6 @@ function sendPanelReply (a, text) {
   S.threadOpen.add(a.id);
   S.focusReply = a.id;
   // Answering Claude is new information — the review can go back out.
-  S.sentSig = null;
   render();
   if (S.sel === a.id) openComposer(a.id, false);
 }
@@ -3830,7 +3649,7 @@ const offRoute = a => live() && !!a.route && a.route !== shownRoute();
 function visibleAnn () {
   const list = isHistory()
     ? (S.reviews[S.viewing]?.annotations || []).map(normalise)
-    : S.ann.concat(S.carried);
+    : S.ann;
   /* Addressed comments keep their marks off the page while the Addressed group
      is folded: a page covered in marks for things already dealt with is a page
      you have to read past. Opening the group brings them back, which is exactly
@@ -3839,7 +3658,7 @@ function visibleAnn () {
      scrolls the canvas to it and opens its composer there, so hiding its mark
      leaves the composer pointing at nothing. */
   return list.filter(a => !a.dismissed
-    && (S.doneOpen || isHistory() || a.status !== 'addressed' || S.sel === a.id)
+    && (S.doneOpen || isHistory() || isOpen(a) || S.sel === a.id)
     && (a.size || 'desktop') === S.size.id && !offRoute(a));
 }
 /* Drawing a mark and placing it are two different jobs on two different clocks:
@@ -3854,11 +3673,8 @@ function drawMarks () {
   positionMarks();
 }
 function drawMark (a) {
-  const ghost = !!a.fromVersion, done = a.status !== 'open', n = num(a);
-  // Done covers a question too, which is still being asked. Only an addressed
-  // comment is finished, and only that one is drawn in the secondary voice.
-  const cls = (S.sel === a.id ? ' sel' : '') + (ghost ? ' ghost' : '') + (done ? ' done' : '')
-    + (a.status === 'addressed' ? ' addressed' : '');
+  const done = isClosed(a), n = num(a);
+  const cls = (S.sel === a.id ? ' sel' : '') + (done ? ' done addressed' : '');
   const area = a.kind === 'area' && a.rect;
   if (!area && !a.point) return;
   const shape = area ? 'area'
@@ -4032,7 +3848,7 @@ function renderPanel () {
   // own section at the bottom, where revert and refine live.
   // A general comment appears the moment it is made — its card IS where you
   // write it, so it cannot wait until it has words to be shown.
-  const match = a => (hasSubstance(a) || blank(a)) && a.status !== 'addressed' && !a.dismissed;
+  const match = a => (hasSubstance(a) || blank(a)) && isOpen(a);
   // A question from Claude is the one thing in this list that is waiting on
   // *you*. It goes first, under a heading that says how many — everything else
   // can be read at leisure; this can't, because the round is stalled on it.
@@ -4048,13 +3864,12 @@ function renderPanel () {
      comment to be status `open` left carried questions out of the list while
      the count below went on counting them, and nothing on screen could dismiss
      what was never drawn. */
-  const asked = S.ann.concat(S.carried).filter(a => match(a) && isAsked(a));
+  const asked = S.ann.filter(a => match(a) && isAsked(a));
   const here = S.ann.filter(a => match(a) && !isAsked(a) && (a.size || 'desktop') === S.size.id);
   const elsewhere = S.ann.filter(a => match(a) && !isAsked(a) && (a.size || 'desktop') !== S.size.id);
-  const carried = S.carried.filter(a => match(a) && !isAsked(a));
   // Addressed in this round or in one before it — same group, same actions.
-  const done = S.ann.concat(S.carried).filter(a =>
-    hasSubstance(a) && a.status === 'addressed' && !a.dismissed);
+  const done = S.ann.filter(a =>
+    hasSubstance(a) && isClosed(a));
 
   // An empty panel is empty. It used to explain how to make a comment, which is
   // the one thing the page itself already demonstrates the moment you click it.
@@ -4062,29 +3877,28 @@ function renderPanel () {
      comment you wrote a second ago is the one you are still thinking about —
      scrolling to the bottom to find it read as an archive, not a workspace.
      Numbers stay put: they say which comment, not where it sits. */
-  for (const list of [asked, here, elsewhere, carried, done]) list.reverse();
-  const live = asked.length + here.length + elsewhere.length + carried.length;
+  for (const list of [asked, here, elsewhere, done]) list.reverse();
+  const live = asked.length + here.length + elsewhere.length;
   if (live) body.appendChild(group(T('openGroup')(live)));
   // Waiting on you first — it is the one thing here that stalls the round.
-  for (const a of asked) body.appendChild(itemNode(a, { asked: true, ghost: !!a.fromVersion }));
+  for (const a of asked) body.appendChild(itemNode(a, { asked: true }));
   for (const a of here) body.appendChild(itemNode(a));
   for (const a of elsewhere) body.appendChild(itemNode(a, { otherSize: true }));
-  for (const a of carried) body.appendChild(itemNode(a, { ghost: true }));
   if (done.length) {
-    /* What Claude just did is the part you want to check; what it did three
-       rounds ago is a record. The version that was published names what it
-       addressed, so "the last round" is a fact here rather than a guess. */
-    const lastRound = new Set(S.versions.find(v => v.n === S.version)?.addressed || []);
-    const recent = done.filter(a => lastRound.has(a.id));
-    const older = done.filter(a => !lastRound.has(a.id));
+    /* What Claude has just closed is the part you want to check; what it
+       closed a while ago is a record. Closing stamps the comment, so recent is
+       read off the comments rather than guessed from the version. */
+    const newest = Math.max(...done.map(a => Date.parse(a.closedAt || 0)), 0);
+    const recent = done.filter(a => newest - Date.parse(a.closedAt || 0) < 60_000);
+    const older = done.filter(a => !recent.includes(a));
     body.appendChild(group(T('addressedGroup')(done.length)));
-    for (const a of recent) body.appendChild(itemNode(a, { done: true, ghost: !!a.fromVersion }));
+    for (const a of recent) body.appendChild(itemNode(a, { done: true }));
     if (older.length) {
       body.appendChild(groupToggle(T('earlierGroup')(older.length), S.doneOpen, () => {
         S.doneOpen = !S.doneOpen;
         render();   // the marks come and go with the fold
       }));
-      if (S.doneOpen) for (const a of older) body.appendChild(itemNode(a, { done: true, ghost: !!a.fromVersion }));
+      if (S.doneOpen) for (const a of older) body.appendChild(itemNode(a, { done: true }));
     }
   }
   // The list is rebuilt whenever anything moves, including while a reply is
@@ -4120,10 +3934,8 @@ function groupToggle (text, open, onclick) {
   b.onclick = onclick;
   return b;
 }
-function itemNode (a, { ghost, otherSize, done, asked } = {}) {
-  // Held reads as queued: to the reviewer both mean "handed over, Claude has
-  // not started" — where the words are sitting meanwhile is plumbing.
-  const working = S.working.has(a.id), queued = S.queued.has(a.id) || S.held.has(a.id);
+function itemNode (a, { otherSize, done, asked } = {}) {
+  const working = isWorking(a), queued = isQueued(a) && isOpen(a);
   // Made on another screen of the app. Not gone — one click away, and the
   // route it names is how you get there.
   const elsewhere = offRoute(a);
@@ -4137,24 +3949,16 @@ function itemNode (a, { ghost, otherSize, done, asked } = {}) {
     (off ? ' off' : '') + (asked ? ' asked' : '');
   el.dataset.id = a.id;
   el.style.setProperty('--mk', markColour(a));
-  /* A comment carried in from an earlier version says which one on the card.
-     A question asked ten rounds ago otherwise looks exactly like one asked a
-     minute ago, and how old it is changes what you do about it. The addressed
-     group is already a record of earlier rounds, so it says nothing extra. */
-  const raised = ghost && !done
-    ? ` · <span class="offtag" title="${esc(T('raised')(capFor(a.fromVersion)))}">${esc(T('fromEarlier')(capFor(a.fromVersion)))}</span>`
-    : '';
   el.innerHTML = `
     <div class="ih">
       <span class="n">${num(a)}</span>
-      <span class="kind">${kindLabel(a)}${otherSize ? ' · ' + sizeLabel(a.size) : ''}${raised}${off ? ` · <span class="offtag">${esc(elsewhere ? T('otherScreen') : T('offscreen'))}</span>` : ''}${queued ? ` · <span class="offtag">${esc(T('queuedTag'))}</span>` : ''}</span>
-      ${!isHistory() && !sent(a) && !S.held.has(a.id) && hasSubstance(a) && a.status !== 'addressed' && !ghost
+      <span class="kind">${kindLabel(a)}${otherSize ? ' · ' + sizeLabel(a.size) : ''}${off ? ` · <span class="offtag">${esc(elsewhere ? T('otherScreen') : T('offscreen'))}</span>` : ''}${queued ? ` · <span class="offtag">${esc(T('queuedTag'))}</span>` : ''}</span>
+      ${!isHistory() && !sent(a) && hasSubstance(a) && isOpen(a)
         ? `<button class="isend" title="${esc(T('sendOne'))}" aria-label="${esc(T('sendOne'))}">
              <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor"
                   stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
                <path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5"/></svg>
            </button>` : ''}
-      ${S.landed.has(a.id) ? `<button class="landedtag" title="${esc(T('landedTitle'))}">${esc(T('landedTag')(S.landedVersion))}</button>` : ''}
       ${done && !isHistory() ? `<button class="imore" aria-haspopup="true" aria-expanded="false"
         title="${esc(T('more'))}" aria-label="${esc(T('more'))}">⋯</button>` : ''}
       ${isHistory() ? '' : `<button class="ikill" title="${esc(T('dismissTitle'))}"
@@ -4197,7 +4001,6 @@ function itemNode (a, { ghost, otherSize, done, asked } = {}) {
     gnote.addEventListener('input', () => {
       a.note = gnote.value.trim();
       if (a._fresh && a.note) delete a._fresh;
-      S.sentSig = null;
       save(); renderCounts();
     });
     gnote.addEventListener('blur', () => { if (!hasSubstance(a)) removeComment(a.id) });
@@ -4248,7 +4051,6 @@ function itemNode (a, { ghost, otherSize, done, asked } = {}) {
     if (a.kind === 'general') { $('.gnote', el)?.focus(); return }
     // Carried and still open: say where it came from, because the version it was
     // made on is not the one on screen. Carried and addressed: nothing to say.
-    if (ghost && a.status === 'open') { toast(T('raised')(capFor(a.fromVersion))); return }
     if ((a.size || 'desktop') !== S.size.id) { setSize(a.size); setTimeout(() => reveal(a), 320); return }
     // Made on a screen that isn't up: go there first, then show the mark.
     if (elsewhere) { toast(T('goingTo')(a.route)); navigate(a.route, () => reveal(a)); return }
@@ -4295,15 +4097,17 @@ function innerScrolls (el) {
   return false;
 }
 function renderCounts () {
-  const comments = activeComments();
-  const open = comments.filter(a => a.status !== 'addressed');
+  // Every comment still to be dealt with, whoever is holding it — and, apart
+  // from it, the ones Clear all can still speak for.
+  const open = S.ann.filter(a => isOpen(a) && hasSubstance(a));
+  const clearable = activeComments();
   $('#counts').innerHTML = open.length
     ? `<b>${open.length}</b> ${esc(T('open').toLowerCase())}`
-      + (comments.some(a => a.status === 'question') ? '<br>' + esc(T('waiting')) : '')
+      + (open.some(a => awaitsReply(a)) ? '<br>' + esc(T('waiting')) : '')
     : esc(T('noOpen'));
   const clear = $('#btnClear');
   clear.textContent = T('clearAll');
-  clear.disabled = isHistory() || !comments.length;
+  clear.disabled = isHistory() || !clearable.length;
   renderSendButton(open);
   renderPanelBadge(open);
   renderHistoryButton();
@@ -4333,31 +4137,26 @@ function confirmClearComments () {
   const n = activeComments().length;
   $('#clearDialog').close();
   if (!n) return;
-  /* A carried comment lives in an earlier review file. Emptying only this
-     version cannot remove it; on reload it is carried straight back in. Put a
-     dismissed copy in the current version instead. Doing that for every
-     comment also preserves the audit record and prevents an older copy of a
-     current comment from being resurrected after the current one is gone. */
-  const cleared = new Map();
-  for (const a of S.carried.concat(S.ann)) {
-    if (!hasSubstance(a)) continue;
-    const copy = { ...a, dismissed: true };
-    delete copy.fromVersion; delete copy.reopenedAt; delete copy.revert;
-    delete copy.held; delete copy._fresh;
-    cleared.set(copy.id, copy);
+  /* Only what is still waiting here. A comment Claude already holds may have
+     been acted on, so taking that one back is a reply asking for it — clearing
+     a queue cannot speak for those. */
+  const going = activeComments().map(a => a.id);
+  for (const id of going) {
+    fetch(API + '/comments/dismiss', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    }).catch(() => {});
   }
-  S.ann = [...cleared.values()];
-  S.carried = [];
-  S.held.clear(); S.sentSig = null;
+  S.ann = S.ann.filter(a => !going.includes(a.id));
   save(); render();
-  toast(T('cleared')(n));
+  toast(T('cleared')(going.length));
 }
 
 /* The button has to say what is behind it, because a folded-away panel says
    nothing itself. The badge counts what is waiting on *you* — a question from
    Claude — and falls back to how many comments are open. */
 function renderPanelBadge (open) {
-  const need = S.ann.concat(S.carried).filter(a => !a.dismissed && awaitsReply(a)).length;
+  const need = S.ann.filter(awaitsReply).length;
   const say = need ? T('awaitingYou')(need)
     : open.length ? `${open.length} ${T('open').toLowerCase()}`
     : T('noOpen');
@@ -4390,9 +4189,8 @@ function renderSendButton (open) {
     `<span class="narrow">${T(artifact ? 'copyForShort' : 'sendShort')}</span>` +
     ' <span class="kbd">⌘⏎</span>';
   btn.title = '';
-  const nothing = !open.length && !S.carried.length;
-  // Nothing new to say since the last send is the only reason to be disabled.
-  btn.disabled = nothing || reviewSignature() === S.sentSig;
+  // Everything already let go of is on its way; Send is for what is still here.
+  btn.disabled = !open.some(a => !sent(a) && hasSubstance(a));
 }
 
 /* ─────────────── version timeline ─────────────── */
@@ -4490,7 +4288,7 @@ function subFor (n) {
     return (S.versions.find(v => v.n === n)?.goal || '')
       + (n === S.version ? (S.versions.find(v => v.n === n)?.goal ? ' · ' : '') + T('phaseCur') : '');
   }
-  const openN = (S.reviews[n]?.annotations || []).filter(a => a.status === 'open').length;
+  const openN = S.ann.filter(a => isOpen(a) && hasSubstance(a)).length;
   return dateFor(n)
     + (openN ? ` · ${openN} open` : '')
     + (n === S.version ? ' · ' + T('current') : '');
@@ -4575,21 +4373,13 @@ function buildFeedback () {
      Landed counts as done: a version this tab has not adopted yet already
      addressed it, and a brief built between the announcement and the refresh —
      the held queue flushing is exactly that moment — must not hand it back. */
-  const done = a => a.status === 'addressed' || S.landed.has(a.id);
-  const items = S.ann.filter(a => !done(a) && !a.dismissed && hasSubstance(a) && a.sentAt);
-  const carried = S.carried.filter(a => !done(a) && !a.dismissed);
-
-  const reverts = items.concat(carried).filter(a => a.revert);
-  const reopened = items.concat(carried).filter(a => a.reopenedAt && !a.revert);
+  const items = S.ann.filter(a => isOpen(a) && hasSubstance(a) && sent(a));
 
   const L = [];
   L.push(live()
-    ? `# Live UI review — ${S.name} · round ${S.version}`
+    ? `# Live UI review — ${S.name} · v${S.version}`
     : `# Wireframe review — ${S.name} · v${S.version}`);
-  L.push(`${items.length} comment(s) — every one is a must` +
-    (carried.length ? ` · ${carried.length} carried over` : '') +
-    (reverts.length ? ` · ${reverts.length} revert` : '') +
-    (reopened.length ? ` · ${reopened.length} reopened` : ''));
+  L.push(`${items.length} open comment(s) — every one is a must`);
   L.push('');
   if (live()) {
     // What is under review is running code, so the change is a code change.
@@ -4607,19 +4397,13 @@ function buildFeedback () {
   /* Two of the marks are drawn instead of written, so a brief that carries one
      has to say what the drawing meant — a comment with no words is otherwise
      read as a comment nobody finished. */
-  const drawn = items.concat(carried).filter(a => a.kind === 'move' || a.kind === 'strike');
+  const drawn = items.filter(a => a.kind === 'move' || a.kind === 'strike');
   if (drawn.length) {
     L.push('');
     L.push('Some of these were drawn on the page rather than written: **Move it** is an arrow ' +
       'from a thing to where it should go, and **Delete** is something struck out. They are ' +
       'instructions in their own right — a note on one adds to it, and no note means there was ' +
       'nothing to add.');
-  }
-  if (reverts.length || reopened.length) {
-    L.push('');
-    L.push('Some of these you already marked addressed and they were sent back: ' +
-      '**revert** means undo what you did there, **reopened** means it did not go far enough. ' +
-      'Read the note and the thread again before touching anything.');
   }
   L.push('');
 
@@ -4638,10 +4422,7 @@ function buildFeedback () {
          in an earlier brief — the brief is the state of the review, not a diff.
          Say which ones you have already seen so a second read does not become a
          second round of work on the same comment. */
-      const again = S.collected.has(a.id);
-      L.push(`### #${num(a)}${a.revert ? ' · REVERT' : ''}${again ? ' · ALREADY SENT' : ''}`);
-      if (again) L.push('*You have had this one before and it is still open — carry on with it rather than starting again.*');
-      if (a.revert) L.push('**They asked for your last change here to be undone** — restore what was there before, then apply the note again only if it still stands.');
+      L.push(`### ${a.id}`);
       if (live() && a.route) L.push(`**Route** \`${a.route}\``);
       L.push(`**Where** ${whereLine(a)}`);
       if (a.kind === 'move') L.push(`**Move it** ${moveLine(a)}`);
@@ -4655,35 +4436,21 @@ function buildFeedback () {
       L.push('');
     }
   }
-  if (carried.length) {
-    L.push(live() ? '## Still open from earlier rounds' : '## Still open from earlier versions');
-    L.push('');
-    for (const a of carried) {
-      L.push(`- **[${capFor(a.fromVersion)}]** ${a.note} — ${live() && a.route ? '`' + a.route + '` · ' : ''}${whereLine(a)}`);
-    }
-    L.push('');
-  }
   L.push('---');
-  L.push('Claim the round id from the pending record first. Then mark every applied comment done, and ask about anything unclear instead of guessing:');
+  L.push('Close what you have done. Anything you do not name stays open and comes back next time,');
+  L.push('so ask about whatever is unclear instead of guessing:');
   L.push('```bash');
   const subject = live() ? '--name <review-name>' : '--file <page.html>';
-  L.push(`node review-server.mjs claim ${subject} --round <round-id>`);
-  L.push(`node review-server.mjs publish ${subject} --round <round-id> --label "<what changed>" --addressed ` +
-    items.concat(carried).map(a => a.id).join(','));
-  L.push(`node review-server.mjs reply ${subject} --round <round-id> --comment <id> --text "<your question>"`);
+  L.push(`node review-server.mjs publish ${subject} --close <ids> --label "<what changed>"`);
+  L.push(`node review-server.mjs reply ${subject} --comment <id> --text "<your question>"`);
   L.push('```');
 
   const payload = {
     page: S.fileName, name: S.name, version: S.version,
-    ...(live() ? { reviewing: 'app', app: S.app, routes: [...new Set(items.concat(carried).map(a => a.route).filter(Boolean))] } : {}),
-    comments: items.concat(carried).map(a => ({
-      id: a.id, kind: a.kind, status: a.status, note: a.note,
+    ...(live() ? { reviewing: 'app', app: S.app, routes: [...new Set(items.map(a => a.route).filter(Boolean))] } : {}),
+    comments: items.map(a => ({
+      id: a.id, kind: a.kind, state: a.state, note: a.note,
       replies: a.replies || [],
-      // Reopened after you called it done — either put it back (revert) or
-      // take it further. Either way it is not finished.
-      reopened: !!a.reopenedAt, wantsRevert: !!a.revert,
-      // True when this comment was in a brief you already collected.
-      alreadySent: S.collected.has(a.id),
       anchorText: a.anchorText || null,
       // What the comment is attached to. `selector` is how the workspace finds
       // the element again to keep the mark on it — a hint for you, not a promise
@@ -4717,20 +4484,16 @@ function buildFeedback () {
       // Live: the screen of the app this was said about.
       route: a.route || null,
       point: a.point || null, rect: a.rect || null,
-      fromVersion: a.fromVersion || S.version,
+      seenAt: a.seenAt || S.version,
     })),
   };
   return {
     markdown: L.join('\n') + '\n\n```json\n' + JSON.stringify(payload, null, 2) + '\n```\n',
     feedback: payload,
-    counts: { total: items.length + carried.length },
+    counts: { total: items.length },
   };
 }
 
-/** What was last handed over, so an unchanged review can't be sent twice. */
-const reviewSignature = () => JSON.stringify(S.ann
-  .filter(a => a.status !== 'addressed' && hasSubstance(a))
-  .map(a => [a.id, a.note, a.status, !!a.revert, (a.replies || []).length]));
 
 /* ─────────────── live: keeping a copy of what they saw ───────────────
    A file review freezes the file on every publish. There is nothing to freeze
@@ -4782,99 +4545,50 @@ async function pushCapture () {
 }
 
 /**
- * Hand comments over. With no argument it sends everything open; with an id it
- * sends that one, which joins whatever is already out rather than replacing it.
- * With an array of ids — the held queue flushing — it sends those, and never
- * holds.
+ * Let go of what has been written. With no argument that is everything still
+ * here; with an id it is that one, which joins whatever Claude already has.
+ * Sending is not a batch — the comment joins the list the server holds, and
+ * goes out with everything else still open on the next tick.
  */
 async function openSend (only) {
   closeComposer();
   const at = new Date().toISOString();
   // DOM event handlers pass the click event as their first argument. Only an
-  // explicit string/array is a scoped send; everything else means Send all.
-  const scope = Array.isArray(only) || typeof only === 'string' ? only : null;
-  const going = Array.isArray(scope)
-    ? scope.map(annById).filter(Boolean)
-    : scope
-      ? [annById(scope)].filter(Boolean)
-      : S.ann.filter(a => a.status !== 'addressed' && !a.dismissed && hasSubstance(a));
-  /* A collected round is a Claude already working — sending into it would raise
-     a second wake-up mid-round. So the comment waits here, marked queued, and
-     goes out as one batch the moment the round ends. A brief still sitting
-     uncollected is different: writing into it just grows the batch Claude will
-     pick up in one read, so those sends go straight through. */
-  const collected = [...S.working].some(id => !S.queued.has(id));
-  if (!Array.isArray(scope) && collected && served()) {
-    for (const a of going) {
-      if (S.working.has(a.id) || S.held.has(a.id)) continue;
-      a.held = true; S.held.add(a.id);
-    }
-    if (S.held.size) {
-      // Nothing new to say until the next edit — the button can rest.
-      S.sentSig = reviewSignature();
-      save(); renderPanel();
-      toast(T('heldOn')(S.held.size));
-    }
-    return;
-  }
-  for (const a of going) if (!a.sentAt) a.sentAt = at;
-  const pending = buildFeedback();
-  if (!pending.counts.total) return;
+  // explicit id is a scoped send; everything else means send all.
+  const scope = typeof only === 'string' ? only : null;
+  const candidates = scope ? [annById(scope)].filter(Boolean) : S.ann;
+  const going2 = candidates.filter(a => !sent(a) && hasSubstance(a) && isOpen(a));
+  if (!going2.length) return;
   if (S.runtime === 'artifact') {
+    const pending = buildFeedback();
     await copy(pending.markdown);
-    S.sentSig = reviewSignature();
     // Copied out is out: the words are on their way to Claude in a paste, and
     // editing them here afterwards would change only this screen.
-    const at = new Date().toISOString();
-    for (const c of pending.feedback.comments) {
-      const a = annById(c.id);
-      if (a && !a.sentAt) a.sentAt = at;
-    }
+    for (const a of going2) a.sentAt = at;
     save(); render();
     return;
   }
   try {
-    // Take the picture before the round starts — once Claude changes the code,
-    // what the reviewer was looking at is gone.
-    await pushCapture();
-    /* The held queue flushes at the announcement, before this tab adopts the
-       new version — filing it under S.version then would overwrite the round
-       that just ended. A send always belongs to the newest version there is. */
-    const v = S.pendingUpdate?.currentVersion ?? S.version;
-    /* Same moment, same stale statuses: what landed is addressed, and writing
-       it as open into the new version's record would resurrect it there. */
-    const anns = S.ann.filter(hasSubstance)
-      .map(a => S.landed.has(a.id) ? { ...a, status: 'addressed' } : a);
-    const response = await fetch(API + '/feedback', {
+    // Take the picture of what they were looking at before Claude changes it.
+    if (!S.ann.some(isWorking)) await pushCapture();
+    /* Letting go of a comment is the whole of sending it. It joins the list the
+       server already holds and goes out on the next tick, so there is no batch
+       to time and nothing to hold back — Claude gets everything still open,
+       whenever each of them was written. */
+    for (const a of going2) a.sentAt = at;
+    const response = await fetch(API + '/comments', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ version: v, annotations: anns, ...pending }),
+      body: JSON.stringify({ comments: S.ann.filter(hasSubstance) }),
     });
-    if (!response.ok) throw new Error(`feedback failed (${response.status})`);
+    if (!response.ok) throw new Error(`send failed (${response.status})`);
     const receipt = await response.json();
-    S.activeRoundId = receipt.roundId || S.activeRoundId;
-    S.awaiting = true;
-    S.sentSig = reviewSignature();
-    /* Everything that just went out is queued by definition: the brief is on
-       disk and nobody has opened it. Waiting for the server to tell us that on
-       the next tick left the bars sweeping for a second first — saying work had
-       started when the message had not even been collected. Anything Claude
-       already holds from an earlier brief stays as work in progress. */
-    const ids = pending.feedback.comments.map(c => c.id);
-    // Stamped on the comment itself, so it stays true after the round it went
-    // out with is over. Out is out — whatever was held is held no longer.
-    const at = new Date().toISOString();
-    for (const id of ids) {
-      const a = annById(id);
-      if (a) { if (!a.sentAt) a.sentAt = at; delete a.held }
-      S.held.delete(id);
-    }
-    S.queued = new Set(ids.filter(id => !S.collected.has(id)));
-    setWorking(ids);
-    save();
-    toast(T('working')(pending.counts.total));
+    mergeComments(receipt.comments || []);
+    render();
+    toast(T('working')(going2.length));
   } catch {
-    // Failed is unsent: whatever the signature said, Send has to work again.
-    S.sentSig = null;
+    // Failed is unsent, so the button has to work again.
+    for (const a of going2) a.sentAt = null;
+    render();
     toast(T('sendFail'));
   }
 }
@@ -4902,17 +4616,7 @@ function renderApprove () {
   $('#btnApprove .t').textContent = armed ? T('approveSure') : T('approve');
   $('#btnApprove .d').textContent = '';
 }
-/* The hold is the default, not a wall. When Claude needs what was just written
-   to finish the round it is in the middle of, the queue can go now — it lands
-   as the next brief and joins the round rather than waiting behind it. */
-function renderSendNow () {
-  const b = $('#btnSendNow'), n = S.held.size;
-  b.hidden = !n; $('#sendNowRule').hidden = !n;
-  if (!n) return;
-  b.querySelector('.t').textContent = T('sendNow');
-  b.querySelector('.d').textContent = T('sendNowDesc')(n);
-}
-$('#btnSendNow').onclick = () => { closeSendMenu(); flushHeld(); };
+
 $('#btnSendMore').onclick = e => {
   e.stopPropagation();
   const on = !sendMenu.classList.contains('on');
@@ -4921,7 +4625,7 @@ $('#btnSendMore').onclick = e => {
   sendMenu.classList.add('on');
   $('#btnSendMore').setAttribute('aria-expanded', 'true');
   clearShareFlag();
-  renderApprove(); renderShare(); renderSendNow();
+  renderApprove(); renderShare();
 };
 // Signing off ends the review for everyone, so it asks once before acting.
 const approveConfirm = VSShell.armConfirm($('#btnApprove'), {
@@ -4996,8 +4700,8 @@ $('#btnShare').onclick = requestShare;
 
 async function approve () {
   closeSendMenu();
-  const all = new Map(S.carried.concat(S.ann).map(a => [a.id, a]));
-  const open = [...all.values()].filter(a => !a.dismissed && a.status !== 'addressed' && hasSubstance(a));
+  const all = new Map(S.ann.map(a => [a.id, a]));
+  const open = [...all.values()].filter(a => isOpen(a) && hasSubstance(a));
   if (S.runtime === 'artifact') { showDone(); return }
   try {
     const response = await fetch(API + '/approve', {

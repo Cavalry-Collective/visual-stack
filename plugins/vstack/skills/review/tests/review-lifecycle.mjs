@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const SERVER = path.resolve(HERE, '../assets/review-server.mjs')
-const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'vstack-round-test-'))
+const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'vstack-review-test-'))
 const page = path.join(temp, 'page.html')
 const store = path.join(temp, '.vstack', 'local', 'review', 'page')
 const port = 18000 + (process.pid % 1000)
@@ -24,6 +24,11 @@ async function request (pathname, options) {
   const body = await response.json()
   return { response, body }
 }
+
+const post = (pathname, body) => request(pathname, {
+  method: 'POST', headers: { 'content-type': 'application/json' },
+  body: JSON.stringify(body),
+})
 
 async function waitForServer () {
   for (let attempt = 0; attempt < 60; attempt++) {
@@ -48,281 +53,170 @@ async function startServer () {
   assert.match(await workspace.text(), /window\.__VSTACK_HOST__=\{"id":"codex","name":"Codex"/)
 }
 
+/** What the workspace saves. `sentAt` set means the reviewer let go of it. */
 const comment = (id, note, extra = {}) => ({
-  id, kind: 'area', status: 'open', note, size: 'desktop', replies: [], ...extra,
+  id, kind: 'area', note, size: 'desktop', replies: [], ...extra,
 })
+const write = comments => post('/api/comments', { comments })
+const send = comments => write(comments.map(item => ({ ...item, sentAt: new Date().toISOString() })))
 
-async function sendRound (version, comments) {
-  return request('/api/feedback', {
-    method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      version,
-      annotations: comments,
-      feedback: { comments: comments.map(item => ({ ...item })) },
-      counts: { total: comments.length },
-      markdown: '# Test review\n\n<round-id>\n',
-    }),
-  })
-}
+const stored = () => JSON.parse(fs.readFileSync(path.join(store, 'comments.json'))).comments
+const byId = id => stored().find(item => item.id === id)
+const briefText = () => fs.readFileSync(path.join(store, 'brief.md'), 'utf8')
 
-let server, awayServer
+/** One tick: block until there is something to hand over, take it, and exit. */
+const tick = () => spawnSync(process.execPath, [SERVER, 'watch', '--file', page], {
+  encoding: 'utf8', cwd: temp, timeout: 20_000,
+}).stdout
+
+let server
 try {
-  fs.writeFileSync(page, '<!doctype html><title>Round test</title><p>Initial</p>')
+  fs.writeFileSync(page, '<!doctype html><title>Review test</title><p>Initial</p>')
   assert.equal(cli('publish', '--label', 'Initial').status, 0)
-
   await startServer()
 
-  const first = await sendRound(1, [comment('c1', 'First'), comment('c2', 'Second')])
-  assert.equal(first.response.status, 200)
-  assert.equal(first.body.roundId, 'r1')
+  /* ── a comment is the reviewer's until they let go of it ── */
 
-  // "carry on" alone is how queued comments go unread: an unclaimed round is
-  // named on every check, and the exit code still says continue.
-  let result = cli('check')
-  assert.equal(result.status, 0, 'check always carries on')
-  assert.match(result.stdout, /r1 .* waiting unclaimed/)
-  assert.match(result.stdout, /claim .*--round r1/)
+  await write([comment('c1', 'First draft')])
+  assert.equal(byId('c1').sentAt, null, 'a comment being written has not been sent')
+  assert.equal(byId('c1').state, 'open')
 
-  // A fresh watcher heartbeat with the round still young reads as linked …
-  fs.writeFileSync(path.join(store, 'watching'), String(Date.now()))
-  let project = await request('/api/project')
-  assert.equal(project.body.watching, true)
-  assert.equal(project.body.activeReview.stalled, false)
+  await write([comment('c1', 'First, reworded')])
+  assert.equal(byId('c1').note, 'First, reworded', "a draft is still the reviewer's to rewrite")
 
-  // … but past the claim window the heartbeat no longer counts: a watcher
-  // nobody reads and no watcher at all must look the same to the reviewer.
-  const roundFile = path.join(store, 'rounds', 'r1.json')
-  const backdated = JSON.parse(fs.readFileSync(roundFile))
-  backdated.createdAt = new Date(Date.now() - 120_000).toISOString()
-  fs.writeFileSync(roundFile, JSON.stringify(backdated))
-  project = await request('/api/project')
-  assert.equal(project.body.watching, false, 'a round unclaimed past the window must drop the linked state')
-  assert.equal(project.body.activeReview.stalled, true)
+  const project = await request('/api/project')
+  assert.equal(project.body.comments.length, 1)
+  assert.equal(project.body.comments[0].deliveredAt, null, 'nothing is delivered until a tick takes it')
 
-  result = cli('publish', '--round', 'r1', '--label', 'Too soon', '--addressed', 'c1,c2')
-  assert.equal(result.status, 2, 'an unclaimed round must not publish')
-  assert.match(result.stderr, /claim r1/i)
-  assert.equal(JSON.parse(fs.readFileSync(path.join(store, 'state.json'))).version, 1)
+  await send([comment('c1', 'First, reworded'), comment('c2', 'Second')])
+  assert.ok(byId('c1').sentAt, 'sending stamps the comment')
 
-  assert.equal(cli('claim', '--round', 'r1').status, 0)
-  project = await request('/api/project')
-  assert.equal(project.body.watching, true, 'claiming the round restores the linked state')
-  assert.match(cli('check').stdout, /^carry on\s*$/, 'a claimed round needs no warning')
+  /* ── sent means frozen ── */
 
-  /* A stream watcher asks for the one thing only a live session can do, because
-     nothing in the process can tell which tool started it. Presence begins when
-     the handshake is answered; unanswered, the watcher exits saying so, which on
-     hosts that re-invoke on exit delivers itself to whoever started it. */
-  const watcher = (...extra) => {
-    const child = spawn(process.execPath, [SERVER, 'watch', '--file', page, '--stream', ...extra], {
-      cwd: temp, stdio: ['ignore', 'pipe', 'pipe'],
-    })
-    let out = ''
-    child.stdout.on('data', chunk => { out += chunk })
-    return { child, read: () => out, ended: new Promise(resolve => child.once('exit', resolve)) }
-  }
-  fs.rmSync(path.join(store, 'watching'), { force: true })
-  const ignored = watcher('--handshake-timeout', '2')
-  assert.equal(await ignored.ended, 3, 'an unanswered watcher must exit non-zero')
-  assert.match(ignored.read(), /HANDSHAKE/)
-  assert.match(ignored.read(), /UNWIRED/)
-  assert.equal(fs.existsSync(path.join(store, 'watching')), false,
-    'a watcher nobody answered must never claim presence')
+  await write([comment('c1', 'Something else entirely', { sentAt: byId('c1').sentAt })])
+  assert.equal(byId('c1').note, 'First, reworded',
+    'a comment already sent cannot be reworded, whatever a stale tab saves')
 
-  const wired = watcher('--handshake-timeout', '30')
-  for (let i = 0; i < 50 && !fs.existsSync(path.join(store, 'handshake')); i++) {
-    await new Promise(resolve => setTimeout(resolve, 100))
-  }
-  const token = JSON.parse(fs.readFileSync(path.join(store, 'handshake'), 'utf8')).token
-  assert.equal(cli('ack', '--token', 'wrong').status, 2, 'a wrong token must not answer the handshake')
-  assert.equal(cli('ack', '--token', token).status, 0)
-  for (let i = 0; i < 50 && !fs.existsSync(path.join(store, 'watching')); i++) {
-    await new Promise(resolve => setTimeout(resolve, 100))
-  }
-  assert.ok(fs.existsSync(path.join(store, 'watching')), 'an answered watcher starts beating')
-  assert.match(wired.read(), /LINKED/)
-  wired.child.kill('SIGTERM')
-  await wired.ended
-  assert.equal(cli('ack', '--token', token).status, 0, 'answering twice is not an error')
+  /* ── the tick hands over everything open ── */
 
-  /* Starting a second watcher overwrites the first one's handshake, so an
-     answer names which one it is for. A watcher that read a missing handshake
-     as its own answer would go live on someone else's — and keep beating after
-     the answered one stopped, which is presence claiming exactly what it cannot
-     see. */
-  fs.rmSync(path.join(store, 'watching'), { force: true })
-  const ignoredWatcher = watcher('--handshake-timeout', '4')
-  for (let i = 0; i < 50 && !fs.existsSync(path.join(store, 'handshake')); i++) {
-    await new Promise(resolve => setTimeout(resolve, 100))
-  }
-  const firstToken = JSON.parse(fs.readFileSync(path.join(store, 'handshake'), 'utf8')).token
-  const answeredWatcher = watcher('--handshake-timeout', '30')
-  for (let i = 0; i < 50 && JSON.parse(fs.readFileSync(path.join(store, 'handshake'), 'utf8')).token === firstToken; i++) {
-    await new Promise(resolve => setTimeout(resolve, 100))
-  }
-  const secondToken = JSON.parse(fs.readFileSync(path.join(store, 'handshake'), 'utf8')).token
-  assert.notEqual(secondToken, firstToken, 'the second watcher asks in its own name')
-  assert.equal(cli('ack', '--token', secondToken).status, 0)
-  assert.equal(await ignoredWatcher.ended, 3, 'a watcher answered in another name must still time out')
-  assert.match(ignoredWatcher.read(), /UNWIRED/)
-  assert.doesNotMatch(ignoredWatcher.read(), /LINKED/, 'only the watcher that was answered may claim presence')
-  assert.match(answeredWatcher.read(), /LINKED/)
-  assert.ok(fs.existsSync(path.join(store, 'watching')),
-    'the answered watcher keeps beating through the other one exiting')
-  answeredWatcher.child.kill('SIGTERM')
-  await answeredWatcher.ended
+  let out = tick()
+  assert.match(out, /REVIEW/)
+  assert.match(out, /2 open, 2 new/)
+  assert.match(briefText(), /### c1 · NEW/)
+  assert.match(briefText(), /First, reworded/)
+  assert.match(briefText(), /--close <ids>/)
+  assert.ok(byId('c1').deliveredAt, 'delivery is recorded on the comment')
 
-  /* A page an agent generates lands in a temp directory, and its store lands
-     beside it — outside the directory the session runs `watch --all` from. The
-     walk cannot reach it, so the serve leaves a pointer in the directory both
-     processes do share, and the watcher heartbeats the review it names. Without
-     that, the handshake is answered, the stream says Linked, and the workspace
-     sits on Unlinked with nobody able to see why. */
-  const away = fs.mkdtempSync(path.join(os.tmpdir(), 'vstack-away-test-'))
-  const awayPage = path.join(away, 'elsewhere.html')
-  const awayStore = path.join(away, '.vstack', 'local', 'review', 'elsewhere')
-  fs.writeFileSync(awayPage, '<!doctype html><title>Elsewhere</title><p>Away</p>')
-  awayServer = spawn(process.execPath, [SERVER, 'serve', '--file', awayPage,
-    '--port', String(port + 1), '--idle-timeout', '0', '--no-open'], { cwd: temp, stdio: 'ignore' })
-  for (let i = 0; i < 60 && !fs.existsSync(path.join(awayStore, 'url')); i++) {
-    await new Promise(resolve => setTimeout(resolve, 100))
-  }
-  assert.ok(fs.existsSync(path.join(awayStore, 'url')), 'the second review must come up')
+  /* ── closing is the agent's alone, and partial by design ── */
 
-  const everywhere = spawn(process.execPath, [SERVER, 'watch', '--all', '--stream', '--handshake-timeout', '30'],
-    { cwd: temp, stdio: ['ignore', 'pipe', 'pipe'] })
-  let heard = ''
-  everywhere.stdout.on('data', chunk => { heard += chunk })
-  const allHandshake = path.join(temp, '.vstack', 'local', 'review', 'handshake')
-  for (let i = 0; i < 50 && !fs.existsSync(allHandshake); i++) {
-    await new Promise(resolve => setTimeout(resolve, 100))
-  }
-  assert.equal(spawnSync(process.execPath, [SERVER, 'ack', '--all',
-    '--token', JSON.parse(fs.readFileSync(allHandshake, 'utf8')).token], { cwd: temp, encoding: 'utf8' }).status, 0)
-  for (let i = 0; i < 50 && !fs.existsSync(path.join(awayStore, 'watching')); i++) {
-    await new Promise(resolve => setTimeout(resolve, 100))
-  }
-  assert.ok(fs.existsSync(path.join(awayStore, 'watching')),
-    'a review outside the watcher\'s directory must still be heartbeaten')
-  assert.match(heard, /LINKED/)
-  everywhere.kill('SIGTERM')
-  await new Promise(resolve => everywhere.once('exit', resolve))
+  const published = cli('publish', '--close', 'c1', '--label', 'Reworded heading')
+  assert.equal(published.status, 0)
+  assert.equal(byId('c1').state, 'closed')
+  assert.equal(byId('c2').state, 'open', 'a comment nobody named is still open')
+  assert.equal(JSON.parse(fs.readFileSync(path.join(store, 'state.json'))).version, 2)
+  // The tick wakes for what the reviewer says, so a comment left open has to be
+  // named where the agent believes it has finished.
+  assert.match(published.stdout, /1 comment\(s\) you were given are still open: c2/)
 
-  const pointer = path.join(temp, '.vstack', 'local', 'review', '.serving')
-  assert.equal(fs.readdirSync(pointer).length, 2, 'each live serve points at its own store')
-  awayServer.kill('SIGTERM')
-  await new Promise(resolve => awayServer.once('exit', resolve))
-  awayServer = null
-  assert.equal(fs.readdirSync(pointer).length, 1, 'a serve that ends takes its pointer with it')
-  fs.rmSync(away, { recursive: true, force: true })
+  assert.equal(cli('publish', '--close', 'c1').status, 0, 'closing what is closed is a no-op')
+  assert.equal(JSON.parse(fs.readFileSync(path.join(store, 'state.json'))).version, 2,
+    'closing without a label adds no version')
 
-  fs.writeFileSync(path.join(store, 'watching'), String(Date.now()))
-  result = cli('publish', '--round', 'r1', '--label', 'Incomplete', '--addressed', 'c1')
-  assert.equal(result.status, 2, 'an unresolved comment must block publication')
-  assert.match(result.stderr, /c2 is still open/)
+  /* ── a reply on a closed comment is how the reviewer reopens it ── */
 
-  result = cli('publish', '--round', 'r1', '--label', 'Unknown', '--addressed', 'c1,c2,c999')
-  assert.equal(result.status, 2, 'unknown ids must block publication')
-  assert.match(result.stderr, /c999 does not belong/)
+  await write([{ ...byId('c1'), replies: [{ by: 'reviewer', text: 'Not like that', at: new Date().toISOString() }] }])
+  assert.equal(byId('c1').state, 'open', 'answering something called done says it is not done')
+  out = tick()
+  assert.match(out, /2 open/, 'everything open goes, not only what was just said')
+  assert.doesNotMatch(out, /new/, 'a comment coming round again is not new')
+  assert.match(briefText(), /They replied:\*\* Not like that/)
+  assert.match(briefText(), /### c2/)
 
-  await request('/api/annotations', {
-    method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ version: 1, annotations: [comment('c1', 'First, edited'), comment('c2', 'Second')] }),
+  /* ── the thread is append-only, from either side ── */
+
+  assert.equal(cli('reply', '--comment', 'c2', '--text', 'Which card?').status, 0)
+  assert.equal(byId('c2').state, 'open', 'asking is not a state — the comment stays open')
+  // A tab that never saw the agent's question saves its own copy of the thread.
+  await write([{
+    ...comment('c2', 'Second', { sentAt: byId('c2').sentAt }),
+    replies: [{ by: 'reviewer', text: 'The second one', at: new Date().toISOString() }],
+  }])
+  assert.deepEqual(byId('c2').replies.map(reply => reply.by), ['agent', 'reviewer'],
+    'neither side can lose a line of the thread by being stale')
+
+  /* ── liveness: whatever the reviewer did meanwhile, the agent can finish ── */
+
+  tick()
+  assert.equal(cli('publish', '--close', 'c1,c2', '--label', 'Both done').status, 0,
+    'nothing the reviewer does can stop the agent closing what it was given')
+  assert.deepEqual(stored().map(item => item.state), ['closed', 'closed'])
+
+  /* ── withdrawal, before and after delivery ── */
+
+  await write([comment('c3', 'Third')])
+  let dismissed = await post('/api/comments/dismiss', { id: 'c3' })
+  assert.equal(dismissed.response.status, 200, "a draft is the reviewer's to take back")
+  assert.equal(stored().find(item => item.id === 'c3'), undefined)
+
+  await send([comment('c4', 'Fourth')])
+  dismissed = await post('/api/comments/dismiss', { id: 'c4' })
+  assert.equal(dismissed.response.status, 200, 'queued is still only waiting here')
+
+  await send([comment('c5', 'Fifth')])
+  tick()
+  dismissed = await post('/api/comments/dismiss', { id: 'c5' })
+  assert.equal(dismissed.response.status, 409,
+    'once it is with the agent, taking it back is a reply asking for it back')
+  assert.match(dismissed.body.error, /Reply on it/)
+
+  /* ── the agent cannot close what it was never given ── */
+
+  await write([comment('c6', 'Sixth, still being written')])
+  const early = cli('publish', '--close', 'c6')
+  assert.equal(early.status, 2)
+  assert.match(early.stderr, /c6 has not been sent yet/)
+  const unknown = cli('publish', '--close', 'c5,c404')
+  assert.equal(unknown.status, 2)
+  assert.match(unknown.stderr, /c404 is not a comment on this review/)
+  assert.equal(byId('c5').state, 'open', 'a rejected close changes nothing at all')
+
+  /* ── a store written by an older version is read where it lies ── */
+
+  const old = path.join(temp, 'old')
+  const oldStore = path.join(old, '.vstack', 'local', 'review', 'legacy')
+  fs.mkdirSync(path.join(oldStore, 'reviews', 'v1'), { recursive: true })
+  fs.mkdirSync(path.join(oldStore, 'reviews', 'v2'), { recursive: true })
+  fs.writeFileSync(path.join(old, 'legacy.html'), '<!doctype html><title>Legacy</title><p>x</p>')
+  fs.writeFileSync(path.join(oldStore, 'state.json'), JSON.stringify({ version: 2, name: 'legacy' }))
+  fs.writeFileSync(path.join(oldStore, 'reviews', 'v1', 'annotations.json'), JSON.stringify({
+    annotations: [
+      { id: 'a1', note: 'Done back then', status: 'addressed', sentAt: '2026-01-01T00:00:00.000Z' },
+      { id: 'a2', note: 'Withdrawn', dismissed: true },
+      { id: 'a3', note: 'Stale copy', status: 'open', sentAt: '2026-01-01T00:00:00.000Z' },
+    ],
+  }))
+  fs.writeFileSync(path.join(oldStore, 'reviews', 'v2', 'annotations.json'), JSON.stringify({
+    annotations: [
+      {
+        id: 'a3', note: 'Still open', status: 'question', sentAt: '2026-01-02T00:00:00.000Z',
+        replies: [{ by: 'claude', text: 'Which one?', at: '2026-01-02T00:00:00.000Z' }],
+      },
+    ],
+  }))
+  const legacy = spawnSync(process.execPath, [SERVER, 'status', '--file', path.join(old, 'legacy.html')], {
+    encoding: 'utf8', cwd: old,
   })
-  result = cli('publish', '--round', 'r1', '--label', 'Stale', '--addressed', 'c1,c2')
-  assert.equal(result.status, 2, 'a stale comment revision must block publication')
-  assert.match(result.stderr, /changed after r1/)
-
-  const refreshed = await sendRound(1, [comment('c1', 'First, edited'), comment('c2', 'Second')])
-  assert.equal(refreshed.body.roundId, 'r1')
-  assert.equal(cli('claim', '--round', 'r1').status, 0)
-  assert.equal(cli('reply', '--round', 'r1', '--comment', 'c2', '--text', 'Could you clarify?').status, 0)
-  assert.equal(cli('publish', '--round', 'r1', '--label', 'First addressed', '--addressed', 'c1').status, 0)
-
-  let state = JSON.parse(fs.readFileSync(path.join(store, 'state.json')))
-  assert.equal(state.version, 2)
-  assert.equal(state.activeRound, undefined)
-  const saved = JSON.parse(fs.readFileSync(path.join(store, 'reviews', 'v1', 'annotations.json')))
-  assert.equal(saved.annotations.find(item => item.id === 'c1').status, 'addressed')
-  assert.equal(saved.annotations.find(item => item.id === 'c2').status, 'question')
-
-  assert.equal(cli('publish', '--round', 'r1', '--label', 'Retry', '--addressed', 'c1').status, 0)
-  state = JSON.parse(fs.readFileSync(path.join(store, 'state.json')))
-  assert.equal(state.version, 2, 'retrying a completed round must be idempotent')
-
-  const cleared = await request('/api/history/clear', { method: 'POST' })
-  assert.equal(cleared.response.status, 200)
-  const afterClear = await request('/api/project')
-  assert.deepEqual(afterClear.body.versions.map(version => version.n), [2])
-  assert.equal(afterClear.body.reviews[1].annotations.find(item => item.id === 'c2').status, 'question',
-    'clearing snapshots must not remove comment history')
-
-  const second = await sendRound(2, [comment('c2', 'Second', {
-    replies: [{ by: 'agent', text: 'Could you clarify?', at: '2026-01-01T00:00:00.000Z' },
-      { by: 'reviewer', text: 'Yes, both.', at: '2026-01-01T00:01:00.000Z' }],
-  })])
-  assert.equal(second.body.roundId, 'r2')
-  assert.equal(cli('claim', '--round', 'r2').status, 0)
-  // A restart is recovery, not a new review: the claimed round has to survive it.
-  server.kill('SIGTERM')
-  await new Promise(resolve => server.once('exit', resolve))
-  await startServer()
-  const recovered = await request('/api/project')
-  assert.equal(recovered.body.activeReview.id, 'r2', 'an active round must survive a restart')
-  assert.equal(recovered.body.activeReview.status, 'active')
-
-  let approval = await request('/api/approve', {
-    method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ version: 2, expectedOpenCount: 0 }),
-  })
-  assert.equal(approval.response.status, 409, 'approval must reject a stale client count')
-  assert.equal(approval.body.openComments.length, 1)
-
-  approval = await request('/api/approve', {
-    method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ version: 2, expectedOpenCount: 1 }),
-  })
-  assert.equal(approval.response.status, 200)
-  const approved = JSON.parse(fs.readFileSync(path.join(store, 'approved')))
-  assert.deepEqual(approved.openComments.map(item => item.id), ['c2'])
-
-  const annotationsIn = version =>
-    JSON.parse(fs.readFileSync(path.join(store, 'reviews', `v${version}`, 'annotations.json'))).annotations
-
-  // A save reports what one client holds, which is never the whole review: a
-  // comment carried from an earlier version is not in the payload at all. An id
-  // the client left out must survive the save that omitted it.
-  const save = annotations => request('/api/annotations', {
-    method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ version: 2, annotations }),
-  })
-  await save([comment('c3', 'Third'), comment('c4', 'Fourth')])
-  await save([comment('c3', 'Third, edited')])
-  assert.deepEqual(annotationsIn(2).map(item => item.id).sort(), ['c2', 'c3', 'c4'],
-    'a save must not delete the comments it did not mention')
-  assert.equal(annotationsIn(2).find(item => item.id === 'c3').note, 'Third, edited',
-    'a save must still update the comments it did mention')
-
-  // c1 was addressed back on v1 and has not been touched since, so it lives
-  // only in that older review file. The reply belongs where the workspace is
-  // looking — the current version — not where the comment happens to sit.
-  const replied = cli('reply', '--comment', 'c1', '--text', 'Which heading did you mean?')
-  assert.equal(replied.status, 0)
-  assert.match(replied.stdout, /on v2 \(carried forward from v1\)/)
-  const answered = annotationsIn(2).find(item => item.id === 'c1')
-  assert.ok(answered, 'a reply must land in the version the workspace has open')
-  assert.equal(answered.replies.at(-1).text, 'Which heading did you mean?')
-  assert.equal(answered.status, 'question')
-  assert.deepEqual(annotationsIn(1).find(item => item.id === 'c1').replies, [],
-    'the stale copy must not be the one that changed')
-
-  assert.equal(cli('reply', '--comment', 'c404', '--text', 'Nobody home').status, 1,
-    'a comment in no version at all must fail loudly')
-
+  assert.equal(legacy.status, 0)
+  const adopted = JSON.parse(legacy.stdout).comments
+  assert.deepEqual(adopted.map(item => [item.id, item.state]).sort(),
+    [['a1', 'closed'], ['a2', 'closed'], ['a3', 'open']],
+    'addressed and withdrawn are both closed, and the newest copy of an id wins')
+  assert.equal(adopted.find(item => item.id === 'a3').note, 'Still open')
+  assert.ok(fs.existsSync(path.join(oldStore, 'reviews', 'v1', 'annotations.json')),
+    'the older store is read where it lies, never moved')
 
   console.log('review lifecycle integration: ok')
 } finally {
   server?.kill('SIGTERM')
-  awayServer?.kill('SIGTERM')
   fs.rmSync(temp, { recursive: true, force: true })
 }

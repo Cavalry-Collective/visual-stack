@@ -14,15 +14,12 @@ wireframes/
   candidate-pipeline.html        ← the page — the ONLY file you edit
   .vstack/local/review/
     candidate-pipeline/
-      state.json                 { name, version }
+      state.json                 { name, version, file? | app? }
+      comments.json              every comment for this review — the whole truth
+      brief.md                   the open comments, rewritten on every delivery
       versions/v1.html           frozen copy of each published version
-      versions/v1.meta.json      label, date, which ids it answered
-      reviews/v1/
-        annotations.json         live workspace state (autosaved while reviewing)
-        feedback.md              the brief you read
-        feedback.json            the same, structured
-      rounds/r1.json             durable membership, revisions and outcomes
-      pending                    notification — written on send, cleared by claim
+      versions/v1.meta.json      label and date
+      reviews/v1/                only ever read — where an older version kept its comments
       handshake                  a stream watcher waiting to be told its events land
       approved                   sentinel — signed off; the review is over
       share                      sentinel — they want a shareable Artifact link
@@ -38,27 +35,28 @@ A live review has no file to sit beside, so its store is
 `.vstack/local/review/<name>/`
 under the directory `serve` was run from, and `state.json` also carries the app's
 origin. `versions/v<n>.html` is then a capture of the screen the reviewer was
-commenting on when they sent round *n* — the timeline scrubs to it, and it is
-what `share` publishes. A round nobody sent a review from has no capture, which
-the workspace says in the frame rather than showing an error.
+commenting on when they sent — the timeline scrubs to it, and it is what `share`
+publishes. A version nobody sent a comment from has no capture, which the
+workspace says in the frame rather than showing an error.
 
-`pending`, `approved` and `share` are the three ways the workspace reaches you.
-Approving clears `pending`, and `serve` clears `approved` and `share` at startup.
-Do not delete protocol files manually: `claim` clears `pending` and `share --url`
-clears `share`. The round record remains as the validation and recovery ledger.
+`comments.json`, `approved` and `share` are how the workspace reaches you.
+`serve` clears `approved` and `share` at startup. Do not delete protocol files
+manually: `share --url` clears `share`, and closing a comment is
+`publish --close`.
 
 ## Commands
 
 ```bash
 # freeze the file as the next version and make it current
 node "$SKILL/assets/review-server.mjs" publish --file "$FILE" --label "Initial version"
-node "$SKILL/assets/review-server.mjs" claim --file "$FILE" --round r1
+
+# close what you did, and label the version you did it in — either flag alone is fine
 node "$SKILL/assets/review-server.mjs" publish --file "$FILE" \
-  --round r1 --label "Filters collapsed" --addressed c1f3k2,c9dk1
+  --close c1f3k2,c9dk1 --label "Filters collapsed"
 
 # ask about a comment instead of guessing — the question lands on the mark
 node "$SKILL/assets/review-server.mjs" reply --file "$FILE" \
-  --round r1 --comment c7f2a1 --text "Every overdue row, or only the ones assigned to you?"
+  --comment c7f2a1 --text "Every overdue row, or only the ones assigned to you?"
 
 # serve (Host op background) — opens the workspace in the browser, closes itself 90s after the tab does
 # --host / VSTACK_HOST selects UI labels (claude | codex | grok); see contracts/host.md
@@ -87,11 +85,9 @@ node "$SKILL/assets/review-server.mjs" serve --app http://localhost:5173 --name 
 node "$SKILL/assets/review-server.mjs" serve --app :5173 --name lora-ui --start /workflows
 
 # every other command names the review instead of a file
-node "$SKILL/assets/review-server.mjs" claim   --name lora-ui --round r1
-node "$SKILL/assets/review-server.mjs" publish --name lora-ui --round r1 --label "Date column added" --addressed c1f3k2
-node "$SKILL/assets/review-server.mjs" reply   --name lora-ui --round r1 --comment c7f2a1 --text "Created, or finished?"
+node "$SKILL/assets/review-server.mjs" publish --name lora-ui --close c1f3k2 --label "Date column added"
+node "$SKILL/assets/review-server.mjs" reply   --name lora-ui --comment c7f2a1 --text "Created, or finished?"
 node "$SKILL/assets/review-server.mjs" status  --name lora-ui
-node "$SKILL/assets/review-server.mjs" check   --name lora-ui
 ```
 
 `--name` finds the store under the current directory — run every command from
@@ -133,8 +129,7 @@ WATCHING  2 review(s): wireframe, spec-tree
 HANDSHAKE this stream is not live until you answer it. Run now:
           node …/review-server.mjs ack --all --token 7f3a91
 LINKED    handshake answered — the workspace says Linked from here
-REVIEW    wireframe · r17 · 3 comment(s) · …/reviews/v12/feedback.md
-REPLIED   wireframe · v12/c7h0zh0 · "let's align it to the bottom"
+REVIEW    wireframe · 3 open, 1 new · …/.vstack/local/review/wireframe/brief.md
 OPENED    story-map-template · now watching 3 review(s)
 CLOSED    spec-tree · the tab went away
 ```
@@ -151,13 +146,8 @@ A watcher that covers no review at all says `UNLINKED` in place of `LINKED` once
 its handshake is answered. Nothing is listening to any workspace at that point,
 whatever the handshake proved: start it again with `--file <page.html>`.
 
-**Linked** also needs the rounds to move: a round left unclaimed for 90 seconds
-flips the page back to **Unlinked** and marks the sent comments "not picked up
-yet". If that happens while your watcher is running, its events are not reaching
-you — check how it was started against the Host adapter, then claim the round.
-
-First thing after a `REVIEW`: run `claim --round <id>` using the id in the event.
-It clears the notification but preserves the durable ledger. Use `share --url`
+First thing after a `REVIEW`: read the `brief.md` it names. Delivery is already
+recorded, so the workspace shows those comments as being worked on. Use `share --url`
 after publishing a link.
 
 A one-shot form (`watch` without `--stream`) still exists: it exits on the first
@@ -173,14 +163,14 @@ exits `3`.
 **Arm exactly one waiter per review.** Re-arming without stopping the previous
 one leaves loops polling paths that no longer exist.
 
-## Reading the feedback
+## Reading the brief
 
-`feedback.md` is a brief grouped by screen size; the fenced JSON block at the
-bottom is the same data structured. Each comment:
+`brief.md` is every open comment, grouped by screen size and rewritten on each
+delivery. `comments.json` beside it is the same data structured. Each comment:
 
 | field | meaning |
 |---|---|
-| `id` | pass back via `--addressed` once handled |
+| `id` | pass back via `--close` once handled |
 | `kind` | `comment` (a point), `area` (a region), `general` (the page as a whole), `move` (an arrow), `strike` (something marked for removal) |
 | `note` | the reviewer's words — the actual requirement. **Every comment is a must**; there is no severity to triage by. Empty on a `move` or a `strike`, which say what they want by themselves |
 | `anchor` | the element the comment was made on: `tag`, `id`, `classes`, `role`, `text`, `label`, the `region` it sits in, and the `selector` that found it |
@@ -239,23 +229,22 @@ the desktop one.
 
 ## The conversation
 
-The reviewer has no resolve button — a validated
-`publish --round <id> --addressed <ids>` is the only thing that closes a comment out. The command
-fails without creating a version when any round member is left open, an id or
-revision is stale, or the round was not claimed.
-They can delete a comment or clear the lot, but they cannot mark one done.
+The reviewer has no resolve button — `publish --close <ids>` is the only thing
+that closes a comment out, and nothing they do can refuse it. Anything you do
+not name stays open and comes back on the next delivery, so a partial answer is
+a normal one.
+They can take back a comment you have not been handed yet, but they cannot mark
+one done.
 Emptying a comment's text deletes it, so an empty comment never reaches you.
 
-What they *can* do is send one back. Addressed comments stay in their list under
-their own heading with **Revert** and **Refine** beside them; either reopens the
-comment and returns it next round, revert with a reply asking for the change to
-be undone. That is the only path by which a status goes backwards — the server
-refuses an un-address from a client unless the annotation carries the
-`reopenedAt` stamp those two buttons write.
+What they *can* do is answer. Closed comments stay in their list under their own
+heading with **Revert** and **Refine** beside them; both write into the thread,
+and a reviewer's reply on a closed comment reopens it. That is the only path by
+which a comment goes backwards, and it is the server that applies it — a client
+can never set a comment's state itself.
 
-Send is one click with no preview, and greys out until a comment is added,
-edited or answered — so a review landing on your waiter always contains
-something new.
+Send is one click with no preview: it lets go of what has been written, which
+also freezes those words. Anything typed afterwards is a reply.
 
 When a comment is ambiguous, `reply` beats guessing. The question renders on the
 mark itself, the comment shows as *{agent} asked*, and their answer flips it back

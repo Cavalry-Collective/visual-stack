@@ -25,13 +25,13 @@ tool mapping.
 
 A two-way review loop. The user comments on the screen; you apply the comments, ask about anything ambiguous, and publish the next version. Two things can go under it:
 
-| | what it is | what a round changes |
+| | what it is | what you change |
 |---|---|---|
 | **A page** (§1–§3) | a wireframe you just generated, an exported screen, a prototype — any self-contained HTML file | the file |
 | **A UI that exists** (§7) | an app on localhost, or a website on the internet: the real screens, real data, real states | the source code — or, for a site you don't own, a note about it |
 
 ```
-requirements ──► page.html ──► review workspace ──► feedback.md ──┐
+requirements ──► page.html ──► review workspace ──► brief.md ─────┐
       ▲          or a live app  (user comments)                    │
       └──────── you apply it, reply, publish v(N+1) ◄──────────────┘
 ```
@@ -73,7 +73,7 @@ With a **URL**, use Host op **`browser_capture`** when the adapter says it is
 available; otherwise ask the user for screenshots and derive by eye (§2
 screenshots path). The full procedure — screenshots per size,
 `assets/harvest-reference.js`, writing `<page-dir>/<name>-reference.md` so every
-later round reads it instead of re-capturing, the never-sign-in rule — is
+later pass reads it instead of re-capturing, the never-sign-in rule — is
 `references/design-sources.md` §1–2. Copying a *layout* is the point; logos,
 wordmarks, photography and copy stay placeholders.
 
@@ -184,7 +184,7 @@ Answering proves the op was fulfilled, since only a session that can run command
 Answer within two minutes; after that the watcher prints `UNWIRED` and exits, and you start it again
 with the tool your adapter names for `watch_stream`.
 
-The page says **Linked** for as long as the watcher is answered and the rounds are being claimed,
+The page says **Linked** for as long as the watcher is answered,
 and **Unlinked** in amber the rest of the time, so the reviewer always knows which one they have.
 
 Each event is one line (full table: `contracts/review-loop.md`):
@@ -195,56 +195,48 @@ Each event is one line (full table: `contracts/review-loop.md`):
 | **`LINKED`** | the handshake is answered and a review is under the watcher; the workspace says Linked | carry on — the loop is live |
 | **`UNLINKED`** | the handshake is answered, but the watcher found no review to cover, so no workspace says Linked | start it again with `--file <page.html>` if a review is already running for a page outside this directory. A serve started here after it needs nothing |
 | **`UNWIRED`** | the handshake went unanswered and the watcher exited | start it again with the tool your adapter names for `watch_stream` |
-| **`REVIEW`** | a review landed; the line names its round and brief | `claim` the round, then apply it — the steps below |
-| **`REPLIED`** | they answered a question you asked | read the thread and carry on with that comment. Nothing else announces this — a reply writes no sentinel |
+| **`REVIEW`** | comments have been handed to you; the line names how many are open and where the brief is | read the brief, then the steps below |
 | **`SHARE`** | they want a link to send someone | Host op `share` if capable, then §6; if the Host cannot share publicly, say so and offer a file/bundle instead |
 | **`APPROVED`** | the design is signed off; the server has closed itself | say it's approved, note any `openComments` deliberately left, and carry on with whatever comes next |
 | **`CLOSED`** | that review's tab went away | the watcher drops it and keeps watching the rest; it only stops when none are left |
 
-**Use the protocol commands rather than deleting state files.** `claim --round …` consumes `pending`
-and `share --url` clears `share`. The durable round record remains available for validation,
-recovery, and idempotent retries.
+**Use the protocol commands rather than deleting state files.** `share --url` clears `share`, and
+closing a comment is `publish --close`.
 
-### Checking during a round
+### What a delivery is
 
-While you work, **no waiter is armed** — nothing will interrupt you, and a round in flight cannot be
-called off. If the reviewer changes their mind they send again, and that brief supersedes.
+The watcher blocks until the reviewer has said something you have not been given, then hands you
+**every open comment** — not only the new ones — marking which are new since last time. A comment you
+do not close comes back on the next delivery, so nothing is lost by being missed.
 
-**Check at the checkpoints of a long round** — after reading the feedback, and before `publish`:
+While you work, **nothing will interrupt you.** New comments accumulate on the server and arrive with
+the next delivery; a review in flight cannot be called off.
 
-```bash
-node "$SKILL/assets/review-server.mjs" check --file "$FILE"
-```
+On a delivery:
 
-It always exits 0. It exists to name a round sitting in the queue that nobody has claimed: if it does,
-claim that round before anything else, because comments are sitting unread.
-
-The longer the round, the more it matters: a check costs nothing, and one that never runs makes the
-button a lie.
-
-On a review landing:
-
-1. Claim the round named by the `REVIEW` event. This acknowledges delivery without discarding its ledger:
-   ```bash
-   node "$SKILL/assets/review-server.mjs" claim --file "$FILE" --round r17
-   ```
-2. Read `feedback.md` (the claim output names it). It carries a markdown brief plus a JSON block with every comment's element, place, screen size and thread.
-3. **Apply every comment that isn't addressed.** There are no priorities to sort by — if the reviewer wrote it down, it needs doing. Locate each from its **anchor** — the element and the region it sits in — at the screen size it was made at, using the coordinates only to break a tie.
-4. **Ask instead of guessing.** If a comment is ambiguous, reply to it — the question appears on the mark and in the comment list, where the user answers it:
+1. **Read the brief** the `REVIEW` line names (`<store>/brief.md`). It carries every open comment with
+   its element, place, screen size and thread.
+2. **Apply every comment.** There are no priorities to sort by — if the reviewer wrote it down, it
+   needs doing. Locate each from its **anchor** — the element and the region it sits in — at the screen
+   size it was made at, using the coordinates only to break a tie.
+3. **Ask instead of guessing.** If a comment is ambiguous, reply to it — the question appears on the
+   mark and in the comment list, where the user answers it:
    ```bash
    node "$SKILL/assets/review-server.mjs" reply --file "$FILE" \
-     --round r17 --comment c7f2a1 --text "Every overdue row, or only the ones assigned to you?"
+     --comment c7f2a1 --text "Every overdue row, or only the ones assigned to you?"
    ```
-   That comment goes to *{agent} asked* until they answer, which flips it back to open and returns it in the next round with their reply attached. On disk the reply uses `by: "agent"` (legacy files may say `"claude"`; treat them the same).
-5. If a comment is genuinely wrong for the design, reply saying why rather than silently skipping it.
-6. Publish, closing out what you actually did:
+   The comment stays open and comes back with their answer attached. On disk the reply uses
+   `by: "agent"` (legacy files may say `"claude"`; treat them the same).
+4. If a comment is genuinely wrong for the design, reply saying why rather than silently skipping it.
+5. **Close what you did, and snapshot the version:**
    ```bash
    node "$SKILL/assets/review-server.mjs" publish --file "$FILE" \
-     --round r17 --label "Filters collapsed, overdue sorts first" --addressed c1f3k2,c9dk1
+     --close c1f3k2,c9dk1 --label "Filters collapsed, overdue sorts first"
    ```
-   Only `--addressed` marks a comment done. Publish fails before creating a version if the round was
-   not claimed, an id is unknown or stale, or any open comment is unaccounted for.
-7. Leave **`watch_stream` running** and say what changed in a few lines. Then wait — don't ask "shall I continue?", the loop is the point. (Only re-arm if you used one-shot `watch` without `--stream`.)
+   Anything you do not name stays open and comes back. Publish tells you what it left open — close
+   those or reply asking about them, because the delivery will not raise them again on its own.
+6. Leave **`watch_stream` running** and say what changed in a few lines. Then wait — don't ask "shall I
+   continue?", the loop is the point. (Only re-arm if you used one-shot `watch` without `--stream`.)
 
 **Closing the browser tab closes the review.** The workspace holds an SSE
 connection; when the last one goes and none returns within the grace period
@@ -255,12 +247,7 @@ Either way, **say when the review is closed** — the user should never have to 
 a socket is still open.
 
 The workspace never swaps the page out from under the reviewer: while you work, each comment you were
-sent carries its own progress bar, and on publish the page offers **"vN is ready — Review changes"**.
-Nothing interrupts them mid-round. Publish once, when the round is done.
-
-The reviewer keeps writing while you work — the workspace holds those comments and sends them as one
-batch the moment your round ends. So a `REVIEW` event landing right after your publish is normal:
-it is the queue they built up while you worked, not an echo of the round you just finished.
+handed carries its own progress bar, and on publish the page offers **"vN is ready — Review changes"**.
 
 ## 6 · Publish the wireframe as a shareable link
 
@@ -291,7 +278,7 @@ node "$SKILL/assets/review-server.mjs" share --file "$FILE" --url "<public-url>"
 ```
 
 - **Publish straight after a `publish`**, so the file on disk is the version you're
-  claiming to have shared. `$FILE` is the live working copy — mid-round it can be ahead of
+  claiming to have shared. `$FILE` is the live working copy — mid-review it can be ahead of
   the last published version.
 - The page is already self-contained (§2).
 - The link is tagged with the version it came from. After a later round the menu offers
@@ -346,8 +333,8 @@ than the front door. A public site needs none of that — point at it and go.
   clicks through the app to reach a screen, or types a path in the address bar.
   So a review can span the whole flow in one pass — the brief comes back grouped
   by screen size, each comment naming its **Route**.
-- **A version is a round, not a file.** `publish --name <slug> --label "…"
-  --addressed …` records that you finished a round; there is no snapshot of a
+- **A version is a marker, not a file.** `publish --name <slug> --label "…"
+  --close …` records what you finished; there is no snapshot of a
   file because the app is the truth. The timeline still scrubs: the workspace
   captures the DOM of the screen they were commenting on each time they send, so
   history shows what they were looking at when they said it.
@@ -359,7 +346,7 @@ than the front door. A public site needs none of that — point at it and go.
 
 If the app hot-reloads, the reviewer watches your change land. That is an
 argument for landing whole changes rather than halves, not for working slower —
-and `check` (§5) still matters, because a round in a live app can be stopped
+and the delivery loop (§5) still matters, because a review of a live app can be stopped
 mid-flight just as easily.
 
 ### A public website works too
@@ -417,8 +404,7 @@ route.
 - **Every vstack tool writes under `.vstack/local/<tool>/`**, so a project grows one dot-directory, not one per engine. `lib/workdir.mjs` resolves it — use that rather than joining the path by hand. One gitignore line covers the lot (`**/.vstack/local/`); the rest of `.vstack/` is the pipeline and belongs in the repo.
 - The server binds to `127.0.0.1` only. Port 7788 busy usually means a review server is already running — pass `--port`.
 - `node "$SKILL/assets/review-server.mjs" status --file "$FILE"` prints the current version, whether a review is waiting, and any sign-off / share request outstanding.
-- `check --file "$FILE"` is the same question in one line, and always exits 0. Use it inside a round, where `status` is too much output to read repeatedly. If it names a round waiting unclaimed, claim that round before anything else — comments are sitting unread.
-- **Every command takes `--name <slug>` in place of `--file` for a live review** — `publish`, `reply`, `share`, `status`, `check`. The brief tells you which name to use.
+- **Every command takes `--name <slug>` in place of `--file` for a live review** — `publish`, `reply`, `share`, `status`, `watch`. The brief tells you which name to use.
 - Full command reference and troubleshooting: `references/workflow.md`.
 - Contracts: `plugins/vstack/contracts/` — Host ops and review-loop protocol.
 - Host adapters: `skills/review/hosts/claude.md`, `skills/review/hosts/codex.md`, `skills/review/hosts/grok.md`.

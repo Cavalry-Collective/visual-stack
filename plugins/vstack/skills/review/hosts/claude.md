@@ -22,7 +22,7 @@ Default when unset is `claude`, so existing installs keep working without this.
 | `background(cmd)` | Bash / shell with `run_in_background: true` | `node …/review-server.mjs serve …` must outlive the turn |
 | `watch_stream(cmd)` | **Monitor** tool, `persistent: true` | `node …/review-server.mjs watch --all --stream` — Monitor delivers each line to the session as it arrives |
 | `stop(handle)` | TaskStop / stop the background task | After approve or when ending the session |
-| `run(cmd)` | Bash (foreground) | `publish`, `reply`, `ack`, `share`, `check`, `status` |
+| `run(cmd)` | Bash (foreground) | `publish`, `reply`, `ack`, `share`, `status` |
 | `edit` | Edit / Write tools | Change the HTML file or app source |
 | `share(file)` | **Artifact** tool (favicon 🎨) | Publish the wireframe file; then `share --url <url>` |
 | `browser_capture` | Claude-in-Chrome / browser tools | Navigate, screenshot, run `harvest-reference.js` |

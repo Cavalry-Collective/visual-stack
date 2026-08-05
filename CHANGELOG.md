@@ -8,6 +8,47 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.0.0 — 2026-08-06
+
+**Breaking**
+
+- **Rounds are gone.** A review is one list of comments, each open or closed, and
+  the agent is the only one who closes. `rounds/`, the `pending` sentinel, the
+  per-version comment copies and `feedback.json` are no longer written. `claim`
+  and `check` are removed: taking delivery is the tick itself, and there is no
+  unclaimed round to name.
+- **`publish --addressed` is now `publish --close`,** and it no longer has to
+  account for every comment. What you close is closed; what you leave stays open
+  and comes back on the next delivery. `--label` is independent of it: either
+  flag alone is valid.
+- **On-disk shape.** Comments live in `comments.json`; the brief is `brief.md`,
+  rewritten on each delivery. A store written by an earlier version is read where
+  it lies — newest copy of each id wins, `addressed` and dismissed both become
+  closed — and nothing is moved.
+- **A version records no comments.** `versions/v<n>.meta.json` is a label and a
+  date. Snapshots are for looking at.
+
+**Fixed**
+
+- **A comment could stop being closable.** Replying to one changed the
+  fingerprint its round had recorded, so the reviewer answering the agent's own
+  question was what blocked the comment from ever closing — and the workspace
+  held back the re-send that would have cleared it. Neither rule exists now, and
+  the protocol states the property that was missing: nothing can refuse a close.
+  An agent that has taken delivery can always finish.
+
+**Changed**
+
+- A comment's words are frozen when the reviewer sends it. Anything to add after
+  that is a reply, which means two writers can no longer disagree about what was
+  asked, and the merge heuristics that arbitrated them are gone.
+- `question` is no longer a state — a comment waits on the reviewer when the last
+  reply is the agent's. Withdrawing a comment already delivered is a reply asking
+  for it back. Revert and Refine both write into the thread.
+- The workspace holds no protocol state. Queued, being worked on, editable and
+  withdrawable are all read off the comment, so a reload or a second tab sees the
+  same review as the tab that wrote it.
+
 ## 5.0.0 — 2026-08-05
 
 **Breaking**
