@@ -29,7 +29,7 @@ Tests are standalone Node scripts — run them directly, one file per suite:
 node plugins/vstack/skills/review/tests/review-lifecycle.mjs   # end-to-end review server round-trip
 node plugins/vstack/skills/review/tests/host-profiles.mjs      # host profiles conform to host.schema.json
 node plugins/vstack/skills/review/tests/workdir.mjs            # .vstack/local working-dir resolution
-node plugins/vstack/skills/review/tests/round-gate.mjs         # `check` and the Stop hook that runs it
+node plugins/vstack/skills/review/tests/round-gate.mjs         # `unanswered` and the Stop hook that runs it
 ```
 
 The shared UI shell is stamped into pages, not linked (see below):
@@ -113,7 +113,7 @@ The layering rule that everything else follows (`plugins/vstack/contracts/README
   Code's only entry point into the plugin, and no other host reads it. It
   registers one Stop hook, `hooks/round-gate.mjs`, which blocks the end of a
   turn while a review comment the agent took delivery of is still unanswered.
-  The hook decides nothing itself: `review-server.mjs check` owns what an
+  The hook decides nothing itself: `review-server.mjs unanswered` owns what an
   unfinished round is, so every host gets the same answer by running it. Rule 14
   of `contracts/review-loop.md` is what it enforces.
 
@@ -124,7 +124,7 @@ The layering rule that everything else follows (`plugins/vstack/contracts/README
   app (`--app`) so the workspace shares an origin with what it annotates (that
   origin-sharing is why comments can attach to elements, not coordinates). CLI
   subcommands (`serve`, `watch`, `publish`, `reply`, `ack`, `share`, `status`,
-  `check`, `reset`) drive the protocol; sentinels and round records live on disk.
+  `unanswered`, `reset`) drive the protocol; sentinels and round records live on disk.
 - `lib/json-bridge.mjs` — the live link for JSON-document pages (user-story-map,
   plus the experimental spec and phase-build tools): the page POSTs saves and
   bumps a seq counter the agent's watcher wakes on; agent edits are pushed back

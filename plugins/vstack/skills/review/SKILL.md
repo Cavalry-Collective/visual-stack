@@ -238,7 +238,7 @@ On a delivery:
    those or reply asking about them, because the delivery will not raise them again on its own.
 6. **Check you left nothing hanging**, before you finish your turn:
    ```bash
-   node "$SKILL/assets/review-server.mjs" check --all
+   node "$SKILL/assets/review-server.mjs" unanswered --all
    ```
    It exits 1 and names every comment you were handed and then said nothing about — neither closed
    nor replied to. Those are the ones nothing will remind you of again, because the next delivery

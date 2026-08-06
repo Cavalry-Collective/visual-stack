@@ -4,7 +4,7 @@
  *
  * Claude Code is the one Host that can gate the end of a turn, so this sits
  * outside the engine with the rest of the host-specific wiring. It decides
- * nothing itself: `review-server.mjs check` owns what an unfinished round is,
+ * nothing itself: `review-server.mjs unanswered` owns what an unfinished round is,
  * and this turns its answer into the block Claude Code understands.
  */
 
@@ -26,7 +26,7 @@ try { input = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}') } catch
    comes back on the next delivery. */
 if (input.stop_hook_active) process.exit(0)
 
-const check = spawnSync(process.execPath, [SERVER, 'check', '--all'], {
+const check = spawnSync(process.execPath, [SERVER, 'unanswered', '--all'], {
   cwd: input.cwd || process.cwd(), encoding: 'utf8', timeout: 5000,
 })
 

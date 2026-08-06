@@ -143,7 +143,7 @@ Host selection: `--host <id>` or `VSTACK_HOST=<id>` (affects UI injection only).
 | `reply --file/name … --comment <id> --text "…"` | Append `{ by: "agent", text, at }` |
 | `share --file/name … --url <url>` | Record public URL; clear the `share` sentinel |
 | `status --file/name …` | Human/debug snapshot |
-| `check [--all] [--file/name …]` | What the agent still owes. Exits 1 when a delivered comment is unanswered |
+| `unanswered [--all] [--file/name …]` | Comments the agent was handed and has not answered. Exits 1 while any remain |
 
 ---
 
@@ -202,7 +202,7 @@ Rules:
 11. One `watch_stream` per session is enough with `--all`.
 12. Presence is proven. A stream watcher writes its `watching` heartbeat from the moment its handshake is answered, so **Linked** means a session is receiving the stream. Default window 120 s (`--handshake-timeout <seconds>`).
 13. Presence is per review, and per watcher. A watcher heartbeats only the stores it covers, and goes live only on an answer carrying its own token.
-14. An agent that took delivery answers. A comment it was handed is answered by closing it or by replying to it. Neither is a round that stopped halfway, because no tick will raise that comment again until the reviewer writes. `check` names them, and exits 1 while any remain.
+14. An agent that took delivery answers. A comment it was handed is answered by closing it or by replying to it. Neither is a round that stopped halfway, because no tick will raise that comment again until the reviewer writes. `unanswered` names them, and exits 1 while any remain.
 15. A delivered comment goes back to the queue when nothing is listening. That is the way out of a round whose agent session died: those comments are not `unseen`, so no new watcher would ever hand them over. `deliveredAt` is cleared and the comment is Queued again. The engine refuses this while a `watching` heartbeat is fresh, because then an agent still holds it and rule 9 applies instead.
 
 Rule 14 is an obligation on the agent, not a refusal by the engine. Rule 3

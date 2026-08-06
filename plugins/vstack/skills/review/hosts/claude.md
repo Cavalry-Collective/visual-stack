@@ -22,7 +22,7 @@ Default when unset is `claude`, so existing installs keep working without this.
 | `background(cmd)` | Bash / shell with `run_in_background: true` | `node …/review-server.mjs serve …` must outlive the turn |
 | `watch_stream(cmd)` | **Monitor** tool, `persistent: true` | `node …/review-server.mjs watch --all --stream` — Monitor delivers each line to the session as it arrives |
 | `stop(handle)` | TaskStop / stop the background task | After approve or when ending the session |
-| `run(cmd)` | Bash (foreground) | `publish`, `reply`, `ack`, `share`, `status`, `check` |
+| `run(cmd)` | Bash (foreground) | `publish`, `reply`, `ack`, `share`, `status`, `unanswered` |
 | `edit` | Edit / Write tools | Change the HTML file or app source |
 | `share(file)` | **Artifact** tool (favicon 🎨) | Publish the wireframe file; then `share --url <url>` |
 | `browser_capture` | Claude-in-Chrome / browser tools | Navigate, screenshot, run `harvest-reference.js` |
@@ -71,7 +71,7 @@ Offline remote comments: `bundle-artifact.mjs` — Send becomes copy (no session
 
 Claude Code is the only Host that can gate the end of a turn, so the plugin
 ships a Stop hook at `plugins/vstack/hooks/hooks.json`. It runs
-`review-server.mjs check --all` and blocks the turn while a comment you took
+`review-server.mjs unanswered --all` and blocks the turn while a comment you took
 delivery of is still unanswered, telling you which one and which command
 settles it. Rule 14 of [review-loop.md](../../../contracts/review-loop.md) is
 what it enforces.

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
- * What `check` calls an unfinished round, and what the Stop hook does with it.
+ * What `unanswered` calls an unfinished round, and what the Stop hook does with it.
  *
  * The rule under test: a comment the agent took delivery of is answered by
  * closing it or by replying to it, and until one of those happens the round has
@@ -64,17 +64,17 @@ try {
   await waitForServer()
 
   // Nothing has been written, so there is nothing to owe.
-  assert.equal(cli('check', '--all').status, 0, 'a review with no comments is finished')
+  assert.equal(cli('unanswered', '--all').status, 0, 'a review with no comments is finished')
   assert.equal(gate(), null, 'the gate lets a quiet turn end')
 
   // Queued but not delivered: the agent has not been handed it, so it owes
   // nothing yet. The watcher is what hands it over.
   await post('/api/comments', { comments: [comment('c1', 'Make the hero bigger')] })
-  assert.equal(cli('check', '--all').status, 0, 'a queued comment is not the agent\'s to answer')
+  assert.equal(cli('unanswered', '--all').status, 0, 'a queued comment is not the agent\'s to answer')
 
   // Delivered and untouched — the round stopped halfway.
   assert.match(tick().stdout, /REVIEW/, 'the tick hands the comment over')
-  const owed = cli('check', '--all')
+  const owed = cli('unanswered', '--all')
   assert.equal(owed.status, 1, 'a delivered comment with nothing said about it is outstanding')
   assert.match(owed.stdout, /c1/, 'it names the comment')
   assert.match(owed.stdout, /publish .* --close c1/, 'it names the command that settles it')
@@ -89,34 +89,34 @@ try {
   // Replying answers it without closing it: the agent asked a question, which
   // is a legitimate way to end a round.
   assert.equal(cli('reply', '--file', page, '--comment', 'c1', '--text', 'How much bigger?').status, 0)
-  assert.equal(cli('check', '--all').status, 0, 'a reply hands the round back')
+  assert.equal(cli('unanswered', '--all').status, 0, 'a reply hands the round back')
 
   // The reviewer answers. That comment is waiting for the next tick, not for
   // the agent, so it must not hold the turn open.
   const answered = { by: 'reviewer', text: 'Twice', at: new Date().toISOString() }
   await post('/api/comments', { comments: [comment('c1', 'Make the hero bigger', { replies: [answered] })] })
-  assert.equal(cli('check', '--all').status, 0, 'a comment awaiting delivery is not outstanding')
+  assert.equal(cli('unanswered', '--all').status, 0, 'a comment awaiting delivery is not outstanding')
 
   // Delivered again, and now unanswered again.
   assert.match(tick().stdout, /REVIEW/, 'the answer comes back round')
-  assert.equal(cli('check', '--all').status, 1, 'the agent owes an answer once more')
+  assert.equal(cli('unanswered', '--all').status, 1, 'the agent owes an answer once more')
 
   // Closing it finishes the round.
   assert.equal(cli('publish', '--file', page, '--close', 'c1', '--label', 'Hero doubled').status, 0)
-  assert.equal(cli('check', '--all').status, 0, 'closing hands the round back')
+  assert.equal(cli('unanswered', '--all').status, 0, 'closing hands the round back')
   assert.equal(gate(), null, 'the gate lets the turn end')
 
   // A review nobody is looking at is over. `--all` reads live stores only, so
   // the gate cannot strand a session on a round whose tab has gone.
   await post('/api/comments', { comments: [comment('c2', 'And centre it')] })
   assert.match(tick().stdout, /REVIEW/, 'the second comment is handed over')
-  assert.equal(cli('check', '--all').status, 1, 'outstanding while the review is live')
+  assert.equal(cli('unanswered', '--all').status, 1, 'outstanding while the review is live')
   server.kill('SIGTERM')
   for (let attempt = 0; attempt < 60 && server.exitCode === null; attempt++) {
     await new Promise(resolve => setTimeout(resolve, 100))
   }
-  assert.equal(cli('check', '--all').status, 0, 'a closed review owes nothing')
-  assert.equal(cli('check', '--file', page).status, 1,
+  assert.equal(cli('unanswered', '--all').status, 0, 'a closed review owes nothing')
+  assert.equal(cli('unanswered', '--file', page).status, 1,
     'the named form still reports it, because a person asking about one review means it')
 
   console.log('round gate: ok')

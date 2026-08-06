@@ -28,8 +28,30 @@ compares against to decide an update is available. See the release checklist in
 - **A version records no comments.** `versions/v<n>.meta.json` is a label and a
   date. Snapshots are for looking at.
 
+**Added**
+
+- **A round the agent took is finished before its turn can end.** `unanswered`
+  reports every comment the agent was handed and then said nothing about —
+  neither closed nor replied to. On Claude Code a Stop hook runs it and holds the
+  turn open until the round is answered. Nothing else caught this: a delivery
+  only fires when the reviewer writes again, so a comment the agent went quiet on
+  sat there for as long as they stayed quiet too.
+- **Send again, when the agent stops responding.** After a minute with nothing
+  listening, the workspace says the agent has stalled rather than animating
+  progress that is not happening, and offers to put those comments back in the
+  queue. A comment already delivered is invisible to a watcher started
+  afterwards, so a restarted session used to sit idle on a review it could not be
+  handed. Refused while a heartbeat says an agent still holds them.
+- **Hard reset**, in the cog. Starts a review over, behind a confirm that says how
+  many comments and versions go. The page under review is left alone and becomes
+  v1 again.
+
 **Fixed**
 
+- **What a failed action had to say could not be read.** A message raised while a
+  dialog was open sat under that dialog's own backdrop, dimmed and blurred by it.
+  Messages now join the top layer, so they arrive on top of the thing that
+  failed.
 - **A comment could stop being closable.** Replying to one changed the
   fingerprint its round had recorded, so the reviewer answering the agent's own
   question was what blocked the comment from ever closing — and the workspace

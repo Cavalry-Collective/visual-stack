@@ -135,7 +135,7 @@ if (LIVE) {
     console.error('      are rewritten to stay inside the proxy, but bot protection, a login wall or a')
     console.error('      strict CSRF check can still refuse it. If the site misbehaves, say so.')
   }
-} else if (['watch', 'ack', 'check'].includes(args._) && (args.all === true || args.all === 'true')) {
+} else if (['watch', 'ack', 'unanswered'].includes(args._) && (args.all === true || args.all === 'true')) {
   /* `watch --all` names no subject on purpose — it finds the live ones itself,
      so a session with several pages open arms one waiter instead of one each. */
   DIR = process.cwd(); NAME = 'all'; STORE = workDir(DIR, TOOL.review)
@@ -1054,7 +1054,7 @@ function cmdStatus () {
   }, null, 2))
 }
 
-/* ───────────────────────────── check ────────────────────────────── */
+/* ────────────────────────── unanswered ─────────────────────────── */
 
 /**
  * A comment the agent was handed and has said nothing about since.
@@ -1084,7 +1084,7 @@ const oneLine = note => {
  * for whether a round is in flight at all: a review whose tab has gone is over,
  * and there is nothing left to owe.
  */
-function cmdCheck () {
+function cmdUnanswered () {
   const stores = args.all === true || args.all === 'true' ? liveStores() : [STORE]
   const bin = process.argv[1]
   let owing = 0
@@ -1767,11 +1767,11 @@ switch (args._) {
   case 'ack': withStoreLock(cmdAck); break
   case 'share': withStoreLock(cmdShare); break
   case 'status': cmdStatus(); break
-  case 'check': cmdCheck(); break
+  case 'unanswered': cmdUnanswered(); break
   case 'reset': withStoreLock(cmdReset); break
   case 'watch': cmdWatch(); break
   case 'serve': cmdServe(); break
   default:
-    console.error(`Unknown command "${args._}". Use: serve | watch | publish | reply | ack | share | status | check | reset`)
+    console.error(`Unknown command "${args._}". Use: serve | watch | publish | reply | ack | share | status | unanswered | reset`)
     process.exit(1)
 }
