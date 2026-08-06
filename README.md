@@ -5,6 +5,8 @@
 [![CI](https://github.com/Cavalry-Collective/visual-stack/actions/workflows/ci.yml/badge.svg)](https://github.com/Cavalry-Collective/visual-stack/actions/workflows/ci.yml)
 [![Security](https://github.com/Cavalry-Collective/visual-stack/actions/workflows/security.yml/badge.svg)](https://github.com/Cavalry-Collective/visual-stack/actions/workflows/security.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Cavalry-Collective/visual-stack/badge)](https://scorecard.dev/viewer/?uri=github.com/Cavalry-Collective/visual-stack)
+[![Quality gate](https://sonarcloud.io/api/project_badges/measure?project=Cavalry-Collective_visual-stack&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Cavalry-Collective_visual-stack)
+[![Security rating](https://sonarcloud.io/api/project_badges/measure?project=Cavalry-Collective_visual-stack&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=Cavalry-Collective_visual-stack)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## Stop prompting. Start pointing.

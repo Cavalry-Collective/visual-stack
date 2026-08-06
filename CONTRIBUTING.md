@@ -36,7 +36,7 @@ gitleaks git --no-banner --redact --verbose          # every commit, not the wor
 uvx zizmor@1.29.0 .github/workflows/                 # only if you touched a workflow
 ```
 
-CodeQL and SonarQube report in the pull request itself. Read the finding before assuming it is noise — the servers read from disk and the pages build DOM from stored comments, which is exactly where a real one would appear.
+CodeQL and SonarQube Cloud report in the pull request itself. Read the finding before assuming it is noise — the servers read from disk and the pages build DOM from stored comments, which is exactly where a real one would appear.
 
 When you add a step that uses an action, pin it by commit SHA and put the version in a trailing comment, the way the existing steps do. Copy the SHA from the release you intend to use:
 

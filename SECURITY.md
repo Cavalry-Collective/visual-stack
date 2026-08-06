@@ -21,16 +21,20 @@ Out of scope: vulnerabilities in Claude Code itself — report those to Anthropi
 
 ## What runs on every change
 
-`.github/workflows/security.yml` runs these scans on every pull request, on every push to `main`, and weekly. The `Security gates` job fails unless all four report success, so a scan that is skipped or cancelled blocks the merge in the same way a failing one does.
+`.github/workflows/security.yml` runs these scans on every pull request, on every push to `main`, and weekly. The `Security gates` job fails unless all three report success, so a scan that is skipped or cancelled blocks the merge in the same way a failing one does.
 
 | Scan | Tool | What it enforces |
 |---|---|---|
 | Static analysis | CodeQL, `security-and-quality` suite | Injection, path traversal, and unsafe DOM construction in the servers and the pages. Findings land in the repository's Security tab. |
 | Secret scan | Gitleaks | No credential in any commit. It reads the full history, not the working tree, because anything ever committed is compromised. |
 | Workflow audit | zizmor | The workflows themselves: token permissions, credential persistence, and untrusted input reaching a `run` block. |
-| Code quality | SonarQube Cloud | Bugs, security hotspots, and maintainability on new code. Free for public projects. The scan reports a skip rather than failing where `SONAR_TOKEN` is unavailable, which is every pull request from a fork. |
 
-`.github/workflows/scorecard.yml` runs OpenSSF Scorecard weekly and on `main`. It rates the repository rather than the code — branch protection, pinned actions, token permissions — and publishes the score the README badge reads.
+Two scans run outside that workflow, on SonarSource's and OpenSSF's infrastructure rather than ours:
+
+- **SonarQube Cloud** analyses the repository automatically and reports a quality gate on each pull request as its own check. It covers bugs, security hotspots, and maintainability on new code, and it is free for public projects. `.sonarcloud.properties` configures it, and SonarQube Cloud reads that file from `main` only.
+- **OpenSSF Scorecard** runs from `.github/workflows/scorecard.yml`, weekly and on `main`. It rates the repository rather than the code — branch protection, pinned actions, token permissions — and publishes the score the README badge reads.
+
+Both report a check on the pull request. Requiring them is a branch protection setting, not something a workflow can enforce.
 
 Two rules keep those gates meaningful:
 

@@ -6,13 +6,12 @@ on:
   pull_request:
     branches: [main]
 
-permissions:
-  contents: read
-
 jobs:
   tests:
     name: Tests (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -30,10 +29,14 @@ jobs:
         run: node plugins/vstack/skills/review/tests/host-profiles.mjs
       - name: Working-directory resolution
         run: node plugins/vstack/skills/review/tests/workdir.mjs
+      - name: Round gate
+        run: node plugins/vstack/skills/review/tests/round-gate.mjs
 
   shell:
     name: Stamped shell is current
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -49,6 +52,8 @@ jobs:
   manifests:
     name: Manifests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -58,8 +63,13 @@ jobs:
           node-version: '22'
       # Unpinned on purpose: this job has to run the validator a marketplace
       # reviewer would run today, and there is no lockfile to pin it against.
+      # --ignore-scripts keeps every transitive dependency's lifecycle script
+      # from running; the CLI does not work without its own postinstall, so
+      # that one is run explicitly and is the only script that executes.
       - name: Install Claude Code
-        run: npm install --global @anthropic-ai/claude-code # zizmor: ignore[adhoc-packages]
+        run: | # zizmor: ignore[adhoc-packages]
+          npm install --global --ignore-scripts @anthropic-ai/claude-code
+          node "$(npm root -g)/@anthropic-ai/claude-code/install.cjs"
       # The community-marketplace review pipeline runs this same check on every
       # submission, so a warning here is a warning a reviewer would see.
       - name: Validate the marketplace

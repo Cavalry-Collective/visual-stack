@@ -11,9 +11,6 @@ on:
   schedule:
     - cron: '41 5 * * 1'
 
-permissions:
-  contents: read
-
 jobs:
   analysis:
     name: OpenSSF Scorecard
