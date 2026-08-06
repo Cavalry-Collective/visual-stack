@@ -132,6 +132,31 @@ try {
   assert.match(briefText(), /They replied:\*\* Not like that/)
   assert.match(briefText(), /### c2/)
 
+  /* ── a stranded round goes back to the queue ── */
+
+  const watching = path.join(store, 'watching')
+  fs.writeFileSync(watching, String(Date.now()))
+  const held = await post('/api/comments/requeue', {})
+  assert.equal(held.response.status, 409, 'nothing is taken off an agent that is listening')
+  assert.ok(byId('c1').deliveredAt, 'and the handover stands')
+
+  /* Nothing listening: both comments are delivered and neither is unseen, so no
+     watcher started after this point would ever be handed them. */
+  const note = byId('c1').note
+  fs.rmSync(watching, { force: true })
+  const requeued = await post('/api/comments/requeue', {})
+  assert.equal(requeued.response.status, 200)
+  assert.deepEqual(requeued.body.requeued.sort(), ['c1', 'c2'])
+  assert.equal(byId('c1').deliveredAt, null, 'only the record of the handover goes')
+  assert.equal(byId('c1').state, 'open', 'the comment itself is untouched')
+  assert.equal(byId('c1').note, note, 'and it still says what it said')
+
+  out = tick()
+  assert.match(out, /REVIEW/, 'the next session to pick up is handed the stranded round')
+  // New to the session receiving them, which is the whole point of putting them
+  // back: the one that was given them first is gone.
+  assert.match(out, /2 open, 2 new/)
+
   /* ── the thread is append-only, from either side ── */
 
   assert.equal(cli('reply', '--comment', 'c2', '--text', 'Which card?').status, 0)

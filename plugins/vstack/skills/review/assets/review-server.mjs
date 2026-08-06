@@ -135,7 +135,7 @@ if (LIVE) {
     console.error('      are rewritten to stay inside the proxy, but bot protection, a login wall or a')
     console.error('      strict CSRF check can still refuse it. If the site misbehaves, say so.')
   }
-} else if (['watch', 'ack'].includes(args._) && (args.all === true || args.all === 'true')) {
+} else if (['watch', 'ack', 'check'].includes(args._) && (args.all === true || args.all === 'true')) {
   /* `watch --all` names no subject on purpose — it finds the live ones itself,
      so a session with several pages open arms one waiter instead of one each. */
   DIR = process.cwd(); NAME = 'all'; STORE = workDir(DIR, TOOL.review)
@@ -510,7 +510,11 @@ function listVersions () {
 function cmdPublish (quiet) {
   const ids = [...new Set(String(args.close ?? args.addressed ?? '').split(',').map(s => s.trim()).filter(Boolean))]
   const label = args.label && args.label !== true ? String(args.label) : null
-  const snapshot = !!label || (!ids.length && args.close === undefined && args.addressed === undefined)
+  /* A version is a frozen copy of the page under review, and a running app has
+     no such thing: what a capture of one produces is a likeness with its scripts
+     stripped and half its styling missing, which is worse than not offering it.
+     So a live review has no versions — only comments. */
+  const snapshot = !LIVE && (!!label || (!ids.length && args.close === undefined && args.addressed === undefined))
 
   const comments = loadComments()
   if (ids.length) {
@@ -541,6 +545,13 @@ function cmdPublish (quiet) {
   }
 
   let n = loadState().version
+  if (LIVE && !n) {
+    // Live has one version and it is the app itself, so the number never moves.
+    const state = loadState()
+    state.version = n = 1
+    state.name = pageName()
+    saveState(state)
+  }
   if (snapshot) {
     const replace = args.replace === true || args.replace === 'true'
     n = replace ? Math.max(1, n) : n + 1
@@ -573,6 +584,38 @@ function cmdPublish (quiet) {
     }
   }
   touch()
+}
+
+/**
+ * Start the review over. Everything a version of this tool wrote about it goes:
+ * the comments, the brief, the snapshots, and the directories a store filled by
+ * an older version keeps its comments in — which would otherwise be adopted
+ * straight back on the next read. What the review *is* stays: the page or app
+ * under it, and its name.
+ *
+ * It is a command as well as a button because the reason to want it is a tool
+ * update that changed what a review keeps on disk, and that is exactly when the
+ * workspace may not be the thing that can ask for it.
+ */
+function cmdReset (quiet) {
+  saveComments([])
+  fs.rmSync(P.brief(), { force: true })
+  fs.rmSync(path.join(STORE, 'reviews'), { recursive: true, force: true })
+  fs.rmSync(P.versions(), { recursive: true, force: true })
+  fs.rmSync(P.approved(), { force: true })
+  fs.rmSync(P.share(), { force: true })
+  const state = loadState()
+  saveState({
+    name: state.name, version: 0,
+    ...(state.file ? { file: state.file } : {}),
+    ...(state.app ? { app: state.app, start: state.start } : {}),
+  })
+  // A file review with no version has nothing for the workspace to show, so the
+  // page as it stands becomes v1 again. A live review has no versions at all.
+  cmdPublish(true)
+  console.log('\n⟲ Reset — the review starts again at v1')
+  touch()
+  if (!quiet) console.log('Every comment and version for this review is gone.')
 }
 
 /**
@@ -1011,6 +1054,56 @@ function cmdStatus () {
   }, null, 2))
 }
 
+/* ───────────────────────────── check ────────────────────────────── */
+
+/**
+ * A comment the agent was handed and has said nothing about since.
+ *
+ * A delivered comment is answered by closing it or by replying to it. One that
+ * has neither is a round that stopped halfway, and nothing else in the protocol
+ * notices: the next tick only fires when the reviewer writes again, so an
+ * unanswered comment sits there for as long as they stay quiet.
+ *
+ * Any reply after delivery clears it. A reviewer's reply is not the agent going
+ * quiet — that comment is already waiting for the next tick to hand it back.
+ */
+const unanswered = comment => comment.state === 'open' && comment.deliveredAt &&
+  !(comment.replies || []).some(reply => Date.parse(reply.at || '') > Date.parse(comment.deliveredAt))
+
+const oneLine = note => {
+  const text = String(note || '').replace(/\s+/g, ' ').trim()
+  return text.length > 72 ? text.slice(0, 71) + '…' : text
+}
+
+/**
+ * What the agent still owes, said as the commands that settle it. Exits 1 when
+ * a round is unfinished, so a Host that can gate the end of a turn holds the
+ * session open until the round is handed back.
+ *
+ * `--all` reads every review with a server behind it, which is also the test
+ * for whether a round is in flight at all: a review whose tab has gone is over,
+ * and there is nothing left to owe.
+ */
+function cmdCheck () {
+  const stores = args.all === true || args.all === 'true' ? liveStores() : [STORE]
+  const bin = process.argv[1]
+  let owing = 0
+  for (const store of stores) {
+    const subject = subjectOf(store)
+    const owed = loadComments(subject).filter(unanswered)
+    if (!owed.length) continue
+    owing += owed.length
+    const them = owed.length > 1 ? 'them' : 'it'
+    console.log(`Review "${subject.name}" — you took delivery of ${owed.length} comment${owed.length > 1 ? 's' : ''} and have not answered ${them}:`)
+    for (const comment of owed) console.log(`  ${comment.id}  ${oneLine(comment.note)}`)
+    console.log(`\nDo what each one asks and close it, or reply to ask what ${them} means:`)
+    console.log(`  node "${bin}" publish ${subject.flags} --close ${owed.map(comment => comment.id).join(',')} --label "what changed"`)
+    console.log(`  node "${bin}" reply ${subject.flags} --comment ${owed[0].id} --text "your question"`)
+  }
+  if (!owing) console.log('Nothing outstanding — every comment you were handed is closed or answered.')
+  process.exit(owing ? 1 : 0)
+}
+
 /* ───────────────────────────── serve ────────────────────────────── */
 
 const clients = new Set()
@@ -1386,26 +1479,6 @@ font:14px/1.6 ui-sans-serif,system-ui,-apple-system,sans-serif;color:#667;backgr
    * no file to freeze, so the workspace hands one up: it is what the timeline
    * scrubs back to, and what gets published when they ask for a shareable link.
    */
-  if (p === '/api/snapshot' && req.method === 'POST') {
-    // File reviews freeze the file themselves; accepting a body here would let
-    // a stray POST overwrite a published version.
-    if (!LIVE) return sendJSON(res, 404, { error: 'not a live review' })
-    const body = JSON.parse(await readBody(req) || '{}')
-    const n = Number(body.version) || loadState().version
-    if (!body.html) return sendJSON(res, 400, { error: 'no html' })
-    return withStoreLock(() => {
-      fs.mkdirSync(P.versions(), { recursive: true })
-      fs.writeFileSync(P.version(n), String(body.html))
-      const meta = readJSON(path.join(P.versions(), `v${n}.meta.json`), { n }) || { n }
-      writeJSON(path.join(P.versions(), `v${n}.meta.json`), {
-        ...meta, n, capturedAt: new Date().toISOString(), route: body.route || '/',
-      })
-      return sendJSON(res, 200, { ok: true })
-    })
-  }
-  /* Everything the workspace writes: a comment being drafted, a comment the
-     reviewer has just let go of, and an answer typed into a thread. The rules
-     about which of those may change what are in acceptFromReviewer. */
   if (p === '/api/comments' && req.method === 'POST') {
     const body = JSON.parse(await readBody(req) || '{}')
     return withStoreLock(() => {
@@ -1433,6 +1506,41 @@ font:14px/1.6 ui-sans-serif,system-ui,-apple-system,sans-serif;color:#667;backgr
       }
       saveComments(comments.filter(comment => comment.id !== body.id))
       touch()
+      return sendJSON(res, 200, { ok: true })
+    })
+  }
+  /* Give a stranded round back to the queue.
+     A delivered comment is not `unseen`, so a watcher armed after the session
+     behind it died blocks and hands over nothing: the round sits where no agent
+     can reach it and no tick will raise it. Clearing `deliveredAt` puts those
+     comments back where the state table says a sent, undelivered comment
+     belongs, and the next tick takes them.
+     Refused while a heartbeat says someone is listening, because then the round
+     is not stranded — an agent holds it, and pulling it out from under one is
+     the same race the dismiss endpoint refuses. */
+  if (p === '/api/comments/requeue' && req.method === 'POST') {
+    return withStoreLock(() => {
+      if (agentListening()) {
+        return sendJSON(res, 409, {
+          error: 'The agent is listening — it still has these. Reply on one to ask for it back.',
+        })
+      }
+      const comments = loadComments()
+      const stranded = comments.filter(comment => comment.state === 'open' && comment.deliveredAt)
+      for (const comment of stranded) comment.deliveredAt = null
+      saveComments(comments)
+      touch()
+      return sendJSON(res, 200, { ok: true, requeued: stranded.map(comment => comment.id) })
+    })
+  }
+  /* Start the review over. Everything a version of this tool wrote about this
+     review goes — the comments, the brief, the snapshots, and the directories a
+     store filled by an older version keeps its comments in, which would
+     otherwise be adopted straight back on the next read. What the review *is*
+     stays: the page or app under it, and its name. */
+  if (p === '/api/reset' && req.method === 'POST') {
+    return withStoreLock(() => {
+      cmdReset(true)
       return sendJSON(res, 200, { ok: true })
     })
   }
@@ -1659,9 +1767,11 @@ switch (args._) {
   case 'ack': withStoreLock(cmdAck); break
   case 'share': withStoreLock(cmdShare); break
   case 'status': cmdStatus(); break
+  case 'check': cmdCheck(); break
+  case 'reset': withStoreLock(cmdReset); break
   case 'watch': cmdWatch(); break
   case 'serve': cmdServe(); break
   default:
-    console.error(`Unknown command "${args._}". Use: serve | watch | publish | reply | ack | share | status`)
+    console.error(`Unknown command "${args._}". Use: serve | watch | publish | reply | ack | share | status | check | reset`)
     process.exit(1)
 }

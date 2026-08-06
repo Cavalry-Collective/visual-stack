@@ -29,6 +29,7 @@ Tests are standalone Node scripts — run them directly, one file per suite:
 node plugins/vstack/skills/review/tests/review-lifecycle.mjs   # end-to-end review server round-trip
 node plugins/vstack/skills/review/tests/host-profiles.mjs      # host profiles conform to host.schema.json
 node plugins/vstack/skills/review/tests/workdir.mjs            # .vstack/local working-dir resolution
+node plugins/vstack/skills/review/tests/round-gate.mjs         # `check` and the Stop hook that runs it
 ```
 
 The shared UI shell is stamped into pages, not linked (see below):
@@ -56,11 +57,17 @@ gitleaks git --no-banner --redact --verbose   # secrets, over the full history
 uvx zizmor@1.29.0 .github/workflows/          # workflow audit
 ```
 
+SonarQube Cloud analyses the repository on its own and reports a quality gate
+on the pull request. It is configured by `.sonarcloud.properties`, which it
+reads from `main` only, so a change there takes effect after the merge.
+
 `SECURITY.md` owns what each gate enforces, the rule that a finding is fixed
 rather than silenced, and the rule that every action is pinned by commit SHA
 with its version in a trailing comment. Adding a step that uses an action means
 resolving that SHA with
-`gh api repos/<owner>/<action>/commits/<tag> --jq .sha`.
+`gh api repos/<owner>/<action>/commits/<tag> --jq .sha`. Declare each job's
+`permissions` on the job, never at workflow level, so a new job cannot inherit
+one it does not need.
 
 CI cannot install the plugin, so rehearse that locally before a release.
 `CLAUDE_CONFIG_DIR` keeps it out of the real config: without it, a local-path
@@ -102,6 +109,13 @@ The layering rule that everything else follows (`plugins/vstack/contracts/README
   `--host` / `VSTACK_HOST` (default `claude`). Loaded via `lib/host.mjs`.
 - **On-disk roles are stable:** review threads use `by: "agent" | "reviewer"`.
   Older files may say `"claude"`; readers treat that as `"agent"`.
+- **Hooks are adapter surface.** `plugins/vstack/hooks/hooks.json` is Claude
+  Code's only entry point into the plugin, and no other host reads it. It
+  registers one Stop hook, `hooks/round-gate.mjs`, which blocks the end of a
+  turn while a review comment the agent took delivery of is still unanswered.
+  The hook decides nothing itself: `review-server.mjs check` owns what an
+  unfinished round is, so every host gets the same answer by running it. Rule 14
+  of `contracts/review-loop.md` is what it enforces.
 
 ### Two engines, one live-link protocol
 
@@ -109,8 +123,8 @@ The layering rule that everything else follows (`plugins/vstack/contracts/README
   a self-contained HTML page inside the workspace, or reverse-proxies a running
   app (`--app`) so the workspace shares an origin with what it annotates (that
   origin-sharing is why comments can attach to elements, not coordinates). CLI
-  subcommands (`publish`, `claim`, `reply`, `ack`, `share`, `status`,
-  `check`, `watch`) drive the protocol; sentinels and round records live on disk.
+  subcommands (`serve`, `watch`, `publish`, `reply`, `ack`, `share`, `status`,
+  `check`, `reset`) drive the protocol; sentinels and round records live on disk.
 - `lib/json-bridge.mjs` — the live link for JSON-document pages (user-story-map,
   plus the experimental spec and phase-build tools): the page POSTs saves and
   bumps a seq counter the agent's watcher wakes on; agent edits are pushed back
