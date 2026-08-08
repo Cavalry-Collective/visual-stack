@@ -32,6 +32,19 @@ node plugins/vstack/skills/review/tests/workdir.mjs            # .vstack/local w
 node plugins/vstack/skills/review/tests/round-gate.mjs         # `unanswered` and the Stop hook that runs it
 ```
 
+The Gherkin end-to-end suite lives in `e2e/` — the one directory with a
+`package.json`, kept outside `plugins/` so the plugin itself stays
+dependency-free. It drives the real review server and CLI; a mock agent
+(`e2e/support/mock-agent.mjs`) plays the agent role, so no model or API key is
+involved. CI runs it under both hosts.
+
+```bash
+cd e2e && npm ci
+npx playwright install chromium     # once, for the @browser scenarios
+npx cucumber-js                     # VSTACK_HOST=claude (default)
+VSTACK_HOST=codex npx cucumber-js   # the same suite under the Codex profile
+```
+
 The shared UI shell is stamped into pages, not linked (see below):
 
 ```bash

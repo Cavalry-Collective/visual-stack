@@ -32,6 +32,50 @@ jobs:
       - name: Round gate
         run: node plugins/vstack/skills/review/tests/round-gate.mjs
 
+  e2e:
+    name: E2E (${{ matrix.host }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        host: [claude, codex]
+    defaults:
+      run:
+        working-directory: e2e
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - name: Install the suite
+        run: npm ci
+      # The @browser scenarios drive the workspace in a real Chromium.
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      # The Gherkin features in e2e/features/ drive the real review server and
+      # CLI; the host decides which profile the workspace is stamped with.
+      - name: Review loop end to end
+        env:
+          VSTACK_HOST: ${{ matrix.host }}
+        run: npx cucumber-js --format progress --format summary:cucumber-summary.txt
+      - name: Publish the result to the run summary
+        if: always()
+        env:
+          HOST: ${{ matrix.host }}
+        run: |
+          {
+            echo "### E2E ($HOST)"
+            echo '```'
+            cat cucumber-summary.txt 2>/dev/null || echo 'The suite did not produce a summary.'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   shell:
     name: Stamped shell is current
     runs-on: ubuntu-latest

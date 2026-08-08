@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Review e2e test plan</title>
+<style>
+:root{
+  --bg:#fafaf8; --surface:#ffffff; --ink:#1c1c1a; --ink-2:#55554f; --ink-3:#8a8a82;
+  --line:#e4e4de; --brand:#4646c8;
+  --kw:#7c3aed; --step:#333330; --tag-r1:#0e7a4f; --tag-r1-bg:#e3f4ec;
+  --tag-later:#8a6d1a; --tag-later-bg:#f7efd8;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);min-height:100vh;
+  font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  padding:48px 24px 96px}
+main{max-width:860px;margin:0 auto}
+header{margin-bottom:40px}
+h1{font-size:26px;font-weight:650;letter-spacing:-.01em}
+.sub{color:var(--ink-2);margin-top:8px;max-width:60ch}
+.legend{display:flex;gap:16px;align-items:center;margin-top:16px;flex-wrap:wrap;font-size:13px;color:var(--ink-3)}
+.tag{display:inline-block;font:600 11px/1 var(--mono);padding:4px 8px;border-radius:20px}
+.tag.r1{color:var(--tag-r1);background:var(--tag-r1-bg)}
+.tag.later{color:var(--tag-later);background:var(--tag-later-bg)}
+section.feature{margin-top:44px}
+section.feature>h2{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--ink-3);padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.scenario{background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:18px 20px;margin-bottom:14px}
+.scenario .head{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
+.scenario h3{font-size:15px;font-weight:600;flex:1}
+.scenario .num{font:600 12px/1 var(--mono);color:var(--ink-3)}
+.gherkin{font:12.5px/1.75 var(--mono);color:var(--step);white-space:pre-wrap;
+  background:#f6f6f2;border-radius:6px;padding:12px 14px;overflow-x:auto}
+.gherkin b{color:var(--kw);font-weight:600}
+.why{font-size:13px;color:var(--ink-2);margin-top:10px}
+.why strong{font-weight:600;color:var(--ink)}
+.decisions{margin-top:52px;background:var(--surface);border:1px solid var(--line);
+  border-radius:10px;padding:22px 24px}
+.decisions h2{font-size:16px;font-weight:650;margin-bottom:12px}
+.decisions ul{margin-left:20px;display:grid;gap:10px}
+.decisions li{color:var(--ink-2)}
+.decisions li strong{color:var(--ink);font-weight:600}
+code{font:12.5px var(--mono);background:#f0f0ea;padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<main>
+<header id="intro">
+  <h1>Review e2e test plan</h1>
+  <p class="sub">End-to-end scenarios for the review loop, written as Gherkin so they
+  become the automated suite verbatim. Comment on any scenario: strike what should not
+  exist, comment where the wording or expected behaviour is wrong.</p>
+  <div class="legend">
+    <span><span class="tag r1">@round1</span>&ensp;automate first — driven headlessly through the server API and CLI</span>
+    <span><span class="tag later">@later</span>&ensp;needs a real browser (Playwright) — a later pass</span>
+  </div>
+</header>
+
+<section class="feature" id="f-sending">
+  <h2>Feature: Page review — sending comments</h2>
+
+  <div class="scenario" id="s1">
+    <div class="head"><span class="num">S1</span><h3>Send with no round in flight — delivered immediately</h3><span class="tag r1">@round1</span></div>
+    <div class="gherkin"><b>Background:</b>
+  <b>Given</b> "todo.html" is served for review and the agent's watcher is linked
+
+<b>Scenario:</b> a sent comment reaches the agent straight away
+  <b>Given</b> no comment is currently with the agent
+  <b>When</b> the reviewer adds a comment "Make the title bigger" and presses Send
+  <b>Then</b> the watcher receives a REVIEW event naming 1 open comment
+  <b>And</b> the brief lists the comment, marked new, with its element anchor
+  <b>And</b> the comment has sentAt and deliveredAt set</div>
+  </div>
+
+  <div class="scenario" id="s2">
+    <div class="head"><span class="num">S2</span><h3>Send while a round is in flight — queued, picked up after the round</h3><span class="tag r1">@round1</span></div>
+    <div class="gherkin"><b>Scenario:</b> a comment sent mid-round waits for the next delivery
+  <b>Given</b> the agent has taken delivery of comment A and has not yet answered it
+  <b>When</b> the reviewer adds comment B and presses Send
+  <b>Then</b> comment B is queued: sentAt set, deliveredAt empty
+  <b>And</b> no new REVIEW event interrupts the round in flight
+  <b>When</b> the agent publishes v2 closing comment A
+  <b>Then</b> the next delivery hands over comment B, marked new</div>
+    <p class="why"><strong>Why:</strong> the contract promises the agent is never interrupted mid-round; queued comments accumulate and arrive with the next tick.</p>
+  </div>
+
+  <div class="scenario" id="s3">
+    <div class="head"><span class="num">S3</span><h3>Whatever is not closed comes back</h3><span class="tag r1">@round1</span></div>
+    <div class="gherkin"><b>Scenario:</b> an unclosed comment returns on the next delivery
+  <b>Given</b> the agent was handed comments A and B in one delivery
+  <b>When</b> the agent publishes closing only A
+  <b>Then</b> B stays open
+  <b>When</b> the reviewer sends a new comment C
+  <b>Then</b> the delivery hands over B and C — B marked not new, C marked new</div>
+  </div>
+</section>
+
+<section class="feature" id="f-closing">
+  <h2>Feature: Page review — closing, versions, threads</h2>
+
+  <div class="scenario" id="s4">
+    <div class="head"><span class="num">S4</span><h3>Publish closes comments and snapshots a version</h3><span class="tag r1">@round1</span></div>
+    <div class="gherkin"><b>Scenario:</b> publish --close moves comments to Addressed and freezes v2
+  <b>Given</b> the agent holds comment A and has edited todo.html
+  <b>When</b> the agent runs publish --close A --label "Bigger title"
+  <b>Then</b> versions/v2.html is a frozen copy of the file and v2.meta.json carries the label
+  <b>And</b> comment A is closed, with closedAt set
+  <b>And</b> the workspace offers "v2 is ready — Review changes"
+  <b>And</b> A appears in the Addressed section offering Revert and Refine</div>
+  </div>
+
+  <div class="scenario" id="s5">
+    <div class="head"><span class="num">S5</span><h3>An agent reply asks a question and keeps the comment open</h3><span class="tag r1">@round1</span></div>
+    <div class="gherkin"><b>Scenario:</b> replying never changes a comment's state
+  <b>Given</b> the agent holds an ambiguous comment A
+  <b>When</b> the agent replies "Every row, or only overdue ones?"
+  <b>Then</b> the reply is appended to A's thread with by: "agent"
+  <b>And</b> A stays open
+  <b>And</b> `unanswered` no longer names A — a reply answers the round</div>
+  </div>
+
+  <div class="scenario" id="s6">
+    <div class="head"><span class="num">S6</span><h3>A reviewer reply to a closed comment reopens it</h3><span class="tag r1">@round1</span></div>
+    <div class="gherkin"><b>Scenario:</b> Refine / a reply sends an addressed comment back
+  <b>Given</b> comment A is closed
+  <b>When</b> the reviewer replies "Not quite — it needs to be bolder too" and presses Send
+  <b>Then</b> A is open again
+  <b>And</b> the next brief carries A with reopened: true and the full thread</div>
+  </div>
+</section>
+
+<section class="feature" id="f-clearing">
+  <h2>Feature: Page review — clearing</h2>
+
+  <div class="scenario" id="s7">
+    <div class="head"><span class="num">S7</span><h3>Clear all comments</h3><span class="tag r1">@round1</span></div>
+    <div class="gherkin"><b>Scenario:</b> Clear all empties the list without touching versions
+  <b>Given</b> comment A is with the agent, B is queued, and C is addressed
+  <b>When</b> the reviewer confirms "Clear all" in the comment list footer
+  <b>Then</b> the workspace shows no comments at all
+  <b>And</b> B, never delivered, leaves no record
+  <b>And</b> A keeps a record marked dismissed and closed
+  <b>And</b> the version history is untouched
+  <b>And</b> the agent is not interrupted and publish --close A still succeeds</div>
+  </div>
+
+  <div class="scenario" id="s8">
+    <div class="head"><span class="num">S8</span><h3>Clear history</h3><span class="tag r1">@round1</span></div>
+    <div class="gherkin"><b>Scenario:</b> Clear history deletes past versions and keeps the present
+  <b>Given</b> versions v1, v2 and v3 exist
+  <b>When</b> the reviewer confirms "Clear history"
+  <b>Then</b> only the current version remains on the timeline
+  <b>And</b> the comment list is untouched
+  <b>And</b> the served page is unchanged</div>
+  </div>
+
+  <div class="scenario" id="s9">
+    <div class="head"><span class="num">S9</span><h3>Hard reset</h3><span class="tag r1">@round1</span></div>
+    <div class="gherkin"><b>Scenario:</b> Hard reset restarts the review at v1
+  <b>Given</b> the review has 3 comments and 3 versions
+  <b>When</b> the reviewer confirms "Hard reset Visual Stack" in the settings menu
+  <b>Then</b> every comment and every version is deleted
+  <b>And</b> the review is at v1 again
+  <b>And</b> todo.html keeps every edit the agent made — nothing is undone</div>
+  </div>
+</section>
+
+<section class="feature" id="f-live">
+  <h2>Feature: Live app review (--app)</h2>
+
+  <div class="scenario" id="s10">
+    <div class="head"><span class="num">S10</span><h3>Same send and queue flow, comments carry a route</h3><span class="tag r1">@round1</span></div>
+    <div class="gherkin"><b>Background:</b>
+  <b>Given</b> a small test app runs on localhost and is served with --app --name testapp
+  <b>And</b> the agent's watcher is linked
+
+<b>Scenario:</b> a live comment names the screen it was made on
+  <b>When</b> the reviewer comments on the /settings screen and presses Send
+  <b>Then</b> the delivery works exactly as S1
+  <b>And</b> the comment carries route: "/settings"
+  <b>And</b> the brief names the Route under the comment</div>
+  </div>
+
+  <div class="scenario" id="s11">
+    <div class="head"><span class="num">S11</span><h3>A live publish is a marker, not a file snapshot</h3><span class="tag r1">@round1</span></div>
+    <div class="gherkin"><b>Scenario:</b> publish --name closes comments without freezing a file
+  <b>Given</b> the agent holds a live comment A
+  <b>When</b> the agent runs publish --name testapp --close A --label "Fixed spacing"
+  <b>Then</b> comment A is closed
+  <b>And</b> no source file of the app is copied into the store
+  <b>And</b> the timeline still scrubs: each Send captured the DOM the reviewer was looking at</div>
+    <p class="why"><strong>Why:</strong> in a live review the app is the truth — a version records what was finished, and history shows what the reviewer saw when they said it.</p>
+  </div>
+
+  <div class="scenario" id="s12">
+    <div class="head"><span class="num">S12</span><h3>Hard reset in a live review deletes comments only</h3><span class="tag r1">@round1</span></div>
+    <div class="gherkin"><b>Scenario:</b> resetting a live review leaves the app alone
+  <b>Given</b> a live review with comments and captures
+  <b>When</b> the reviewer confirms the hard reset
+  <b>Then</b> every comment is deleted and the review starts again
+  <b>And</b> the app and its source are exactly as they were</div>
+  </div>
+</section>
+
+<section class="feature" id="f-edges">
+  <h2>Feature: Edge cases</h2>
+
+  <div class="scenario" id="s13">
+    <div class="head"><span class="num">S13</span><h3>Withdrawing a delivered comment never blocks the agent</h3><span class="tag r1">@round1</span></div>
+    <div class="gherkin"><b>Scenario:</b> the agent finishes what it was handed
+  <b>Given</b> the agent has taken delivery of comment A
+  <b>When</b> the reviewer deletes A from the workspace
+  <b>Then</b> A leaves the reviewer's list, marked dismissed
+  <b>And</b> the agent is not notified
+  <b>And</b> publish --close A still succeeds</div>
+    <p class="why"><strong>Why:</strong> rule 4 of the contract — nothing can refuse a close. Every past dead-end came from a rule that could stop a round ending.</p>
+  </div>
+
+  <div class="scenario" id="s14">
+    <div class="head"><span class="num">S14</span><h3>A stalled round can be sent again — but only once nothing is listening</h3><span class="tag r1">@round1</span></div>
+    <div class="gherkin"><b>Scenario:</b> requeue is refused while the agent is alive
+  <b>Given</b> the agent holds comment A and its watching heartbeat is fresh
+  <b>When</b> the workspace asks to requeue A
+  <b>Then</b> the server refuses — the agent still has it
+
+<b>Scenario:</b> requeue rescues a dead session's round
+  <b>Given</b> the agent session died and the heartbeat has gone stale
+  <b>When</b> the reviewer presses "Send again"
+  <b>Then</b> A's deliveredAt is cleared and A is queued again
+  <b>And</b> the next watcher to link is handed A</div>
+  </div>
+
+  <div class="scenario" id="s15">
+    <div class="head"><span class="num">S15</span><h3>Approve ends the review deliberately</h3><span class="tag r1">@round1</span></div>
+    <div class="gherkin"><b>Scenario:</b> sign-off with comments still open
+  <b>Given</b> 2 comments are still open
+  <b>When</b> the reviewer confirms "Approve &amp; finish" past the warning naming those 2
+  <b>Then</b> the watcher receives APPROVED with openComments: 2
+  <b>And</b> the server exits on its own</div>
+  </div>
+
+  <div class="scenario" id="s16">
+    <div class="head"><span class="num">S16</span><h3>Closing twice is a no-op</h3><span class="tag r1">@round1</span></div>
+    <div class="gherkin"><b>Scenario:</b> a retried publish is safe
+  <b>Given</b> comment A is already closed
+  <b>When</b> the agent runs publish --close A again
+  <b>Then</b> the command succeeds and nothing changes</div>
+  </div>
+
+  <div class="scenario" id="s17">
+    <div class="head"><span class="num">S17</span><h3>Pins, drag marks and dialogs in a real browser</h3><span class="tag later">@later</span></div>
+    <div class="gherkin"><b>Scenario outline:</b> the browser-only surface (deferred to the Playwright pass)
+  - a click drops a pin and the note opens on the canvas
+  - an empty note is discarded on dismiss
+  - Move and Delete marks arrive as kind: move / strike
+  - View mode hides every annotation; esc toggles back
+  - Clear all and Hard reset sit behind their confirm dialogs
+  - the link dot flips between Linked and Unlinked with the watcher</div>
+    <p class="why"><strong>Why:</strong> round 1 drives the same HTTP endpoints the workspace calls, which proves the protocol but not the pointer handling. This scenario is the placeholder for the browser pass.</p>
+  </div>
+</section>
+
+<section class="feature" id="f-hosts">
+  <h2>Feature: Host matrix — Claude and Codex</h2>
+
+  <div class="scenario" id="s18">
+    <div class="head"><span class="num">S18</span><h3>Every protocol scenario runs under both hosts</h3><span class="tag r1">@round1</span></div>
+    <div class="gherkin"><b>Scenario outline:</b> the loop behaves identically whichever host serves it
+  <b>Given</b> the server is started with --host &lt;host&gt;
+  <b>Then</b> S1–S16 pass unchanged
+  <b>And</b> the workspace page injects the &lt;host&gt; profile as window.__VSTACK_HOST__
+  <b>And</b> the Send button is labelled "Send to &lt;name&gt;"
+
+  <b>Examples:</b>
+    | host   | name   |
+    | claude | Claude |
+    | codex  | Codex  |</div>
+    <p class="why"><strong>Why:</strong> the protocol is host-independent by contract; the suite proves it by running the whole matrix twice, selected by <code>VSTACK_HOST</code>.</p>
+  </div>
+
+  <div class="scenario" id="s19">
+    <div class="head"><span class="num">S19</span><h3>Capabilities differ where the profiles say they do</h3><span class="tag r1">@round1</span></div>
+    <div class="gherkin"><b>Scenario:</b> share is offered only where the host can publish
+  <b>Given</b> the server is started with --host claude
+  <b>Then</b> the workspace offers "Publish a link to this wireframe" (share: artifact)
+  <b>Given</b> the server is started with --host codex
+  <b>Then</b> that control is hidden (share: copy)</div>
+  </div>
+</section>
+
+<section class="feature" id="f-agent">
+  <h2>Feature: A real agent in the loop</h2>
+
+  <div class="scenario" id="s20">
+    <div class="head"><span class="num">S20</span><h3>One smoke round per host, on the cheapest model</h3><span class="tag later">@later</span></div>
+    <div class="gherkin"><b>Scenario outline:</b> a real headless session answers a real comment
+  <b>Given</b> a review is served and a headless &lt;host&gt; session is started
+    on the cheapest model, with the vstack plugin loaded
+  <b>When</b> the reviewer sends "Change the heading to 'Hello'"
+  <b>Then</b> within the timeout the session takes delivery, edits the page,
+    and publishes v2 closing the comment
+  <b>And</b> `unanswered` exits 0
+
+  <b>Examples:</b>
+    | host   | session command                     |
+    | claude | claude -p --model haiku …           |
+    | codex  | codex exec --model &lt;cheapest&gt; …     |</div>
+    <p class="why"><strong>Why:</strong> S1–S19 simulate the agent with the CLI, which proves the protocol but not the skill instructions. One paid round per host proves the whole loop. It runs only when explicitly asked (tagged, needs API keys, costs money) — never in ordinary CI. The model is pinned to the cheapest each CLI offers, in one place in the suite config.</p>
+  </div>
+</section>
+
+<section class="decisions" id="approach">
+  <h2>Automation approach — comment here too</h2>
+  <ul>
+    <li><strong>Framework:</strong> cucumber-js (<code>@cucumber/cucumber</code>). The features above become <code>e2e/features/*.feature</code> verbatim; step definitions live in <code>e2e/steps/</code>.</li>
+    <li><strong>Where it lives:</strong> <code>e2e/</code> at the repo root with its own <code>package.json</code>, outside <code>plugins/</code> — the plugin itself stays dependency-free, like the demo-recording setup.</li>
+    <li><strong>How round 1 drives it:</strong> no browser. Reviewer verbs go through the same HTTP API the workspace uses (<code>/api/comments</code>, <code>/api/reset</code>, <code>/api/history/clear</code>, <code>/api/approve</code>); agent verbs through the real CLI (<code>watch --stream</code>, <code>publish</code>, <code>reply</code>, <code>ack</code>, <code>unanswered</code>). Each scenario gets a fresh temp directory and its own port.</li>
+    <li><strong>Claude and Codex are mocked:</strong> <code>e2e/support/mock-agent.mjs</code> plays the agent role — it answers the handshake, takes deliveries, makes a deterministic edit, and replies or closes exactly as the scenario directs. The protocol never sees a model, so the mock is a complete stand-in for either host; no API keys, no cost. Only S20 puts a real session behind the loop, to prove the skill instructions themselves.</li>
+    <li><strong>Live app fixture:</strong> a ~20-line stdlib Node server with two routes, started per scenario.</li>
+    <li><strong>Host matrix:</strong> CI runs the suite twice, <code>VSTACK_HOST=claude</code> and <code>VSTACK_HOST=codex</code>; S18–S19 assert the differences, everything else asserts sameness.</li>
+    <li><strong>Real-agent tier:</strong> S20 is tagged <code>@agent</code> and excluded by default. It runs only on demand, with the model pinned to the cheapest per CLI (Claude: Haiku; Codex: set in config) so a smoke round costs cents.</li>
+    <li><strong>CI:</strong> one new line in <code>ci.yml</code> running <code>npm ci &amp;&amp; npx cucumber-js</code> inside <code>e2e/</code> (the <code>@agent</code> tag stays excluded).</li>
+  </ul>
+</section>
+</main>
+</body>
+</html>
