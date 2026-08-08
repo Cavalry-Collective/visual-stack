@@ -316,8 +316,10 @@ body.panelshut #panelHandle:hover .pbadge{background:#fff;color:var(--brand)}
 .banner.good .tick{color:var(--ok);font-weight:700}
 
 /* the toast — VSShell.toast(); one element, appended on first use */
-.vs-toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:80;
-  background:var(--ink);color:var(--surface);padding:8px 14px;border-radius:8px;
+/* It is a popover, so the browser's own [popover] rules apply first: inset,
+   margin and border are theirs to set and ours to put back. */
+.vs-toast{position:fixed;inset:auto;left:50%;bottom:18px;transform:translateX(-50%);z-index:80;
+  background:var(--ink);color:var(--surface);border:0;margin:0;padding:8px 14px;border-radius:8px;
   font-size:12.5px;box-shadow:var(--shadow-pop);opacity:0;pointer-events:none;transition:opacity .25s}
 .vs-toast.on{opacity:1}
 
@@ -662,6 +664,14 @@ body.phase #hiNew{display:inline-flex}
 #pwork .spin{width:12px;height:12px;border-radius:50%;border:2px solid var(--brand-line);
   border-top-color:var(--brand);animation:spin .7s linear infinite;flex:none}
 #pwork .ptxt{flex:1;min-width:0;font-size:11.5px;color:var(--ink-2);line-height:1.35}
+/* Stalled is the absence of progress, so the strip stops claiming any: the
+   spinner goes, and the brand tint that says "in hand" goes with it. */
+#pwork.stalled{background:var(--surface-2)}
+#pwork.stalled .spin{display:none}
+#pwork .again{font-size:11.5px;color:var(--ink-3);text-decoration:underline;white-space:nowrap;flex:none}
+#pwork .again:hover:not(:disabled){color:var(--brand)}
+#pwork .again:disabled{opacity:.35;cursor:default;text-decoration:none}
+#pwork .again[hidden]{display:none}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes sweep{0%{left:-38%}55%{left:100%}100%{left:100%}}
 #pfoot{border-top:1px solid var(--line);padding:9px 10px;display:flex;gap:7px;align-items:center}
@@ -898,6 +908,9 @@ body.viewing #toolbar button[aria-pressed=true]{background:var(--surface-2);colo
   border:1px solid var(--line);color:var(--ink-2)}
 .confirmDialog .modalactions{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;
   border-top:1px solid var(--line);background:var(--surface-2)}
+/* Ours, in the slot the shell offers inside its settings menu. */
+.cogmenu .row.reset{display:block}
+.cogmenu .row.reset .btn{width:100%;justify-content:center}
 .confirmDialog .danger{background:var(--brand);border-color:var(--brand);color:#fff}
 .confirmDialog .danger:hover{filter:brightness(1.08)}
 .confirmDialog .danger:disabled{opacity:.45;filter:none}
@@ -1001,6 +1014,14 @@ body.viewing #toolbar button[aria-pressed=true]{background:var(--surface-2);colo
         </span>
       </div>
       <div class="row stale" id="cogStale" hidden>Reload to pick up the server's version.</div>
+      <!-- What only this tool can offer about its own state — starting it over,
+           usually. Every tool keeps different things, so the shell offers the
+           place rather than the content. -->
+      <!-- vstack:slot cog -->
+      <div class="row reset">
+        <button class="btn sm" id="btnReset"></button>
+      </div>
+      <!-- /vstack:slot cog -->
     </div>
   </div>
   <div class="sep"></div>
@@ -1146,6 +1167,7 @@ body.viewing #toolbar button[aria-pressed=true]{background:var(--surface-2);colo
       <div id="pwork" hidden>
         <span class="spin"></span>
         <span class="ptxt" id="pworkText"></span>
+        <button class="again" id="btnAgain" hidden></button>
       </div>
       <div id="pbody"></div>
       <div id="pfoot">
@@ -1156,6 +1178,17 @@ body.viewing #toolbar button[aria-pressed=true]{background:var(--surface-2);colo
   </div>
 </div>
 
+<dialog class="confirmDialog" id="resetDialog" aria-labelledby="resetDialogTitle" aria-describedby="resetDialogImpact resetDialogKept">
+  <div class="modalbody">
+    <h2 id="resetDialogTitle"></h2>
+    <p id="resetDialogImpact"></p>
+    <p class="kept" id="resetDialogKept"></p>
+  </div>
+  <div class="modalactions">
+    <button class="btn" id="btnCancelReset"></button>
+    <button class="btn danger" id="btnConfirmReset"></button>
+  </div>
+</dialog>
 <dialog class="confirmDialog" id="clearDialog" aria-labelledby="clearDialogTitle" aria-describedby="clearDialogImpact clearDialogKept">
   <div class="modalbody">
     <h2 id="clearDialogTitle"></h2>
@@ -1354,14 +1387,34 @@ window.VSShell = (function () {
   }
 
   /* ── a toast: the page saying "done" without stopping anyone ── */
+  /* Long enough for the opacity transition in shell.css to finish before the
+     toast leaves the top layer, so it fades rather than vanishing. */
+  const TOAST_FADE_MS = 300;
   let toastTimer = null;
   function toast (msg, ms = 2200) {
     let el = document.querySelector('.vs-toast');
-    if (!el) { el = document.createElement('div'); el.className = 'vs-toast'; document.body.appendChild(el) }
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'vs-toast';
+      /* A modal dialog paints in the top layer, above every z-index there is,
+         and its backdrop blurs what lies under it. A toast raised while one is
+         open has to join the top layer or it is unreadable behind the very
+         dialog whose failure it is reporting. */
+      el.popover = 'manual';
+      document.body.appendChild(el);
+    }
     el.textContent = msg;
+    /* Promoted on each toast rather than left open, because the top layer
+       stacks in the order things entered it: one promoted before a dialog
+       would sit under it. Older browsers have no popover and lose nothing but
+       the stacking. */
+    try { el.showPopover() } catch {}
     el.classList.add('on');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove('on'), ms);
+    toastTimer = setTimeout(() => {
+      el.classList.remove('on');
+      toastTimer = setTimeout(() => { try { el.hidePopover() } catch {} }, TOAST_FADE_MS);
+    }, ms);
   }
 
   /* ── two-step confirm on one button ──
@@ -1469,6 +1522,9 @@ window.VSShell = (function () {
     const btn = $('#settingsBtn'), menu = $('#settingsMenu');
     if (!btn || !menu) return;
     const open = on => { menu.hidden = !on; btn.setAttribute('aria-expanded', String(on)) };
+    // A control in the cog's slot can act on the page behind it, so the page
+    // needs a way to put the menu away first.
+    closeSettings = () => open(false);
     btn.addEventListener('click', e => { e.stopPropagation(); open(menu.hidden) });
     menu.addEventListener('click', e => e.stopPropagation());
     document.addEventListener('click', () => open(false));
@@ -1502,9 +1558,12 @@ window.VSShell = (function () {
     return api;
   }
 
+  let closeSettings = () => {};
+
   const api = {
     init, setTheme, setLang, setLink, setWatching, setServerVersion, hideLink, name, wip,
     connect, toast, armConfirm, esc,
+    closeSettings: () => closeSettings(),
     get theme () { return theme },
     get lang () { return lang },
     onLang (fn) { langListeners.push(fn) },
@@ -1669,11 +1728,25 @@ const STR = {
     del: 'Delete comment', clearAll: 'Clear all',
     cleared: n => `Cleared ${n} comment${n > 1 ? 's' : ''}`,
     clearDialogTitle: 'Clear all comments?',
-    clearImpact: n => `This takes back ${n} comment${n === 1 ? '' : 's'} still waiting here. Anything {agent} already has stays — reply on those to ask for them back.`,
+    clearImpact: n => `This takes ${n} comment${n === 1 ? '' : 's'} off the list, addressed ones included. {agent} finishes whatever it is working on right now.`,
+    clearFail: n => `The server would not take ${n} of them off — those are still on the review.`,
     clearKept: 'The wireframe and version history will stay.',
     clearCancel: 'Cancel', clearConfirm: 'Clear all',
     clearHistory: 'Clear history',
     clearHistoryTitle: 'Delete past versions',
+    reset: 'Hard reset Visual Stack',
+    resetTitle: 'Delete every comment and version, and start this review at v1',
+    resetWorking: 'Resetting…',
+    resetDialogTitle: 'Hard reset this review?',
+    resetImpact: (c, v) => `This deletes ${c} comment${c === 1 ? '' : 's'} and ${v} version${v === 1 ? '' : 's'}, including everything {agent} has already answered. It cannot be undone.`,
+    resetImpactLive: c => `This deletes ${c} comment${c === 1 ? '' : 's'}, including everything {agent} has already answered. It cannot be undone.`,
+    resetKept: 'Nothing {agent} changed is undone. The page keeps every edit it has made, and becomes v1 again.',
+    resetKeptLive: 'Nothing {agent} changed is undone. The app stays exactly as it is — only the review starts again.',
+    resetCancel: 'Keep it',
+    resetConfirm: 'Hard reset',
+    resetDone: 'The review starts again at v1',
+    resetFail: 'Could not reset — is the review server still running?',
+    resetOld: 'This review server started before Hard reset existed. Restart it, or run `review-server.mjs reset` yourself.',
     clearHistoryDialogTitle: 'Clear version history?',
     clearHistoryImpact: n => `This permanently deletes ${n} past version${n === 1 ? '' : 's'}. You will no longer be able to scrub back to ${n === 1 ? 'it' : 'them'}.`,
     clearHistoryKept: 'The current version and all comments will stay.',
@@ -1728,6 +1801,10 @@ const STR = {
     queuedOn: n => `${n} comment${n > 1 ? 's' : ''} waiting to be picked up`,
     notPickedUp: n => `${n} comment${n > 1 ? 's' : ''} sent — not picked up yet`,
     workingAndQueued: (w, q) => `{agent} is working on ${w} · ${q} waiting`,
+    stalled: n => `{agent} has stalled — ${n} comment${n > 1 ? 's' : ''} still with it`,
+    sendAgain: 'Send again',
+    sentAgain: 'Back in the queue — the next session to pick up gets them.',
+    sendAgainRefused: '{agent} is listening again, so it still has them.',
     queuedTag: 'queued',
     addressedGroup: n => `Addressed (${n})`, earlierGroup: n => `Earlier (${n})`,
     revert: 'Revert', refine: 'Refine',
@@ -1738,10 +1815,12 @@ const STR = {
     dismiss: 'Dismiss',
     dismissTitle: 'Take this off the list',
     more: 'More', sendOne: 'Send just this one to {agent}',
-    dismissed: 'Taken back',
-    withdrawByReply: '{agent} already has this one — say what you want undone.',
+    dismissed: 'Taken off the list',
+    dismissedWorking: 'Taken off your list — {agent} is already working on it.',
+    dismissFail: 'The server would not take that one off — it is still on the review.',
     closedSome: n => `{agent} closed ${n} comment${n > 1 ? 's' : ''}`,
     undoReply: 'Take back this reply',
+    undoReplyFail: 'That reply could not be taken back — it is still on the thread.',
     revertNote: 'Revert this change — put it back the way it was before.',
     approve: 'Approve & finish', approveSure: 'Approve & close the review?',
     approvedTitle: 'Approved — the review is closed',
@@ -1783,11 +1862,25 @@ const STR = {
     del: '删除批注', clearAll: '全部清除',
     cleared: n => `已清除 ${n} 条批注`,
     clearDialogTitle: '清除所有批注？',
-    clearImpact: n => `这会收回还在等待的 ${n} 条批注。{agent} 已收到的不受影响 — 请在那些批注上回复说明。`,
+    clearImpact: n => `这会从列表中移除 ${n} 条批注，包括已处理的。{agent} 仍会完成正在处理的内容。`,
+    clearFail: n => `服务器未能移除其中 ${n} 条 — 它们仍在本次评审中。`,
     clearKept: '线框图和版本历史都会保留。',
     clearCancel: '取消', clearConfirm: '全部清除',
     clearHistory: '清除历史',
     clearHistoryTitle: '删除过往版本',
+    reset: '硬重置 Visual Stack',
+    resetTitle: '删除所有批注与版本，本次评审从 v1 重新开始',
+    resetWorking: '正在重置…',
+    resetDialogTitle: '硬重置本次评审？',
+    resetImpact: (c, v) => `这会删除 ${c} 条批注和 ${v} 个版本，包括 {agent} 已处理的内容，且无法撤销。`,
+    resetImpactLive: c => `这会删除 ${c} 条批注，包括 {agent} 已处理的内容，且无法撤销。`,
+    resetKept: '{agent} 所做的改动不会被撤销。页面保留全部改动，并重新成为 v1。',
+    resetKeptLive: '{agent} 所做的改动不会被撤销。应用保持不变 — 只有评审重新开始。',
+    resetCancel: '保留',
+    resetConfirm: '硬重置',
+    resetDone: '评审已从 v1 重新开始',
+    resetFail: '重置失败 — 评审服务器还在运行吗？',
+    resetOld: '这个评审服务器启动于「硬重置」加入之前。请重启它，或自行运行 `review-server.mjs reset`。',
     clearHistoryDialogTitle: '清除版本历史？',
     clearHistoryImpact: n => `这会永久删除 ${n} 个过往版本，之后将无法再切换回这些版本。`,
     clearHistoryKept: '当前版本和所有批注都会保留。',
@@ -1837,6 +1930,10 @@ const STR = {
     queuedOn: n => `${n} 条批注等待接收`,
     notPickedUp: n => `${n} 条批注已发送，尚未被接收`,
     workingAndQueued: (w, q) => `{agent} 正在处理 ${w} 条 · ${q} 条等待中`,
+    stalled: n => `{agent} 已停止响应 — ${n} 条批注仍在它那里`,
+    sendAgain: '重新发送',
+    sentAgain: '已重新排队 — 下一个接手的会话会收到。',
+    sendAgainRefused: '{agent} 已重新连接，这些仍在它那里。',
     queuedTag: '等待中',
     addressedGroup: n => `已处理（${n}）`, earlierGroup: n => `更早（${n}）`,
     revert: '撤回', refine: '继续完善',
@@ -1847,10 +1944,12 @@ const STR = {
     dismiss: '不用管了',
     dismissTitle: '从列表中移除',
     more: '更多', sendOne: '只发送这一条给 {agent}',
-    dismissed: '已收回',
-    withdrawByReply: '{agent} 已收到这条 — 请说明需要撤销什么。',
+    dismissed: '已从列表中移除',
+    dismissedWorking: '已从你的列表中移除 — {agent} 仍在处理这条。',
+    dismissFail: '服务器未能移除这条 — 它仍在本次评审中。',
     closedSome: n => `{agent} 关闭了 ${n} 条批注`,
     undoReply: '撤回这条回复',
+    undoReplyFail: '这条回复未能撤回 — 它仍在会话中。',
     revertNote: '撤销这处改动——恢复成修改之前的样子。',
     approve: '批准并结束', approveSure: '确定批准并关闭评审？',
     approvedTitle: '已批准 — 评审已关闭',
@@ -1917,7 +2016,7 @@ const S = {
   name: 'Review', fileName: 'page.html',
   html: '', versions: [], comments: [],
   version: 1, viewing: 1,
-  historyClearedAt: null, clearingHistory: false,
+  historyClearedAt: null, clearingHistory: false, resetting: false,
   /* `mode` is what the pointer does right now — View, or one of the annotate
      tools. `tool` remembers which tool that was, so leaving for View and coming
      back returns the tool rather than resetting to Comment. */
@@ -1932,6 +2031,10 @@ const S = {
   offscreen: new Set(),
   // Threads opened in the panel, and which reply box the cursor is in.
   threadOpen: new Set(), focusReply: null,
+  // Deleted in this tab — never to be folded back in by a refresh.
+  forgotten: new Set(),
+  // Replies taken back in this tab, by thread key, for the same reason.
+  retracted: new Set(),
   pendingUpdate: null,
   linked: null,   // null until the connection has actually said one way or other
   // The shareable Artifact: asked for here, published by Claude, link comes back.
@@ -1974,7 +2077,7 @@ async function boot () {
   if (live()) S.route = S.startPath;
   adoptShare(data);
   VSShell.setWatching(data.watching);
-  S.watching = data.watching;
+  noteWatching(data.watching);
   VSShell.setServerVersion(data.version);
 
   const phase = S.runtime === 'phase';
@@ -2062,8 +2165,7 @@ function liveReload () {
       presence: ev => {
         let watching;
         try { watching = JSON.parse(ev.data).watching } catch { return }
-        if (S.watching === watching) return;
-        S.watching = watching;
+        if (!noteWatching(watching)) return;
         renderWork();
       },
     },
@@ -2075,7 +2177,7 @@ async function onReloadEvent () {
   // The link can land on its own, without the page or the review moving.
   adoptShare(data, true);
   VSShell.setWatching(data.watching);
-  S.watching = data.watching;
+  noteWatching(data.watching);
   VSShell.setServerVersion(data.version);
   if (data.historyClearedAt && data.historyClearedAt !== S.historyClearedAt) {
     applyHistoryClear(data);
@@ -2128,15 +2230,78 @@ function setLink (up) {
    than remembering it: sent and not yet handed over is queued, handed over is
    being worked on. A reload, a second tab and the tab that pressed Send all see
    the same thing. */
+
+/* How long nothing may be listening before a round in hand is called stalled.
+   A stream watcher keeps its heartbeat up for the whole time the agent works,
+   so a heartbeat that stopped is a session that went away rather than a slow
+   one. The wait is what keeps a session restarting mid-round from reading as a
+   dead one. */
+const STALL_MS = 60000;
+let stallTimer = null;
+/** Remember when the heartbeat went quiet. Says whether anything changed. */
+function noteWatching (value) {
+  if (S.watching === value) return false;
+  S.watching = value;
+  S.unwatchedAt = value === false ? Date.now() : null;
+  return true;
+}
+
+/** How long nothing has been listening. Zero while something is. */
+const quietFor = () => S.watching === false && S.unwatchedAt ? Date.now() - S.unwatchedAt : 0;
+/** A round in hand, quiet long enough to call the session behind it gone.
+    Everything that would animate progress asks this before claiming any. */
+const isStalled = () => quietFor() >= STALL_MS && S.ann.some(isWorking);
+
 function renderWork () {
   const working = S.ann.filter(isWorking).length;
   const queued = S.ann.filter(a => isQueued(a) && isOpen(a)).length;
+  const quiet = working > 0 ? quietFor() : 0;
+  const stalled = isStalled();
+  /* Nothing else calls this while the page sits there waiting, so the strip has
+     to wake itself up to change its own mind. The heartbeat stopping is what
+     renders here, so the wait is armed on the round being quiet rather than on
+     how long it has been quiet — that is still zero on the render the presence
+     event triggers, and no further event is coming. */
+  clearTimeout(stallTimer);
+  stallTimer = working && !stalled && S.watching === false
+    ? setTimeout(renderWork, Math.max(0, STALL_MS - quiet)) : null;
   $('#pwork').hidden = !working && !queued;
+  $('#pwork').classList.toggle('stalled', stalled);
+  const again = $('#btnAgain');
+  again.hidden = !stalled || !served() || isHistory();
+  again.textContent = T('sendAgain');
   if (working || queued) $('#pworkText').textContent =
-    !working ? (S.watching === false ? T('notPickedUp')(queued) : T('queuedOn')(queued))
+    stalled ? T('stalled')(working)
+    : !working ? (S.watching === false ? T('notPickedUp')(queued) : T('queuedOn')(queued))
     : queued ? T('workingAndQueued')(working, queued)
     : T('workingOn')(working);
-  composer.classList.toggle('working', !!S.sel && isWorking(annById(S.sel) || {}));
+  composer.classList.toggle('working', !stalled && !!S.sel && isWorking(annById(S.sel) || {}));
+}
+
+/**
+ * Give a stalled round back to the queue.
+ *
+ * A comment already handed over is not something a new watcher will ever be
+ * given, so a session that died holding one strands it where nobody can reach
+ * it. This drops only the record of the handover: the comments stay open and
+ * still say what they said, and the next session to pick up is given them like
+ * any other delivery.
+ */
+async function sendAgain () {
+  const again = $('#btnAgain');
+  again.disabled = true;
+  try {
+    const response = await fetch(API + '/comments/requeue', { method: 'POST' });
+    // The agent came back while the button was on screen. It holds them after
+    // all, so nothing is taken off it.
+    if (response.status === 409) { toast(T('sendAgainRefused')); return }
+    if (!response.ok) throw new Error(`requeue failed (${response.status})`);
+    const back = new Set((await response.json()).requeued || []);
+    for (const a of S.ann) if (back.has(a.id)) a.deliveredAt = null;
+    toast(T('sentAgain'));
+    render();
+  } catch { toast(T('sendFail')) }
+  finally { again.disabled = false }
 }
 
 /**
@@ -2151,11 +2316,20 @@ function renderWork () {
 function mergeComments (serverComments) {
   let changed = false, agentSpoke = false, closed = 0;
   const seen = new Set();
+  /* The server leaves a dismissed comment out of the payload, so a payload
+     without it is the confirmation this tab was waiting for. Stop hiding the id
+     then: a reply reopens a dismissed comment, and it has to be able to come
+     back. Anything still listed is a payload the dismissal had not reached. */
+  const arriving = new Set(serverComments.map(c => c.id));
+  for (const id of S.forgotten) if (!arriving.has(id)) S.forgotten.delete(id);
   for (const incoming of serverComments) {
+    // Deleted here a moment ago, and the server has not been told yet.
+    if (S.forgotten.has(incoming.id)) continue;
     seen.add(incoming.id);
     const local = annById(incoming.id);
     if (!local) { S.ann.push(normalise(incoming)); changed = true; continue }
-    const merged = mergeReplies(local.replies, incoming.replies);
+    const merged = mergeReplies(local.replies,
+      (incoming.replies || []).filter(r => !S.retracted.has(replyKey(r))));
     if (merged.length !== (local.replies || []).length) {
       local.replies = merged;
       S.threadOpen.add(local.id); changed = true;
@@ -2178,9 +2352,10 @@ function mergeComments (serverComments) {
 }
 
 /** Two copies of one append-only thread, merged into the whole of it. */
+const replyKey = r => `${r.by}|${r.at}|${r.text}`;
 function mergeReplies (mine = [], theirs = []) {
   const byKey = new Map();
-  for (const reply of [...mine, ...theirs]) byKey.set(`${reply.by}|${reply.at}|${reply.text}`, reply);
+  for (const reply of [...mine, ...theirs]) byKey.set(replyKey(reply), reply);
   return [...byKey.values()].sort((a, b) => Date.parse(a.at || 0) - Date.parse(b.at || 0));
 }
 
@@ -2260,6 +2435,7 @@ function applyLang () {
   }
   $('#hiNew .lbl').textContent = T('hiNew');
   $('#hiNew').title = T('hiNewTitle');
+  renderReset();
   $('#btnReload').title = T('reloadTitle');
   $('#btnNow').textContent = T('backToCurrent');
   $('#btnRefresh').textContent = T('reviewChanges');
@@ -2312,6 +2488,14 @@ function wireChrome () {
   $('#clearDialog').onclick = e => { if (e.target === $('#clearDialog')) $('#clearDialog').close() };
   $('#clearDialog').addEventListener('cancel', e => { e.preventDefault(); $('#clearDialog').close() });
   $('#btnClearHistory').onclick = openHistoryDialog;
+  $('#btnReset').onclick = () => { VSShell.closeSettings?.(); openResetDialog() };
+  $('#btnCancelReset').onclick = () => $('#resetDialog').close();
+  $('#btnConfirmReset').onclick = confirmReset;
+  $('#resetDialog').onclick = e => { if (e.target === $('#resetDialog') && !S.resetting) $('#resetDialog').close() };
+  $('#resetDialog').addEventListener('cancel', e => {
+    e.preventDefault();
+    if (!S.resetting) $('#resetDialog').close();
+  });
   $('#btnCancelHistory').onclick = () => $('#historyDialog').close();
   $('#btnConfirmHistory').onclick = confirmClearReviewHistory;
   $('#historyDialog').onclick = e => { if (e.target === $('#historyDialog') && !S.clearingHistory) $('#historyDialog').close() };
@@ -2330,6 +2514,7 @@ function wireChrome () {
   // back, so there is never a second control saying the same thing elsewhere.
   $('#panelHandle').onclick = () => setPanel(!document.body.classList.contains('panelopen'));
   $('#btnGeneral').onclick = addGeneral;
+  $('#btnAgain').onclick = sendAgain;
   // Open beside the page when there is room for it, away when there is not —
   // and back to that default whenever the window crosses the line, rather than
   // carrying a choice made about one shape over into the other.
@@ -2574,22 +2759,82 @@ function enterPhaseMode () {
    result collapses the whole page to nothing. Measure at the viewport height and
    only let a document that genuinely overflows grow — and only if that growth
    settles. A layout that keeps growing as we grow it is viewport-driven, so it
-   stays exactly one viewport tall and scrolls its own panes, like a real browser. */
-let sizingFrame = false;
+   stays exactly one viewport tall and scrolls its own panes, like a real browser.
+
+   Full height has one cost: inside the frame the CSS viewport IS the document,
+   so anything the page centres or pins against its viewport — a fixed overlay,
+   a native dialog's top layer — lands screens away from where the reviewer is
+   looking. While such an overlay is up, hold the frame at exactly one viewport
+   tall and move the outer scroll into the page itself, so the overlay sits over
+   what the reviewer can see; when it closes, hand the scroll back and refit.
+   Marks convert through the frame's own scroll at both edges, so they hold in
+   either state. */
+function frameModalOpen () {
+  const win = fwin();
+  if (!win || !fdoc?.body) return false;
+  const shownFixed = el => {
+    const cs = win.getComputedStyle(el);
+    if (cs.position !== 'fixed' || cs.display === 'none' || cs.visibility === 'hidden') return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  };
+  try {
+    // Fixed, not merely open: a non-modal dialog.show() sits in the flow and
+    // behaves the same here as in a real browser.
+    for (const el of fdoc.querySelectorAll('dialog[open], [aria-modal="true"], [role="dialog"], [role="alertdialog"]'))
+      if (shownFixed(el)) return true;
+    // A fixed layer covering the whole viewport is a backdrop even unlabelled.
+    // Overlays portal to the body, so only its children and grandchildren are
+    // worth asking.
+    for (const child of fdoc.body.children)
+      for (const el of [child, ...child.children])
+        if (shownFixed(el)) {
+          const r = el.getBoundingClientRect();
+          if (r.width >= win.innerWidth * 0.9 && r.height >= win.innerHeight * 0.9) return true;
+        }
+  } catch {}
+  return false;
+}
+let sizingFrame = false, modalViewport = false;
 function fitFrameHeight () {
   if (!fdoc) return 0;
   const vh = S.size.height;
   const apply = h => { frame.style.height = h + 'px'; scroller.style.height = h + 'px' };
   const measure = () => Math.max(fdoc.documentElement.scrollHeight, fdoc.body?.scrollHeight || 0, 1);
   sizingFrame = true;
+  if (frameModalOpen()) {
+    // Read the outer scroll before the frame shrinks and clamps it away.
+    const outer = modalViewport ? 0 : vpBox.scrollTop;
+    modalViewport = true;
+    apply(vh);
+    if (outer) try { fwin().scrollTo(0, outer) } catch {}
+    requestAnimationFrame(() => { sizingFrame = false });
+    return vh;
+  }
+  const inner = modalViewport ? (fwin()?.scrollY || 0) : 0;
+  modalViewport = false;
   apply(vh);
   const natural = measure();
   if (natural > vh + 2) {
     apply(natural);
     if (measure() > natural + 2) apply(vh);
   }
+  if (inner) vpBox.scrollTop = inner;
   requestAnimationFrame(() => { sizingFrame = false });
   return parseFloat(frame.style.height) || 0;
+}
+/* Opening a fixed overlay changes no layout the body's ResizeObserver can see,
+   so the mutation watcher asks directly whether the modal state flipped. */
+let modalFitQueued = false;
+function syncModalFit () {
+  if (modalFitQueued) return;
+  modalFitQueued = true;
+  requestAnimationFrame(() => {
+    modalFitQueued = false;
+    if (!fdoc || frameModalOpen() === modalViewport) return;
+    fitFrameHeight();
+    drawMarks();
+  });
 }
 let refitQueued = false;
 function sizeFrame () {
@@ -3190,7 +3435,7 @@ function watchFrame () {
   if (!fdoc) return;
   try { frame._mo?.disconnect() } catch {}
   // The page moved: anything we failed to find last time is worth another look.
-  const mo = frame._mo = new MutationObserver(() => { domEpoch++; scheduleSync() });
+  const mo = frame._mo = new MutationObserver(() => { domEpoch++; syncModalFit(); scheduleSync() });
   try {
     mo.observe(fdoc.documentElement, {
       childList: true, subtree: true, attributes: true,
@@ -3330,6 +3575,29 @@ function addGeneral () {
   save(); render();     // the card's own field takes the cursor
 }
 
+/* Deleting a comment is its own request. A save says what this tab holds, not
+   what the review contains — the server keeps whatever a save leaves out, which
+   is what a second tab depends on — so a comment dropped from the payload is
+   not deleted, and would come back on the next refresh. */
+/** True when the review no longer holds the comment. A server that refuses is
+    the one case this tab must not paper over: dropping the card anyway shows a
+    review the server disagrees with, and the next refresh brings the comment
+    back with nothing said about why. */
+async function forgetOnServer (id) {
+  S.forgotten.add(id);
+  if (S.runtime === 'artifact') return true;
+  try {
+    const response = await fetch(API + '/comments/dismiss', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    // Already gone is gone — a second click, or another tab that got there first.
+    if (response.ok || response.status === 404) return true;
+  } catch {}
+  S.forgotten.delete(id);
+  return false;
+}
+
 function removeComment (id) {
   S.ann = S.ann.filter(a => a.id !== id);
   if (S.sel === id) { S.sel = null; composer.classList.remove('on') }
@@ -3344,9 +3612,9 @@ const annById = id => S.ann.find(a => a.id === id);
    struck out. Words on top of one are welcome and never required. */
 const SELF_EVIDENT = new Set(['move', 'strike']);
 const hasSubstance = a => !!(a.note || '').trim() || SELF_EVIDENT.has(a.kind);
-/** Everything the panel can actually clear: what is still queued here. Once
-    Claude has been handed a comment, asking for it back is a reply on it. */
-const activeComments = () => S.ann.filter(a => hasSubstance(a) && !a.deliveredAt);
+/** Every comment on the list, whoever is holding it — Clear all is the × on
+    each card done in one go, so it reaches exactly what the cards do. */
+const listedComments = () => S.ann.filter(hasSubstance);
 /** A general comment that has just been made and has nothing in it yet. */
 const blank = a => !!a._fresh && a.kind === 'general';
 /* Once a comment is sent it is a record of what was asked, not a draft: the
@@ -3444,7 +3712,7 @@ function openComposer (id, focus) {
   composer.querySelector('.cdel').style.display = hasSubstance(a) && !isHistory() ? '' : 'none';
   composer.querySelector('.cdel').title = T('del');
   composer.querySelector('.csave').style.display = isHistory() ? 'none' : '';
-  composer.classList.toggle('working', isWorking(a));
+  composer.classList.toggle('working', isWorking(a) && !isStalled());
   placeComposer();
   if (focus !== false) setTimeout(() => (canReply && a.note ? reply : note).focus(), 0);
   drawMarks(); renderPanel();
@@ -3461,7 +3729,7 @@ function closeComposer () {
     if (!sent(a) && note !== (a.note || '')) { a.note = note; save() }
     // No words and no thread is not feedback — clearing a comment removes it,
     // which is also how you take one back.
-    if (!hasSubstance(a)) S.ann = S.ann.filter(x => x.id !== a.id);
+    if (!hasSubstance(a)) { S.ann = S.ann.filter(x => x.id !== a.id); forgetOnServer(a.id) }
     delete a._fresh;
   }
   composer.classList.remove('on');
@@ -3482,41 +3750,54 @@ function postReply (a, text) {
 }
 
 /**
- * The × on a card. A comment still waiting here is simply taken back. One
- * Claude already holds is not: it may already have been acted on, so asking for
- * it back is a reply saying so, and Claude closes it when the undoing is done.
+ * The × on a card. It takes the comment off the list, whatever state it is in:
+ * a draft goes, one queued here never goes out, and an addressed one stops
+ * being something to read. The one Claude is working on right now is the
+ * exception worth saying out loud — it is off your list, and Claude carries on
+ * with what it was already given.
  */
 async function takeOff (a) {
   if (isHistory()) return;
-  if (!sent(a)) { removeComment(a.id); return }
-  if (a.deliveredAt) {
-    S.threadOpen.add(a.id);
-    S.focusReply = a.id;
-    render();
-    toast(T('withdrawByReply'));
-    return;
-  }
+  const working = isWorking(a);
   S.threadOpen.delete(a.id);
   replyDrafts.delete(a.id);
   if (S.sel === a.id) closeComposer();
-  try {
-    await fetch(API + '/comments/dismiss', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: a.id }),
-    });
-  } catch {}
   removeComment(a.id);
-  toast(T('dismissed'));
+  toast(T(working ? 'dismissedWorking' : 'dismissed'));
+  if (await forgetOnServer(a.id)) return;
+  // The card goes the moment it is clicked, so it has to come back the moment
+  // the server says it did not.
+  S.ann.push(a);
+  render();
+  toast(T('dismissFail'));
 }
 
-/** Take back the reply you just wrote, while Claude has yet to see it. */
-function undoReply (a, i) {
+/** Take back the reply you wrote. A save that omits it would read as a stale
+    tab and be merged straight back, so removal is its own request — the same
+    shape as dismissing a card. The server refuses once something has been said
+    over it, and then the line comes back rather than this tab disagreeing. */
+async function undoReply (a, i) {
   if (isHistory()) return;
   const reps = a.replies || [];
-  if (i !== reps.length - 1 || reps[i]?.by !== 'reviewer') return;
+  const reply = reps[i];
+  if (i !== reps.length - 1 || reply?.by !== 'reviewer') return;
+  S.retracted.add(replyKey(reply));
   reps.splice(i, 1);
   save();
   render();
+  if (S.runtime === 'artifact') return;
+  try {
+    const response = await fetch(API + '/comments/unreply', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: a.id, at: reply.at, text: reply.text }),
+    });
+    // A comment already gone took its thread with it.
+    if (response.ok || response.status === 404) return;
+  } catch {}
+  S.retracted.delete(replyKey(reply));
+  a.replies = mergeReplies(a.replies, [reply]);
+  render();
+  toast(T('undoReplyFail'));
 }
 
 /**
@@ -3593,8 +3874,8 @@ function threadNote (a, open) {
 }
 /** The whole exchange, and the box to answer it in, without leaving the list. */
 function threadBox (a) {
-  // Your last word, with nothing said back yet, is the one thing here that has
-  // not gone anywhere — so it is the one thing you can take back.
+  // Your last word, with nothing said over it yet, is the one line the thread
+  // can still let go of — so it is the one thing you can take back.
   const pending = (i, m, all) => !isHistory() && m.by === 'reviewer' && i === all.length - 1;
   const msgs = (a.replies || []).map((m, i, all) =>
     `<div class="tmsg${isAgent(m.by) ? ' agent' : ''}">
@@ -3840,6 +4121,7 @@ function renderPanel () {
   numberComments();
   renderWork();
   const body = $('#pbody');
+  const wasAt = rowTops(body), wasScrolled = body.scrollTop;
   body.innerHTML = '';
   $('#pscope').textContent = isHistory() ? T('readOnly')(S.viewing) : sizeLabel(S.size.id);
   // "Open" means unfinished — a comment Claude has asked a question about is
@@ -3886,11 +4168,14 @@ function renderPanel () {
   for (const a of elsewhere) body.appendChild(itemNode(a, { otherSize: true }));
   if (done.length) {
     /* What Claude has just closed is the part you want to check; what it
-       closed a while ago is a record. Closing stamps the comment, so recent is
-       read off the comments rather than guessed from the version. */
-    const newest = Math.max(...done.map(a => Date.parse(a.closedAt || 0)), 0);
-    const recent = done.filter(a => newest - Date.parse(a.closedAt || 0) < 60_000);
-    const older = done.filter(a => !recent.includes(a));
+       closed a while ago is a record. Closing stamps the comment, so each one
+       carries its own answer and nothing here reads the rest of the list:
+       measured against the newest comment still in it, taking that one off
+       promoted the whole batch beneath it back into view. A comment closed
+       before the stamp existed has none, and is a record. */
+    const justClosed = a => Date.now() - Date.parse(a.closedAt || '') < 60_000;
+    const recent = done.filter(justClosed);
+    const older = done.filter(a => !justClosed(a));
     body.appendChild(group(T('addressedGroup')(done.length)));
     for (const a of recent) body.appendChild(itemNode(a, { done: true }));
     if (older.length) {
@@ -3901,6 +4186,10 @@ function renderPanel () {
       if (S.doneOpen) for (const a of older) body.appendChild(itemNode(a, { done: true }));
     }
   }
+  // Emptying the list scrolled it back to the top. Put it where the reader
+  // left it before anything is measured against it.
+  body.scrollTop = wasScrolled;
+  slideRowsFrom(body, wasAt);
   // The list is rebuilt whenever anything moves, including while a reply is
   // being typed into it. Put the cursor back where it was.
   if (S.focusReply) {
@@ -3911,6 +4200,36 @@ function renderPanel () {
     }
   }
   renderCounts();
+}
+/** Where every row in the list sits right now, keyed so the same row can be
+    found again after the rebuild. Cards carry an id; headings are told apart by
+    the order they appear in, because their text changes with their count. */
+function rowTops (body) {
+  const tops = new Map();
+  let heading = 0;
+  for (const el of body.children) {
+    tops.set(el.dataset.id ? 'c' + el.dataset.id : 'h' + heading++, el.getBoundingClientRect().top);
+  }
+  return tops;
+}
+/** Move each row from where it used to be to where it now is. The panel is
+    rebuilt from scratch on every change, so a comment that changes group — the
+    question you have just answered leaving the top of the list — otherwise
+    arrives in its new place with nothing to follow. */
+function slideRowsFrom (body, tops) {
+  if (!tops.size || !body.firstChild?.animate) return;
+  if (matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+  let heading = 0;
+  for (const el of body.children) {
+    const was = tops.get(el.dataset.id ? 'c' + el.dataset.id : 'h' + heading++);
+    if (was == null) continue;
+    const travel = was - el.getBoundingClientRect().top;
+    if (Math.abs(travel) < 1) continue;
+    // Over the rows it passes, not under them: which card is on top otherwise
+    // depends on which way it happens to be travelling through the list.
+    el.animate([{ transform: `translateY(${travel}px)`, zIndex: 1 }, { transform: 'none', zIndex: 1 }],
+      { duration: 280, easing: 'cubic-bezier(.22,.68,.31,1)' });
+  }
 }
 /** Only one card's menu at a time, and any click outside shuts it. */
 function closeItemMenus () {
@@ -3974,7 +4293,7 @@ function itemNode (a, { otherSize, done, asked } = {}) {
     ${threadNote(a, open)}
     ${open ? threadBox(a) : ''}
     ${done ? '<div class="donebar"></div>' : ''}
-    ${working && !queued ? '<div class="bar"></div>' : ''}`;
+    ${working && !queued && !isStalled() ? '<div class="bar"></div>' : ''}`;
   const menu = $('.imenu', el), more = $('.imore', el);
   if (more) more.onclick = e => {
     e.stopPropagation();
@@ -4098,9 +4417,9 @@ function innerScrolls (el) {
 }
 function renderCounts () {
   // Every comment still to be dealt with, whoever is holding it — and, apart
-  // from it, the ones Clear all can still speak for.
+  // from it, everything on the list, which is what Clear all takes off.
   const open = S.ann.filter(a => isOpen(a) && hasSubstance(a));
-  const clearable = activeComments();
+  const clearable = listedComments();
   $('#counts').innerHTML = open.length
     ? `<b>${open.length}</b> ${esc(T('open').toLowerCase())}`
       + (open.some(a => awaitsReply(a)) ? '<br>' + esc(T('waiting')) : '')
@@ -4117,39 +4436,37 @@ function renderClearDialog () {
   const dialog = $('#clearDialog');
   if (!dialog.open) return;
   $('#clearDialogTitle').textContent = T('clearDialogTitle');
-  $('#clearDialogImpact').textContent = T('clearImpact')(activeComments().length);
+  $('#clearDialogImpact').textContent = T('clearImpact')(listedComments().length);
   $('#clearDialogKept').textContent = T('clearKept');
   $('#btnCancelClear').textContent = T('clearCancel');
   $('#btnConfirmClear').textContent = T('clearConfirm');
 }
 
 function openClearDialog () {
-  if (isHistory() || !activeComments().length) return;
+  if (isHistory() || !listedComments().length) return;
   const dialog = $('#clearDialog');
   if (!dialog.open) dialog.showModal();
   renderClearDialog();
   $('#btnCancelClear').focus();
 }
 
-function confirmClearComments () {
+async function confirmClearComments () {
   if (isHistory()) return;
   closeComposer();
-  const n = activeComments().length;
   $('#clearDialog').close();
-  if (!n) return;
-  /* Only what is still waiting here. A comment Claude already holds may have
-     been acted on, so taking that one back is a reply asking for it — clearing
-     a queue cannot speak for those. */
-  const going = activeComments().map(a => a.id);
-  for (const id of going) {
-    fetch(API + '/comments/dismiss', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
-    }).catch(() => {});
-  }
-  S.ann = S.ann.filter(a => !going.includes(a.id));
+  const going = listedComments();
+  if (!going.length) return;
+  S.ann = S.ann.filter(a => !going.includes(a));
   save(); render();
   toast(T('cleared')(going.length));
+  // Same honesty as the × on one card: whatever the server would not take off
+  // is still on the review, so it goes back on the list.
+  const results = await Promise.all(going.map(a => forgetOnServer(a.id).then(ok => ({ a, ok }))));
+  const kept = results.filter(r => !r.ok).map(r => r.a);
+  if (!kept.length) return;
+  S.ann.push(...kept);
+  render();
+  toast(T('clearFail')(kept.length));
 }
 
 /* The button has to say what is behind it, because a folded-away panel says
@@ -4201,12 +4518,71 @@ const pastVersionCount = () => S.versions.filter(v => v.n !== S.version).length;
 function renderHistoryButton () {
   const btn = $('#btnClearHistory');
   if (!btn) return;
-  btn.hidden = !served() || S.runtime === 'phase';
+  btn.hidden = !served() || S.runtime === 'phase' || live();
   if (btn.hidden) return;
   btn.disabled = S.clearingHistory || !hasVersionHistory();
   btn.textContent = S.clearingHistory ? T('clearHistoryWorking') : T('clearHistory');
   btn.title = T('clearHistoryTitle');
   btn.setAttribute('aria-label', btn.textContent);
+}
+
+/* Starting over. A tool update that changes what a review keeps on disk leaves
+   a store written by the version before it, and reading one is a courtesy, not
+   a promise — this is the way out when the courtesy is not enough. It is behind
+   the cog because it is not part of reviewing, and behind a confirmation
+   because nothing it deletes comes back. */
+function renderReset () {
+  const btn = $('#btnReset');
+  if (!btn) return;
+  btn.textContent = S.resetting ? T('resetWorking') : T('reset');
+  btn.title = T('resetTitle');
+  btn.disabled = S.resetting || !served();
+}
+
+function renderResetDialog () {
+  const dialog = $('#resetDialog');
+  if (!dialog.open) return;
+  $('#resetDialogTitle').textContent = T('resetDialogTitle');
+  const comments = S.ann.filter(hasSubstance).length;
+  // A live review has no versions and no page of its own to speak for.
+  $('#resetDialogImpact').textContent = live()
+    ? T('resetImpactLive')(comments)
+    : T('resetImpact')(comments, S.versions.length);
+  $('#resetDialogKept').textContent = live() ? T('resetKeptLive') : T('resetKept');
+  $('#btnCancelReset').textContent = T('resetCancel');
+  $('#btnCancelReset').disabled = S.resetting;
+  $('#btnConfirmReset').textContent = S.resetting ? T('resetWorking') : T('resetConfirm');
+  $('#btnConfirmReset').disabled = S.resetting;
+}
+
+function openResetDialog () {
+  if (!served() || S.resetting) return;
+  const dialog = $('#resetDialog');
+  if (!dialog.open) dialog.showModal();
+  renderResetDialog();
+  $('#btnCancelReset').focus();
+}
+
+async function confirmReset () {
+  if (S.resetting) return;
+  S.resetting = true;
+  renderReset(); renderResetDialog();
+  try {
+    const response = await fetch(API + '/reset', { method: 'POST' });
+    if (response.status === 404) throw new Error('old');
+    if (!response.ok) throw new Error(`reset failed (${response.status})`);
+  } catch (error) {
+    const old = error?.message === 'old';
+    S.resetting = false;
+    renderReset(); renderResetDialog();
+    toast(T(old ? 'resetOld' : 'resetFail'));
+    return;
+  }
+  /* Everything this tab holds is about the review that just went — the frame,
+     the timeline, the cards, the drafts. Reading it back in is the reload it
+     would take anyway, and it is the one moment where losing the page is the
+     point rather than a rudeness. */
+  location.reload();
 }
 
 function renderHistoryDialog () {
@@ -4294,10 +4670,18 @@ function subFor (n) {
     + (n === S.version ? ' · ' + T('current') : '');
 }
 const capFor = n => S.runtime === 'phase' ? `P${n}` : live() ? `r${n}` : `v${n}`;
+/* A version is a frozen copy of the page under review. A running app has none —
+   what a capture of one produces is a likeness, and scrubbing back to it showed
+   something that was never really there — so a live review has comments and no
+   timeline at all. */
 const scrubItems = () =>
-  versionList().map(n => ({ id: n, cap: capFor(n), label: labelFor(n), sub: subFor(n) }));
+  live() ? [] : versionList().map(n => ({ id: n, cap: capFor(n), label: labelFor(n), sub: subFor(n) }));
 
 function buildTimeline () {
+  /* A live review has no versions to move between, so the whole row goes rather
+     than sitting there empty with a track that does nothing. */
+  const timeline = $('#timeline');
+  if (timeline) timeline.hidden = live();
   VSScrub.set({ items: scrubItems(), active: S.viewing });
   syncTimeline();
 }
@@ -4495,55 +4879,6 @@ function buildFeedback () {
 }
 
 
-/* ─────────────── live: keeping a copy of what they saw ───────────────
-   A file review freezes the file on every publish. There is nothing to freeze
-   here — the app moves on the moment the code does — so the workspace takes
-   the picture instead: the DOM as it stands, with its stylesheets folded in so
-   it still looks like itself. It is what the timeline scrubs back to, and what
-   gets published when someone asks for a link they can send on.
-
-   A capture is a likeness, not the app: scripts are dropped, and anything the
-   page would have fetched later never arrives. */
-function captureDOM () {
-  if (!fdoc) return null;
-  let doc;
-  try { doc = fdoc.documentElement.cloneNode(true) } catch { return null }
-  for (const n of doc.querySelectorAll('script')) n.remove();
-  // Same-origin means the rules are readable — which is the only reason a
-  // capture of a real app looks like anything at all.
-  const css = [];
-  try {
-    for (const sheet of fdoc.styleSheets) {
-      let rules = null;
-      try { rules = sheet.cssRules } catch { continue }   // a cross-origin sheet stays out
-      if (rules) css.push([...rules].map(r => r.cssText).join('\n'));
-    }
-  } catch {}
-  for (const n of doc.querySelectorAll('link[rel~="stylesheet"],style')) n.remove();
-  const head = doc.querySelector('head') || doc;
-  // Absolute paths in the capture still point at this origin, which is the
-  // proxy — so a capture opened outside it shows structure, not artwork.
-  const base = doc.ownerDocument.createElement('base');
-  base.href = location.origin + '/';
-  head.prepend(base);
-  const style = doc.ownerDocument.createElement('style');
-  style.textContent = css.join('\n');
-  head.append(style);
-  return '<!doctype html>\n' + doc.outerHTML;
-}
-/** Best-effort — a round with no capture is still a round. */
-async function pushCapture () {
-  if (!live() || isHistory()) return;
-  const html = captureDOM();
-  if (!html) return;
-  try {
-    await fetch(API + '/snapshot', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ version: S.version, route: S.route, html }),
-    });
-  } catch {}
-}
-
 /**
  * Let go of what has been written. With no argument that is everything still
  * here; with an id it is that one, which joins whatever Claude already has.
@@ -4569,8 +4904,6 @@ async function openSend (only) {
     return;
   }
   try {
-    // Take the picture of what they were looking at before Claude changes it.
-    if (!S.ann.some(isWorking)) await pushCapture();
     /* Letting go of a comment is the whole of sending it. It joins the list the
        server already holds and goes out on the next tick, so there is no batch
        to time and nothing to hold back — Claude gets everything still open,
@@ -4685,9 +5018,6 @@ async function requestShare () {
   if (s.url && s.version === S.version) { copy(s.url); closeSendMenu(); return }
   S.share.pending = true; renderShare();
   try {
-    // A running app cannot be sent to anyone. What can is a capture of the
-    // screen they are on — so take one now, and let Claude publish that.
-    await pushCapture();
     await fetch(API + '/share', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ version: S.version }),

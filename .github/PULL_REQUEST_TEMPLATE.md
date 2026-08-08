@@ -20,3 +20,5 @@ drove it on.
 - [ ] Added or renamed a plugin, and updated `.claude-plugin/marketplace.json` in the same commit.
 - [ ] Renamed a tool, and added its former directory name to the `LEGACY` map in `lib/workdir.mjs`.
 - [ ] Changed something under `plugins/`, and raised `version` in both host manifests with a matching `CHANGELOG.md` entry. Merging this publishes it.
+- [ ] Every security scan passes, and no finding was silenced instead of fixed.
+- [ ] Added a step that uses an action, and pinned it by commit SHA with the version in a trailing comment.

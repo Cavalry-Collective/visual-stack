@@ -20,7 +20,7 @@ export VSTACK_HOST=grok
 | `background(cmd)` | `run_terminal_command` with `background: true` | `serve` must outlive the turn |
 | `watch_stream(cmd)` | **`monitor`** tool, `persistent: true` | `watch --all --stream` — each stdout line is a chat event |
 | `stop(handle)` | `kill_command_or_subagent` with the task id | After approve or when ending the review |
-| `run(cmd)` | `run_terminal_command` (foreground) | `publish`, `reply`, `ack`, `status` |
+| `run(cmd)` | `run_terminal_command` (foreground) | `publish`, `reply`, `ack`, `status`, `unanswered` |
 | `edit` | file edit tools (`search_replace`, `write`, …) | HTML wireframe or app source |
 | `share(file)` | **Not available** as a public Artifact | Profile `capabilities.share: copy` — do not run the share-URL flow; UI hides “Publish a link” |
 | `browser_capture` | Browser MCP / chrome-devtools when connected | Otherwise use user screenshots per skill §2 |
@@ -63,6 +63,10 @@ When `monitor` delivers a line:
 | `SHARE` | Host has no artifact share — tell the user to copy/export the HTML, or use `bundle-artifact.mjs` for a file they can send |
 | `APPROVED` | Confirm; offer next pipeline stage if applicable |
 | `CLOSED` | Note the review ended |
+
+Run `unanswered --all` before you end a turn, and settle whatever it names.
+Grok cannot gate the end of a turn, so rule 14 of
+[review-loop.md](../../../contracts/review-loop.md) is yours to keep.
 
 ---
 

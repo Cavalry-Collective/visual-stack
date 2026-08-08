@@ -1,0 +1,16 @@
+{
+  "description": "Hold a turn open while a review round is still unanswered.",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/round-gate.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

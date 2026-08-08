@@ -34,6 +34,20 @@ Tests are standalone Node scripts — run them directly, one file per suite:
 node plugins/vstack/skills/review/tests/review-lifecycle.mjs   # end-to-end review server round-trip
 node plugins/vstack/skills/review/tests/host-profiles.mjs      # host profiles conform to host.schema.json
 node plugins/vstack/skills/review/tests/workdir.mjs            # .vstack/local working-dir resolution
+node plugins/vstack/skills/review/tests/round-gate.mjs         # `unanswered` and the Stop hook that runs it
+```
+
+The Gherkin end-to-end suite lives in `e2e/` — the one directory with a
+`package.json`, kept outside `plugins/` so the plugin itself stays
+dependency-free. It drives the real review server and CLI; a mock agent
+(`e2e/support/mock-agent.mjs`) plays the agent role, so no model or API key is
+involved. CI runs it under both hosts.
+
+```bash
+cd e2e && npm ci
+npx playwright install chromium     # once, for the @browser scenarios
+npx cucumber-js                     # VSTACK_HOST=claude (default)
+VSTACK_HOST=codex npx cucumber-js   # the same suite under the Codex profile
 ```
 
 The shared UI shell is stamped into pages, not linked (see below):
@@ -52,6 +66,26 @@ claude plugin validate ./plugins/vstack --strict # the plugin manifest
 ```
 
 `.github/workflows/ci.yml` runs all of the above on every pull request.
+
+The security scans run in `.github/workflows/security.yml`, and a merge is
+blocked until every one of them passes. Two of them run locally:
+
+```bash
+gitleaks git --no-banner --redact --verbose   # secrets, over the full history
+uvx zizmor@1.29.0 .github/workflows/          # workflow audit
+```
+
+SonarQube Cloud analyses the repository on its own and reports a quality gate
+on the pull request. It is configured by `.sonarcloud.properties`, which it
+reads from `main` only, so a change there takes effect after the merge.
+
+`SECURITY.md` owns what each gate enforces, the rule that a finding is fixed
+rather than silenced, and the rule that every action is pinned by commit SHA
+with its version in a trailing comment. Adding a step that uses an action means
+resolving that SHA with
+`gh api repos/<owner>/<action>/commits/<tag> --jq .sha`. Declare each job's
+`permissions` on the job, never at workflow level, so a new job cannot inherit
+one it does not need.
 
 CI rehearses the install, and you can run the same thing locally.
 `CLAUDE_CONFIG_DIR` keeps it out of the real config: without it, a local-path
@@ -93,6 +127,13 @@ The layering rule that everything else follows (`plugins/vstack/contracts/README
   `--host` / `VSTACK_HOST` (default `claude`). Loaded via `lib/host.mjs`.
 - **On-disk roles are stable:** review threads use `by: "agent" | "reviewer"`.
   Older files may say `"claude"`; readers treat that as `"agent"`.
+- **Hooks are adapter surface.** `plugins/vstack/hooks/hooks.json` is Claude
+  Code's only entry point into the plugin, and no other host reads it. It
+  registers one Stop hook, `hooks/round-gate.mjs`, which blocks the end of a
+  turn while a review comment the agent took delivery of is still unanswered.
+  The hook decides nothing itself: `review-server.mjs unanswered` owns what an
+  unfinished round is, so every host gets the same answer by running it. Rule 14
+  of `contracts/review-loop.md` is what it enforces.
 
 ### Two engines, one live-link protocol
 
@@ -100,8 +141,8 @@ The layering rule that everything else follows (`plugins/vstack/contracts/README
   a self-contained HTML page inside the workspace, or reverse-proxies a running
   app (`--app`) so the workspace shares an origin with what it annotates (that
   origin-sharing is why comments can attach to elements, not coordinates). CLI
-  subcommands (`publish`, `claim`, `reply`, `ack`, `share`, `status`,
-  `check`, `watch`) drive the protocol; sentinels and round records live on disk.
+  subcommands (`serve`, `watch`, `publish`, `reply`, `ack`, `share`, `status`,
+  `unanswered`, `reset`) drive the protocol; sentinels and round records live on disk.
 - `lib/json-bridge.mjs` — the live link for JSON-document pages (user-story-map,
   plus the experimental spec and phase-build tools): the page POSTs saves and
   bumps a seq counter the agent's watcher wakes on; agent edits are pushed back

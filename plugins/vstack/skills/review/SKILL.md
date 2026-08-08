@@ -138,11 +138,12 @@ The page opens in **its own browser window** on the canvas — own viewport, own
 | **Save** (⏎) | on the comment — Enter commits it, Shift+Enter is a new line |
 | **Timeline** (bottom) | drag the handle to scrub through published versions; history is read-only |
 | **EN / 中文** | workspace chrome only — comments stay in whatever words they were written in |
-| **Delete** | on the comment, once it has words in it |
-| **Clear all** | in the comment list footer, behind a confirm |
+| **Delete** | on the comment, once it has words in it. It takes the comment off the user's list whatever state it is in, including one you are working on right now — you are not told, and you finish and close what you were given as normal |
+| **Clear all** | in the comment list footer, behind a confirm. It takes every comment on the list off at once, addressed ones included — the same act as the per-card delete |
 | **Link status** | a dot beside Send — linked to your session, or link lost. Nothing is said until the connection has actually answered |
 | **Send to {agent}** (⌘⏎) | sends straight through — no preview step — and wakes you up. Label uses the Host profile name. Greys out until something actually changes |
 | **In flight** | every comment you were sent keeps an indeterminate progress bar until you publish or reply. No banner covers the page any more — the progress is on the comments it belongs to |
+| **Stalled** | after a minute with nothing listening, the strip stops claiming progress and says you have stalled. **Send again** puts those comments back in the queue, and the next session to pick up is handed them. Refused while your watcher is alive, because then you still have them |
 | **Addressed** | comments you closed stay in the list in their own section, each offering **Revert** or **Refine** |
 | **Publish a link to this wireframe** (the ▾ beside Send) | only when Host `capabilities.share` is `artifact`. Asks you to publish **the wireframe** (Host op `share`) and hand the URL back. Hidden on hosts without public share, and in a live review |
 | **Approve & finish** (the ▾ beside Send) | sign-off. Ends the review, closes the server, and tells you the design is settled — behind a confirm that warns how many comments are being left unapplied |
@@ -235,7 +236,15 @@ On a delivery:
    ```
    Anything you do not name stays open and comes back. Publish tells you what it left open — close
    those or reply asking about them, because the delivery will not raise them again on its own.
-6. Leave **`watch_stream` running** and say what changed in a few lines. Then wait — don't ask "shall I
+6. **Check you left nothing hanging**, before you finish your turn:
+   ```bash
+   node "$SKILL/assets/review-server.mjs" unanswered --all
+   ```
+   It exits 1 and names every comment you were handed and then said nothing about — neither closed
+   nor replied to. Those are the ones nothing will remind you of again, because the next delivery
+   only comes when the reviewer writes. On Claude Code a Stop hook runs this for you and holds your
+   turn open until it is clean.
+7. Leave **`watch_stream` running** and say what changed in a few lines. Then wait — don't ask "shall I
    continue?", the loop is the point. (Only re-arm if you used one-shot `watch` without `--stream`.)
 
 **Closing the browser tab closes the review.** The workspace holds an SSE

@@ -6,7 +6,7 @@ workspace), (2) the **agent session**, and (3) the **reviewer** in the browser.
 Host-independent: any Host that fulfills [host.md](host.md) can drive this loop.
 
 One list of comments. Each is open or closed. The agent is the only one who
-closes. Everything the workspace shows is derived from that list.
+calls a comment done. Everything the workspace shows is derived from that list.
 
 ---
 
@@ -48,14 +48,15 @@ closes. Everything the workspace shows is derived from that list.
 | `replies` | `{ by, text, at }[]`, append-only |
 | `sentAt` | The reviewer let go of it. Null means it is still a draft |
 | `deliveredAt` | The agent was last handed it. Null means it is still queued here |
+| `dismissedAt` | The reviewer took it off the list after it had been delivered. The record stays; the workspace never shows it again |
 
 Those two timestamps carry the whole of a comment's progress:
 
 | State | `sentAt` | `deliveredAt` | Editable | Withdrawable |
 | --- | --- | --- | --- | --- |
-| Being written | — | — | yes | yes, outright |
-| Queued | set | — | no | yes |
-| With the agent | set | set | no | no — reply asking for it back |
+| Being written | — | — | yes | yes, the record goes |
+| Queued | set | — | no | yes, the record goes |
+| With the agent | set | set | no | yes, the record stays behind it |
 
 ---
 
@@ -64,11 +65,15 @@ Those two timestamps carry the whole of a comment's progress:
 **Reviewer** — three verbs:
 
 - Add a comment.
-- Reply to a comment. A reply to a closed comment reopens it.
-- Withdraw a comment, while `deliveredAt` is null.
+- Reply to a comment. A reply to a closed comment reopens it. Their own reply,
+  while it is still the thread's last line, may be taken back (rule 7).
+- Withdraw a comment, at any point.
 
-A reviewer never closes a comment. Withdrawing something already handed over is
-a reply saying so; the agent undoes what it has to and closes it.
+A reviewer never closes a comment as done. Withdrawing takes it off the list
+they are working from: a comment the agent has not been handed leaves no record
+at all, and one it has been handed keeps a record marked `dismissedAt` and
+`closed`, so the agent can still close what it was given. The agent is not
+interrupted by a withdrawal and is not told of one.
 
 **Agent** — three verbs:
 
@@ -143,6 +148,8 @@ Host selection: `--host <id>` or `VSTACK_HOST=<id>` (affects UI injection only).
 | `reply --file/name … --comment <id> --text "…"` | Append `{ by: "agent", text, at }` |
 | `share --file/name … --url <url>` | Record public URL; clear the `share` sentinel |
 | `status --file/name …` | Human/debug snapshot |
+| `unanswered [--all] [--file/name …]` | Comments the agent was handed and has not answered. Exits 1 while any remain |
+| `reset --file/name …` | Delete every comment and version for the review, and start again at v1 |
 
 ---
 
@@ -188,19 +195,27 @@ reviewer comments ──Send──► comments.json
 
 Rules:
 
-1. Only `publish --close` closes a comment. The reviewer has no resolve.
+1. Only `publish --close` says a comment is done. The reviewer has no resolve. Withdrawing (rule 9) takes a comment off their list and says nothing about the work.
 2. A tick hands over **every** open comment, not only the new ones, and marks which are new since the last delivery.
 3. Whatever the agent does not close stays open and comes back on the next tick. There is no coverage to satisfy.
 4. **Nothing can refuse a close.** An agent that has taken delivery can always finish, whatever the reviewer did meanwhile.
 5. Closing what is already closed is a no-op, so a retried command is safe.
 6. A comment's words are frozen when the reviewer sends it. The engine keeps the stored note whatever a client saves afterwards.
-7. A reply is append-only, from either role. Two copies of a thread merge to the union of both.
+7. A reply is append-only in a save, from either role: two copies of a thread merge to the union of both, so a line missing from one copy is never a removal. Removal is a request of its own. The reviewer may take back their own reply while it is the thread's last line; once anything has been said over it, it stays. The agent is not told of a take-back and finishes from whatever it already took delivery of (rule 4).
 8. A reviewer's reply to a closed comment reopens it. An agent's reply never changes state.
-9. A comment may be withdrawn until it has been delivered. After that, withdrawal is a reply asking for it back.
+9. A comment may be withdrawn at any point. Undelivered, it is deleted. Delivered, it is marked `dismissedAt` and `closed`: it leaves the workspace, no tick raises it again, and the id still resolves so the agent holding it can close it.
 10. A version is a snapshot to look at. It records no comments, and no comment records a version.
 11. One `watch_stream` per session is enough with `--all`.
 12. Presence is proven. A stream watcher writes its `watching` heartbeat from the moment its handshake is answered, so **Linked** means a session is receiving the stream. Default window 120 s (`--handshake-timeout <seconds>`).
 13. Presence is per review, and per watcher. A watcher heartbeats only the stores it covers, and goes live only on an answer carrying its own token.
+14. An agent that took delivery answers. A comment it was handed is answered by closing it or by replying to it. Neither is a round that stopped halfway, because no tick will raise that comment again until the reviewer writes. `unanswered` names them, and exits 1 while any remain.
+15. A delivered comment goes back to the queue when nothing is listening. That is the way out of a round whose agent session died: those comments are not `unseen`, so no new watcher would ever hand them over. `deliveredAt` is cleared and the comment is Queued again. The engine refuses this while a `watching` heartbeat is fresh, because then an agent still holds it and rule 14 applies instead.
+
+Rule 14 is an obligation on the agent, not a refusal by the engine. Rule 3
+still holds: `publish` closes exactly what it names and accepts everything else
+being left open. A Host that can gate the end of a turn is where the obligation
+is enforced — see the Stop hook in `plugins/vstack/hooks/`. A Host that cannot
+gets the rule as an instruction and nothing more.
 
 Rule 4 is the liveness property. Every dead-end this protocol has had came from
 a rule that could stop a round ending.

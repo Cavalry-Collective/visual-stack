@@ -132,6 +132,31 @@ try {
   assert.match(briefText(), /They replied:\*\* Not like that/)
   assert.match(briefText(), /### c2/)
 
+  /* ── a stranded round goes back to the queue ── */
+
+  const watching = path.join(store, 'watching')
+  fs.writeFileSync(watching, String(Date.now()))
+  const held = await post('/api/comments/requeue', {})
+  assert.equal(held.response.status, 409, 'nothing is taken off an agent that is listening')
+  assert.ok(byId('c1').deliveredAt, 'and the handover stands')
+
+  /* Nothing listening: both comments are delivered and neither is unseen, so no
+     watcher started after this point would ever be handed them. */
+  const note = byId('c1').note
+  fs.rmSync(watching, { force: true })
+  const requeued = await post('/api/comments/requeue', {})
+  assert.equal(requeued.response.status, 200)
+  assert.deepEqual(requeued.body.requeued.sort(), ['c1', 'c2'])
+  assert.equal(byId('c1').deliveredAt, null, 'only the record of the handover goes')
+  assert.equal(byId('c1').state, 'open', 'the comment itself is untouched')
+  assert.equal(byId('c1').note, note, 'and it still says what it said')
+
+  out = tick()
+  assert.match(out, /REVIEW/, 'the next session to pick up is handed the stranded round')
+  // New to the session receiving them, which is the whole point of putting them
+  // back: the one that was given them first is gone.
+  assert.match(out, /2 open, 2 new/)
+
   /* ── the thread is append-only, from either side ── */
 
   assert.equal(cli('reply', '--comment', 'c2', '--text', 'Which card?').status, 0)
@@ -165,9 +190,14 @@ try {
   await send([comment('c5', 'Fifth')])
   tick()
   dismissed = await post('/api/comments/dismiss', { id: 'c5' })
-  assert.equal(dismissed.response.status, 409,
-    'once it is with the agent, taking it back is a reply asking for it back')
-  assert.match(dismissed.body.error, /Reply on it/)
+  assert.equal(dismissed.response.status, 200, 'a comment is the reviewer\'s to take off the list')
+  assert.ok(byId('c5').dismissedAt, 'one already delivered keeps its record')
+  assert.equal(byId('c5').state, 'closed', 'and nothing raises it again')
+  const gone = await request('/api/project')
+  assert.equal(gone.body.comments.find(item => item.id === 'c5'), undefined,
+    'the workspace never shows it again')
+  assert.equal(cli('publish', '--close', 'c5').status, 0,
+    'the agent holding it can still close what it was given')
 
   /* ── the agent cannot close what it was never given ── */
 
@@ -175,10 +205,11 @@ try {
   const early = cli('publish', '--close', 'c6')
   assert.equal(early.status, 2)
   assert.match(early.stderr, /c6 has not been sent yet/)
-  const unknown = cli('publish', '--close', 'c5,c404')
+  await send([comment('c7', 'Seventh')])
+  const unknown = cli('publish', '--close', 'c7,c404')
   assert.equal(unknown.status, 2)
   assert.match(unknown.stderr, /c404 is not a comment on this review/)
-  assert.equal(byId('c5').state, 'open', 'a rejected close changes nothing at all')
+  assert.equal(byId('c7').state, 'open', 'a rejected close changes nothing at all')
 
   /* ── a store written by an older version is read where it lies ── */
 

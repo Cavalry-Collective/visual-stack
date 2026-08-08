@@ -135,7 +135,7 @@ if (LIVE) {
     console.error('      are rewritten to stay inside the proxy, but bot protection, a login wall or a')
     console.error('      strict CSRF check can still refuse it. If the site misbehaves, say so.')
   }
-} else if (['watch', 'ack'].includes(args._) && (args.all === true || args.all === 'true')) {
+} else if (['watch', 'ack', 'unanswered'].includes(args._) && (args.all === true || args.all === 'true')) {
   /* `watch --all` names no subject on purpose — it finds the live ones itself,
      so a session with several pages open arms one waiter instead of one each. */
   DIR = process.cwd(); NAME = 'all'; STORE = workDir(DIR, TOOL.review)
@@ -250,8 +250,9 @@ const saveState = s => writeJSON(P.state(), s)
    One list per review, and the only place a comment's state lives. A comment
    is open or closed. Two timestamps say where it is between the reviewer and
    the agent: `sentAt` is the reviewer letting go of it, which also freezes its
-   words; `deliveredAt` is the agent taking it, after which it can no longer be
-   withdrawn. Everything the workspace shows is derived from those. */
+   words; `deliveredAt` is the agent taking it, after which withdrawing it
+   leaves the record behind. Everything the workspace shows is derived from
+   those. */
 
 /**
  * What a review is, read from its own store rather than from this process's
@@ -285,7 +286,7 @@ function saveComments (comments, subject = here()) {
 
 /** Fields the protocol owns. A client may write everything else on a comment it
  *  still holds, and none of these ever. */
-const OWNED = ['state', 'sentAt', 'deliveredAt']
+const OWNED = ['state', 'sentAt', 'deliveredAt', 'dismissedAt']
 
 const normaliseComment = c => ({
   ...c,
@@ -510,7 +511,11 @@ function listVersions () {
 function cmdPublish (quiet) {
   const ids = [...new Set(String(args.close ?? args.addressed ?? '').split(',').map(s => s.trim()).filter(Boolean))]
   const label = args.label && args.label !== true ? String(args.label) : null
-  const snapshot = !!label || (!ids.length && args.close === undefined && args.addressed === undefined)
+  /* A version is a frozen copy of the page under review, and a running app has
+     no such thing: what a capture of one produces is a likeness with its scripts
+     stripped and half its styling missing, which is worse than not offering it.
+     So a live review has no versions — only comments. */
+  const snapshot = !LIVE && (!!label || (!ids.length && args.close === undefined && args.addressed === undefined))
 
   const comments = loadComments()
   if (ids.length) {
@@ -541,6 +546,13 @@ function cmdPublish (quiet) {
   }
 
   let n = loadState().version
+  if (LIVE && !n) {
+    // Live has one version and it is the app itself, so the number never moves.
+    const state = loadState()
+    state.version = n = 1
+    state.name = pageName()
+    saveState(state)
+  }
   if (snapshot) {
     const replace = args.replace === true || args.replace === 'true'
     n = replace ? Math.max(1, n) : n + 1
@@ -573,6 +585,38 @@ function cmdPublish (quiet) {
     }
   }
   touch()
+}
+
+/**
+ * Start the review over. Everything a version of this tool wrote about it goes:
+ * the comments, the brief, the snapshots, and the directories a store filled by
+ * an older version keeps its comments in — which would otherwise be adopted
+ * straight back on the next read. What the review *is* stays: the page or app
+ * under it, and its name.
+ *
+ * It is a command as well as a button because the reason to want it is a tool
+ * update that changed what a review keeps on disk, and that is exactly when the
+ * workspace may not be the thing that can ask for it.
+ */
+function cmdReset (quiet) {
+  saveComments([])
+  fs.rmSync(P.brief(), { force: true })
+  fs.rmSync(path.join(STORE, 'reviews'), { recursive: true, force: true })
+  fs.rmSync(P.versions(), { recursive: true, force: true })
+  fs.rmSync(P.approved(), { force: true })
+  fs.rmSync(P.share(), { force: true })
+  const state = loadState()
+  saveState({
+    name: state.name, version: 0,
+    ...(state.file ? { file: state.file } : {}),
+    ...(state.app ? { app: state.app, start: state.start } : {}),
+  })
+  // A file review with no version has nothing for the workspace to show, so the
+  // page as it stands becomes v1 again. A live review has no versions at all.
+  cmdPublish(true)
+  console.log('\n⟲ Reset — the review starts again at v1')
+  touch()
+  if (!quiet) console.log('Every comment and version for this review is gone.')
 }
 
 /**
@@ -720,8 +764,13 @@ function liveStores (from = process.cwd(), depth = 5) {
     }
   }
   walk(from, depth)
-  // A store found both ways is one review, so compare resolved paths.
-  return [...new Set([...found, ...pointedStores(from)].map(store => path.resolve(store)))]
+  /* A store found both ways is one review, so compare real paths rather than
+     resolved ones: the walk starts from `process.cwd()`, which has its symlinks
+     collapsed already, while `.serving` records the path the server was given.
+     Under a symlinked prefix — `/tmp` and `/var` on macOS — the same directory
+     otherwise arrives under two names and every caller sees it twice. */
+  const realPath = store => { try { return fs.realpathSync(store) } catch { return path.resolve(store) } }
+  return [...new Set([...found, ...pointedStores(from)].map(realPath))]
 }
 
 /* How long a stream watcher waits to be told its events are being read. Long
@@ -1011,6 +1060,67 @@ function cmdStatus () {
   }, null, 2))
 }
 
+/* ────────────────────────── unanswered ─────────────────────────── */
+
+/**
+ * A comment the agent was handed and has said nothing about since.
+ *
+ * A delivered comment is answered by closing it or by replying to it. One that
+ * has neither is a round that stopped halfway, and nothing else in the protocol
+ * notices: the next tick only fires when the reviewer writes again, so an
+ * unanswered comment sits there for as long as they stay quiet.
+ *
+ * It is settled by comparing what the agent has said against what it was given,
+ * not against the delivery itself: every tick re-stamps `deliveredAt` on every
+ * open comment, so a comment the agent asked a question about would fall behind
+ * its own delivery as soon as the reviewer wrote anything at all.
+ */
+const unanswered = comment => {
+  if (comment.state !== 'open' || !comment.deliveredAt) return false
+  const when = reply => Date.parse(reply.at || '') || 0
+  const delivered = Date.parse(comment.deliveredAt)
+  const latest = pick => Math.max(0, ...(comment.replies || []).filter(pick).map(when))
+  // The reviewer's last word that the agent was actually handed. Anything
+  // written since is waiting for the next tick rather than for the agent.
+  const asked = latest(reply => reply.by === REVIEWER_ROLE && when(reply) <= delivered)
+  const answered = latest(reply => reply.by !== REVIEWER_ROLE)
+  return answered <= asked
+}
+
+const oneLine = note => {
+  const text = String(note || '').replace(/\s+/g, ' ').trim()
+  return text.length > 72 ? text.slice(0, 71) + '…' : text
+}
+
+/**
+ * What the agent still owes, said as the commands that settle it. Exits 1 when
+ * a round is unfinished, so a Host that can gate the end of a turn holds the
+ * session open until the round is handed back.
+ *
+ * `--all` reads every review with a server behind it, which is also the test
+ * for whether a round is in flight at all: a review whose tab has gone is over,
+ * and there is nothing left to owe.
+ */
+function cmdUnanswered () {
+  const stores = args.all === true || args.all === 'true' ? liveStores() : [STORE]
+  const bin = process.argv[1]
+  let owing = 0
+  for (const store of stores) {
+    const subject = subjectOf(store)
+    const owed = loadComments(subject).filter(unanswered)
+    if (!owed.length) continue
+    owing += owed.length
+    const them = owed.length > 1 ? 'them' : 'it'
+    console.log(`Review "${subject.name}" — you took delivery of ${owed.length} comment${owed.length > 1 ? 's' : ''} and have not answered ${them}:`)
+    for (const comment of owed) console.log(`  ${comment.id}  ${oneLine(comment.note)}`)
+    console.log(`\nDo what each one asks and close it, or reply to ask what it means:`)
+    console.log(`  node "${bin}" publish ${subject.flags} --close ${owed.map(comment => comment.id).join(',')} --label "what changed"`)
+    console.log(`  node "${bin}" reply ${subject.flags} --comment ${owed[0].id} --text "your question"`)
+  }
+  if (!owing) console.log('Nothing outstanding — every comment you were handed is closed or answered.')
+  process.exit(owing ? 1 : 0)
+}
+
 /* ───────────────────────────── serve ────────────────────────────── */
 
 const clients = new Set()
@@ -1073,8 +1183,10 @@ function payload () {
     versions,
     /* The whole list, every time. A comment carries where it is — written,
        queued, with the agent — so a reload or a second tab reads the same
-       review as the tab that wrote it, with nothing to reconstruct. */
-    comments: loadComments(),
+       review as the tab that wrote it, with nothing to reconstruct. What the
+       reviewer took off the list is the one thing left out: the record stays on
+       disk so the agent holding it can still close it. */
+    comments: loadComments().filter(comment => !comment.dismissedAt),
     shareUrl: state.shareUrl || null,
     shareVersion: state.shareVersion || null,
     sharePending: fs.existsSync(P.share()),
@@ -1146,8 +1258,12 @@ function acceptFromReviewer (incoming) {
     stored.replies = replies
     if (!stored.sentAt && raw.sentAt) stored.sentAt = at
     // Answering something called done says it is not done. It is the reviewer's
-    // only way back in, and it needs no separate control.
-    if (answered && stored.state === 'closed') stored.state = 'open'
+    // only way back in, and it needs no separate control. Saying anything on a
+    // comment puts it back on the list, including one taken off it.
+    if (answered && stored.state === 'closed') {
+      stored.state = 'open'
+      stored.dismissedAt = null
+    }
   }
   return saveComments(comments)
 }
@@ -1386,26 +1502,6 @@ font:14px/1.6 ui-sans-serif,system-ui,-apple-system,sans-serif;color:#667;backgr
    * no file to freeze, so the workspace hands one up: it is what the timeline
    * scrubs back to, and what gets published when they ask for a shareable link.
    */
-  if (p === '/api/snapshot' && req.method === 'POST') {
-    // File reviews freeze the file themselves; accepting a body here would let
-    // a stray POST overwrite a published version.
-    if (!LIVE) return sendJSON(res, 404, { error: 'not a live review' })
-    const body = JSON.parse(await readBody(req) || '{}')
-    const n = Number(body.version) || loadState().version
-    if (!body.html) return sendJSON(res, 400, { error: 'no html' })
-    return withStoreLock(() => {
-      fs.mkdirSync(P.versions(), { recursive: true })
-      fs.writeFileSync(P.version(n), String(body.html))
-      const meta = readJSON(path.join(P.versions(), `v${n}.meta.json`), { n }) || { n }
-      writeJSON(path.join(P.versions(), `v${n}.meta.json`), {
-        ...meta, n, capturedAt: new Date().toISOString(), route: body.route || '/',
-      })
-      return sendJSON(res, 200, { ok: true })
-    })
-  }
-  /* Everything the workspace writes: a comment being drafted, a comment the
-     reviewer has just let go of, and an answer typed into a thread. The rules
-     about which of those may change what are in acceptFromReviewer. */
   if (p === '/api/comments' && req.method === 'POST') {
     const body = JSON.parse(await readBody(req) || '{}')
     return withStoreLock(() => {
@@ -1417,9 +1513,12 @@ font:14px/1.6 ui-sans-serif,system-ui,-apple-system,sans-serif;color:#667;backgr
       return sendJSON(res, 200, { ok: true, comments })
     })
   }
-  /* Taking a comment back. Only while it is still sitting here: once it has
-     been handed over, withdrawing it is a reply saying so, because the agent
-     may already have done the work and has to be told to undo it. */
+  /* Taking a comment off the list. Nothing the agent holds is refused: one
+     already delivered may be half done, and the agent finishes what it was
+     given whatever the reviewer does (rule 4). So a delivered comment keeps its
+     record, closed and marked dismissed — the id still resolves, so the close
+     the agent is about to run is the no-op rule 5 promises. One that never left
+     the workspace has no such reader, and goes outright. */
   if (p === '/api/comments/dismiss' && req.method === 'POST') {
     const body = JSON.parse(await readBody(req) || '{}')
     return withStoreLock(() => {
@@ -1427,12 +1526,76 @@ font:14px/1.6 ui-sans-serif,system-ui,-apple-system,sans-serif;color:#667;backgr
       const target = comments.find(comment => comment.id === body.id)
       if (!target) return sendJSON(res, 404, { error: 'No such comment' })
       if (target.deliveredAt) {
+        target.dismissedAt = new Date().toISOString()
+        target.state = 'closed'
+        saveComments(comments)
+      } else {
+        saveComments(comments.filter(comment => comment.id !== body.id))
+      }
+      touch()
+      return sendJSON(res, 200, { ok: true })
+    })
+  }
+  /* Taking a reply back off a thread. The union merge (rule 7) means a save
+     that omits a line is a stale copy, not a removal — so removal is a request
+     of its own, exactly as dismissing is for a comment. Only the thread's last
+     line can go, and only the reviewer's own: words the agent has answered are
+     what the answer means, and stay. The agent is not told; whatever it already
+     took delivery of, it finishes from (rule 4). */
+  if (p === '/api/comments/unreply' && req.method === 'POST') {
+    const body = JSON.parse(await readBody(req) || '{}')
+    return withStoreLock(() => {
+      const comments = loadComments()
+      const target = comments.find(comment => comment.id === body.id)
+      if (!target) return sendJSON(res, 404, { error: 'No such comment' })
+      const replies = target.replies || []
+      const matches = reply => reply.by === REVIEWER_ROLE &&
+        reply.at === body.at && reply.text === body.text
+      if (replies.length && matches(replies.at(-1))) {
+        target.replies = replies.slice(0, -1)
+        saveComments(comments)
+        touch()
+        return sendJSON(res, 200, { ok: true })
+      }
+      // Still on the thread but no longer its last line: something has been
+      // said since, and the words underneath an answer are not takeable-back.
+      if (replies.some(matches)) return sendJSON(res, 409, { error: 'Already answered' })
+      // Not found at all is already gone — a second click, or another tab.
+      return sendJSON(res, 200, { ok: true })
+    })
+  }
+  /* Give a stranded round back to the queue.
+     A delivered comment is not `unseen`, so a watcher armed after the session
+     behind it died blocks and hands over nothing: the round sits where no agent
+     can reach it and no tick will raise it. Clearing `deliveredAt` puts those
+     comments back where the state table says a sent, undelivered comment
+     belongs, and the next tick takes them.
+     Refused while a heartbeat says someone is listening, because then the round
+     is not stranded — an agent holds it and owes an answer on it, and handing
+     the same comment to a second session is the race. */
+  if (p === '/api/comments/requeue' && req.method === 'POST') {
+    return withStoreLock(() => {
+      if (agentListening()) {
         return sendJSON(res, 409, {
-          error: 'That one is already with the agent. Reply on it to ask for it back.',
+          error: 'The agent is listening — it still has these. Reply on one to ask for it back.',
         })
       }
-      saveComments(comments.filter(comment => comment.id !== body.id))
+      const comments = loadComments()
+      const stranded = comments.filter(comment => comment.state === 'open' && comment.deliveredAt)
+      for (const comment of stranded) comment.deliveredAt = null
+      saveComments(comments)
       touch()
+      return sendJSON(res, 200, { ok: true, requeued: stranded.map(comment => comment.id) })
+    })
+  }
+  /* Start the review over. Everything a version of this tool wrote about this
+     review goes — the comments, the brief, the snapshots, and the directories a
+     store filled by an older version keeps its comments in, which would
+     otherwise be adopted straight back on the next read. What the review *is*
+     stays: the page or app under it, and its name. */
+  if (p === '/api/reset' && req.method === 'POST') {
+    return withStoreLock(() => {
+      cmdReset(true)
       return sendJSON(res, 200, { ok: true })
     })
   }
@@ -1659,9 +1822,11 @@ switch (args._) {
   case 'ack': withStoreLock(cmdAck); break
   case 'share': withStoreLock(cmdShare); break
   case 'status': cmdStatus(); break
+  case 'unanswered': cmdUnanswered(); break
+  case 'reset': withStoreLock(cmdReset); break
   case 'watch': cmdWatch(); break
   case 'serve': cmdServe(); break
   default:
-    console.error(`Unknown command "${args._}". Use: serve | watch | publish | reply | ack | share | status`)
+    console.error(`Unknown command "${args._}". Use: serve | watch | publish | reply | ack | share | status | unanswered | reset`)
     process.exit(1)
 }

@@ -20,12 +20,38 @@ CI runs on every PR and repeats what you can run locally:
 node plugins/vstack/skills/review/tests/review-lifecycle.mjs
 node plugins/vstack/skills/review/tests/host-profiles.mjs
 node plugins/vstack/skills/review/tests/workdir.mjs
+node plugins/vstack/skills/review/tests/round-gate.mjs
 node plugins/vstack/lib/build-shell.mjs check
 claude plugin validate . --strict
 claude plugin validate ./plugins/vstack --strict
 ```
 
-Nothing runs end to end in CI, so a green build is not a tested skill.
+The Gherkin suite in `e2e/` drives the review server and CLI end to end with a mock agent in the agent's seat, under both hosts:
+
+```bash
+cd e2e && npm ci
+npx playwright install chromium
+npx cucumber-js
+```
+
+It exercises the protocol, not a model, so a green build is still not a skill you have driven yourself.
+
+## Passing the security gates
+
+CI also runs the scans listed in [SECURITY.md](SECURITY.md), and a merge is blocked until all of them pass. Two of them you can run before you push:
+
+```bash
+gitleaks git --no-banner --redact --verbose          # every commit, not the working tree
+uvx zizmor@1.29.0 .github/workflows/                 # only if you touched a workflow
+```
+
+CodeQL and SonarQube Cloud report in the pull request itself. Read the finding before assuming it is noise — the servers read from disk and the pages build DOM from stored comments, which is exactly where a real one would appear.
+
+When you add a step that uses an action, pin it by commit SHA and put the version in a trailing comment, the way the existing steps do. Copy the SHA from the release you intend to use:
+
+```bash
+gh api repos/<owner>/<action>/commits/<tag> --jq .sha
+```
 
 CI rehearses the install a user performs. Run the same thing locally when you touch a manifest, with `CLAUDE_CONFIG_DIR` pointed at a throwaway directory so the local-path marketplace is not written to your real settings, where it would shadow the published `cavalry-collective`:
 

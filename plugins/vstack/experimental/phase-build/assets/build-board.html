@@ -233,8 +233,10 @@
 .banner.good .tick{color:var(--ok);font-weight:700}
 
 /* the toast — VSShell.toast(); one element, appended on first use */
-.vs-toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:80;
-  background:var(--ink);color:var(--surface);padding:8px 14px;border-radius:8px;
+/* It is a popover, so the browser's own [popover] rules apply first: inset,
+   margin and border are theirs to set and ours to put back. */
+.vs-toast{position:fixed;inset:auto;left:50%;bottom:18px;transform:translateX(-50%);z-index:80;
+  background:var(--ink);color:var(--surface);border:0;margin:0;padding:8px 14px;border-radius:8px;
   font-size:12.5px;box-shadow:var(--shadow-pop);opacity:0;pointer-events:none;transition:opacity .25s}
 .vs-toast.on{opacity:1}
 
@@ -448,6 +450,11 @@
         </span>
       </div>
       <div class="row stale" id="cogStale" hidden>Reload to pick up the server's version.</div>
+      <!-- What only this tool can offer about its own state — starting it over,
+           usually. Every tool keeps different things, so the shell offers the
+           place rather than the content. -->
+      <!-- vstack:slot cog -->
+      <!-- /vstack:slot cog -->
     </div>
   </div>
   <div class="sep"></div>
@@ -685,14 +692,34 @@ window.VSShell = (function () {
   }
 
   /* ── a toast: the page saying "done" without stopping anyone ── */
+  /* Long enough for the opacity transition in shell.css to finish before the
+     toast leaves the top layer, so it fades rather than vanishing. */
+  const TOAST_FADE_MS = 300;
   let toastTimer = null;
   function toast (msg, ms = 2200) {
     let el = document.querySelector('.vs-toast');
-    if (!el) { el = document.createElement('div'); el.className = 'vs-toast'; document.body.appendChild(el) }
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'vs-toast';
+      /* A modal dialog paints in the top layer, above every z-index there is,
+         and its backdrop blurs what lies under it. A toast raised while one is
+         open has to join the top layer or it is unreadable behind the very
+         dialog whose failure it is reporting. */
+      el.popover = 'manual';
+      document.body.appendChild(el);
+    }
     el.textContent = msg;
+    /* Promoted on each toast rather than left open, because the top layer
+       stacks in the order things entered it: one promoted before a dialog
+       would sit under it. Older browsers have no popover and lose nothing but
+       the stacking. */
+    try { el.showPopover() } catch {}
     el.classList.add('on');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove('on'), ms);
+    toastTimer = setTimeout(() => {
+      el.classList.remove('on');
+      toastTimer = setTimeout(() => { try { el.hidePopover() } catch {} }, TOAST_FADE_MS);
+    }, ms);
   }
 
   /* ── two-step confirm on one button ──
@@ -800,6 +827,9 @@ window.VSShell = (function () {
     const btn = $('#settingsBtn'), menu = $('#settingsMenu');
     if (!btn || !menu) return;
     const open = on => { menu.hidden = !on; btn.setAttribute('aria-expanded', String(on)) };
+    // A control in the cog's slot can act on the page behind it, so the page
+    // needs a way to put the menu away first.
+    closeSettings = () => open(false);
     btn.addEventListener('click', e => { e.stopPropagation(); open(menu.hidden) });
     menu.addEventListener('click', e => e.stopPropagation());
     document.addEventListener('click', () => open(false));
@@ -833,9 +863,12 @@ window.VSShell = (function () {
     return api;
   }
 
+  let closeSettings = () => {};
+
   const api = {
     init, setTheme, setLang, setLink, setWatching, setServerVersion, hideLink, name, wip,
     connect, toast, armConfirm, esc,
+    closeSettings: () => closeSettings(),
     get theme () { return theme },
     get lang () { return lang },
     onLang (fn) { langListeners.push(fn) },
