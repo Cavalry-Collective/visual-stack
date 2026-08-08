@@ -2,32 +2,25 @@ name: Release
 
 on:
   push:
-    tags: ['v*']
-
-permissions:
-  contents: read
+    branches: [main]
 
 jobs:
-  version-matches-tag:
-    name: Tag matches the manifest version
+  publish:
+    name: Tag and publish the version main declares
     runs-on: ubuntu-latest
+    # Creates a tag and a release. The `main` ruleset guards the branch, not
+    # tags, so nothing here needs to bypass it.
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
-      # An explicit version in plugin.json is what Claude Code compares against
-      # to decide an update exists. Tagging a release without bumping it leaves
-      # every installed copy believing it is already current.
-      - name: Compare the tag against plugin.json
-        run: |
-          node -e '
-            const { readFileSync } = require("node:fs")
-            const tag = process.env.GITHUB_REF_NAME.replace(/^v/, "")
-            const declared = JSON.parse(
-              readFileSync("plugins/vstack/.claude-plugin/plugin.json", "utf8")
-            ).version
-            if (declared !== tag) {
-              console.error(`Tag ${process.env.GITHUB_REF_NAME} does not match plugin.json version ${declared}.`)
-              console.error("Bump the version in both host manifests, commit, then move the tag.")
-              process.exit(1)
-            }
-            console.log(`Tag and manifest agree on ${declared}.`)
-          '
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Publishes the version already in the tree, with its CHANGELOG.md entry
+      # as the notes. Does nothing when that version is already tagged, which is
+      # every merge that did not change the plugin.
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: node .github/scripts/publish-release.mjs

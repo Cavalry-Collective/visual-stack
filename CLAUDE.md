@@ -48,7 +48,7 @@ claude plugin validate ./plugins/vstack --strict # the plugin manifest
 
 `.github/workflows/ci.yml` runs all of the above on every pull request.
 
-CI cannot install the plugin, so rehearse that locally before a release.
+CI rehearses the install, and you can run the same thing locally.
 `CLAUDE_CONFIG_DIR` keeps it out of the real config: without it, a local-path
 marketplace is written to user settings and shadows the published
 `cavalry-collective` until it is removed. The source must be `./`, not `.`.
@@ -180,10 +180,11 @@ hosts, and `.claude-plugin/marketplace.json` repeats the Claude entry.
 `version` is declared, so it is what a host compares against to decide an update
 exists. **Pushing commits without bumping it ships nothing to anyone.**
 
-- Bump `version` in both host manifests, and add the release to `CHANGELOG.md`,
-  in the release commit.
-- Tag `vX.Y.Z` on the commit that lands on `main`.
-  `.github/workflows/release.yml` fails when the tag and the manifest disagree.
+- Bump `version` in both host manifests, and add the `CHANGELOG.md` entry, in
+  the pull request that changes the plugin — not in a release commit afterwards.
+  `.github/scripts/check-version.mjs` fails the PR when either is missing.
+- Never tag by hand. `.github/workflows/release.yml` tags `main` and publishes
+  the release from what the merge already declares.
 - MAJOR for a breaking change to a skill name, an on-disk path, or a protocol.
   MINOR for new behaviour. PATCH for a fix.
 - Orphaning a user's in-flight state is MAJOR, and it needs a `LEGACY` entry in
@@ -193,38 +194,41 @@ exists. **Pushing commits without bumping it ships nothing to anyone.**
   installed before a version existed. Changing how the version is declared means
   changing that file.
 
-### Cutting a release when asked
+### Releasing
 
-When the user says to cut, ship, or publish a release, run this end to end. The
-`main` ruleset requires a pull request, so nothing lands directly on `main`.
+Merging to `main` is the release: this repository is what a user installs, so
+the code is live the moment it lands. The version and the changelog entry
+therefore belong in the pull request that changes the plugin, and a release is
+not a separate piece of work.
 
-1. **Decide the version.** Read the commits since the last tag, apply the semver
-   rule above, and tell the user the number you picked and why in one line.
-   Proceed on that number. Stop and ask only when the same set of commits reads
-   as either MINOR or MAJOR depending on how a breaking change is judged.
-2. **Verify before proposing anything.** Run the tests, the shell check, both
-   validate commands, and the install rehearsal from *Commands*. A failure here
-   ends the release. Report it and fix it first.
-3. **Branch.** `release/vX.Y.Z` off current `main`.
-4. **Bump and record.** `version` in both host manifests, and a `CHANGELOG.md`
-   entry written from the merged commits, newest first, with breaking changes
-   called out.
-5. **Open the PR.** Title `vX.Y.Z — <the release's one-line point>`. The body is
-   the changelog entry, so it can be reused as the release notes.
-6. **Watch CI.** `gh pr checks <number> --watch`. Every check must pass. A red
-   check means fix it on the branch and watch again, never merge past it.
-7. **Merge when green.** Squash. The user has standing approval for this merge
-   and for the tag and release that follow, so do not ask again for a release
-   they asked for.
-8. **Tag `main`.** Pull the squashed commit, tag it `vX.Y.Z`, and push the tag.
-   The release workflow re-checks the tag against the manifest.
-9. **Publish the GitHub release** with the changelog entry as its notes, then
-   give the user the release URL.
+When a pull request touches `plugins/`, include in the same branch:
 
-Stop and report rather than working around a problem: a red check that is not
-yours to fix, a ruleset that rejects the merge, or a tag that already exists.
+1. `version` raised to the same value in both host manifests, by the semver rule
+   above.
+2. The matching `CHANGELOG.md` entry, newest first, breaking changes called out.
+   This is published verbatim as the release notes, so write it for a user.
 
-Nothing here is a dry run. Every step from 5 onward is public.
+The `Plugin changes ship a version` check fails the PR without both. Nothing
+downstream can catch this: a merge that leaves the version alone publishes the
+code and tells nobody, and the only repair is a second release.
+
+After the merge, `.github/workflows/release.yml` tags `main` as `vX.Y.Z` and
+publishes the GitHub release. It keys on whether that version is already tagged,
+so it is safe to re-run and does nothing on a merge that changed no version.
+
+When the user asks to cut, ship, or publish a release, there is no release to
+cut. Find out what state things are in and say so:
+
+- `gh release list --limit 3` and `git log --oneline origin/main -3`. A merge
+  that carried a version bump has already published.
+- If the version on `main` is untagged, the workflow failed. `gh run list
+  --workflow Release --limit 3` says why. Fix the workflow.
+- If nothing has changed under `plugins/` since the last release, there is
+  nothing to ship. Say that rather than inventing a version.
+
+Never tag by hand, never publish a GitHub release by hand, and never bump a
+version on `main` outside a pull request. A wrong version is fixed by the next
+release.
 
 ### Contributor-facing files
 

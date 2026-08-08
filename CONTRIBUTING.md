@@ -27,7 +27,7 @@ claude plugin validate ./plugins/vstack --strict
 
 Nothing runs end to end in CI, so a green build is not a tested skill.
 
-CI also cannot install the plugin. Rehearse that locally before a release, with `CLAUDE_CONFIG_DIR` pointed at a throwaway directory so the local-path marketplace is not written to your real settings, where it would shadow the published `cavalry-collective`:
+CI rehearses the install a user performs. Run the same thing locally when you touch a manifest, with `CLAUDE_CONFIG_DIR` pointed at a throwaway directory so the local-path marketplace is not written to your real settings, where it would shadow the published `cavalry-collective`:
 
 ```bash
 SANDBOX=$(mktemp -d)
@@ -41,18 +41,20 @@ rm -rf $SANDBOX
 
 ## Cutting a release
 
-Both host manifests declare a `version`, and that version is what Claude Code and Codex compare against to decide an update exists. **Pushing commits without bumping it ships nothing to anyone.**
+There is nothing to cut. Merging to `main` is the release, because this repository is what a user installs — the code is live for everyone as soon as it lands.
 
-1. Branch `release/vX.Y.Z` off `main`.
-2. Bump `version` to the same value in `plugins/vstack/.claude-plugin/plugin.json` and `plugins/vstack/.codex-plugin/plugin.json`.
-3. Add the release to `CHANGELOG.md`, newest first.
-4. Open a PR. `main` takes no direct pushes, and a release is not an exception.
-5. Merge when CI is green, then tag `vX.Y.Z` on the squashed commit on `main`. The release workflow fails when the tag and the manifest disagree.
-6. Publish the GitHub release with the changelog entry as its notes.
+So the version travels with the change rather than following it. A pull request that touches `plugins/` must also carry:
+
+1. `version` raised to the same value in `plugins/vstack/.claude-plugin/plugin.json` and `plugins/vstack/.codex-plugin/plugin.json`.
+2. The matching entry in `CHANGELOG.md`, newest first. It is published verbatim as the release notes, so write it for a user rather than for a reviewer.
+
+CI fails the PR when either is missing. Nothing downstream can catch it: a merge that leaves the version alone publishes your code and tells nobody, because a host decides an update exists by comparing the version it installed against the one `main` declares. The only repair is a second release.
 
 Version to semantic versioning: MAJOR for a breaking change to a skill name, an on-disk path, or a protocol; MINOR for new behaviour; PATCH for a fix.
 
 Orphaning a user's in-flight state is a MAJOR change, and it needs a `LEGACY` entry in `lib/workdir.mjs` rather than a migration.
+
+Once it merges, `.github/workflows/release.yml` tags `main` as `vX.Y.Z` and publishes the GitHub release with your changelog entry as its notes. Do not tag by hand and do not write a release by hand. A merge that changed no version publishes nothing, which is what a docs or CI change should do.
 
 ## Reporting problems
 

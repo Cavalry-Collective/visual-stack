@@ -58,6 +58,18 @@ jobs:
         run: claude plugin validate . --strict
       - name: Validate the plugin
         run: claude plugin validate ./plugins/vstack --strict
+      # The path a user takes. CLAUDE_CONFIG_DIR points it at a throwaway
+      # directory so the local marketplace entry is never written to a real one,
+      # where it would shadow the published cavalry-collective. The source must
+      # be ./ and not .
+      - name: Rehearse the install
+        run: |
+          SANDBOX=$(mktemp -d)
+          export CLAUDE_CONFIG_DIR="$SANDBOX/.claude"
+          claude plugin marketplace add ./
+          claude plugin install vstack@cavalry-collective
+          claude plugin details vstack
+          rm -rf "$SANDBOX"
       # Both hosts read a version out of their own manifest, so they can drift
       # apart silently and ship the same commit under two version numbers.
       - name: Host manifests declare the same version
@@ -73,3 +85,23 @@ jobs:
             }
             console.log(`Both host manifests declare ${claude}.`)
           '
+
+  version:
+    name: Plugin changes ship a version
+    # Only a pull request has a base to compare against. A push to main has
+    # already been through this.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # The check reads the manifest at the base of the branch, which a shallow
+      # clone does not have.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Compare against the base of the branch
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node .github/scripts/check-version.mjs
