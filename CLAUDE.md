@@ -17,6 +17,11 @@ also ships a Codex manifest (`.codex-plugin/`) and a Grok host adapter
 host that discovers skills from a project directory gets instructions in its
 host adapter, not a checked-in skill directory that then has to be kept in sync.
 
+`.claude/commands/` is the one exception, and it holds maintainer tooling only:
+commands for working *on* this repo, which ship to nobody and mirror no part of
+the plugin. `/ship` is the only one. A command there states no rule of its own —
+it points at the section of this file that owns the rule.
+
 Plain Node ≥ 18 ES modules, standard library only. There is no package.json,
 build step, bundler, or linter. (`node_modules/` at the root appears only when
 recording the README demo, which installs playwright-core.)
@@ -216,19 +221,58 @@ After the merge, `.github/workflows/release.yml` tags `main` as `vX.Y.Z` and
 publishes the GitHub release. It keys on whether that version is already tagged,
 so it is safe to re-run and does nothing on a merge that changed no version.
 
-When the user asks to cut, ship, or publish a release, there is no release to
-cut. Find out what state things are in and say so:
-
-- `gh release list --limit 3` and `git log --oneline origin/main -3`. A merge
-  that carried a version bump has already published.
-- If the version on `main` is untagged, the workflow failed. `gh run list
-  --workflow Release --limit 3` says why. Fix the workflow.
-- If nothing has changed under `plugins/` since the last release, there is
-  nothing to ship. Say that rather than inventing a version.
-
 Never tag by hand, never publish a GitHub release by hand, and never bump a
 version on `main` outside a pull request. A wrong version is fixed by the next
 release.
+
+When the user asks about a release that has already happened, read the state
+rather than doing anything. `gh release list --limit 3` and `git log --oneline
+origin/main -3` say whether it published. A version on `main` with no tag means
+the Release workflow failed, and `gh run list --workflow Release --limit 3` says
+why. Nothing changed under `plugins/` means there is nothing to ship, which is an
+answer rather than a reason to invent a version.
+
+### Shipping a change when asked
+
+`/ship` runs this. It is also what to do whenever the user says to ship, land,
+release, or merge the work on the current branch. The user asking for it is
+standing approval for the pull request and the merge, so do not ask again.
+
+Everything from step 2 is public.
+
+1. **Check the branch carries what it must.** Run the tests, the shell check and
+   both validate commands locally first — a red check you could have caught is
+   wasted round-trips. If anything under `plugins/` changed, the version and the
+   `CHANGELOG.md` entry go in now, per *Releasing* above. Say which version you
+   picked and why, in one line.
+2. **Open the pull request.** Branch off `main` if the work is not already on
+   one. The title is the sentence a reader sees in `git log`; the body says what
+   changed and how it was driven end to end.
+3. **Watch both channels until they settle.**
+   - `gh pr checks <number> --watch`. Every required check must pass.
+   - `gh pr view <number> --comments` and `gh api
+     repos/Cavalry-Collective/visual-stack/pulls/<number>/comments` for review
+     threads. SonarQube and the review bots comment here rather than only failing
+     a check, so a green check list is not the whole picture.
+4. **Fix on the branch and push.** Then watch again. A security finding is fixed,
+   never silenced or ignored. Answer a review comment that you are not acting on,
+   rather than leaving it unanswered.
+5. **Merge when everything is green.** Squash.
+6. **Confirm what it published.** A version bump tags `main` and publishes the
+   release within about a minute. Give the user the release URL. A merge that
+   carried no version bump publishes nothing, which is correct — say so.
+
+Stop and report instead of working around a problem:
+
+- The same check fails twice with the same error after your fix. Name what you
+  tried.
+- A failure that is not yours: a service outage, a rate limit, a check that
+  passes on `main`.
+- A review comment that asks for a decision the user has not made.
+- The ruleset rejects the merge.
+
+Never merge with `--admin`, never bypass a ruleset, and never turn a check off to
+get past it.
 
 ### Contributor-facing files
 
