@@ -4121,6 +4121,7 @@ function renderPanel () {
   numberComments();
   renderWork();
   const body = $('#pbody');
+  const wasAt = rowTops(body), wasScrolled = body.scrollTop;
   body.innerHTML = '';
   $('#pscope').textContent = isHistory() ? T('readOnly')(S.viewing) : sizeLabel(S.size.id);
   // "Open" means unfinished — a comment Claude has asked a question about is
@@ -4185,6 +4186,10 @@ function renderPanel () {
       if (S.doneOpen) for (const a of older) body.appendChild(itemNode(a, { done: true }));
     }
   }
+  // Emptying the list scrolled it back to the top. Put it where the reader
+  // left it before anything is measured against it.
+  body.scrollTop = wasScrolled;
+  slideRowsFrom(body, wasAt);
   // The list is rebuilt whenever anything moves, including while a reply is
   // being typed into it. Put the cursor back where it was.
   if (S.focusReply) {
@@ -4195,6 +4200,36 @@ function renderPanel () {
     }
   }
   renderCounts();
+}
+/** Where every row in the list sits right now, keyed so the same row can be
+    found again after the rebuild. Cards carry an id; headings are told apart by
+    the order they appear in, because their text changes with their count. */
+function rowTops (body) {
+  const tops = new Map();
+  let heading = 0;
+  for (const el of body.children) {
+    tops.set(el.dataset.id ? 'c' + el.dataset.id : 'h' + heading++, el.getBoundingClientRect().top);
+  }
+  return tops;
+}
+/** Move each row from where it used to be to where it now is. The panel is
+    rebuilt from scratch on every change, so a comment that changes group — the
+    question you have just answered leaving the top of the list — otherwise
+    arrives in its new place with nothing to follow. */
+function slideRowsFrom (body, tops) {
+  if (!tops.size || !body.firstChild?.animate) return;
+  if (matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+  let heading = 0;
+  for (const el of body.children) {
+    const was = tops.get(el.dataset.id ? 'c' + el.dataset.id : 'h' + heading++);
+    if (was == null) continue;
+    const travel = was - el.getBoundingClientRect().top;
+    if (Math.abs(travel) < 1) continue;
+    // Over the rows it passes, not under them: which card is on top otherwise
+    // depends on which way it happens to be travelling through the list.
+    el.animate([{ transform: `translateY(${travel}px)`, zIndex: 1 }, { transform: 'none', zIndex: 1 }],
+      { duration: 280, easing: 'cubic-bezier(.22,.68,.31,1)' });
+  }
 }
 /** Only one card's menu at a time, and any click outside shuts it. */
 function closeItemMenus () {
