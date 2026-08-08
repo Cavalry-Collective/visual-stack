@@ -8,6 +8,29 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.1.0 — 2026-08-08
+
+**Fixed**
+
+- **A second session in the same project was gated on a review it had never
+  seen.** With two agent sessions open in one directory, the Stop hook told the
+  uninvolved one it owed answers on another session's comments — naming the ids
+  and the command that would close them, which invited the wrong session to
+  finish someone else's round. Delivery now records the session it went to: the
+  watcher is started with `--session <id>` (the host adapter supplies the id),
+  and the gate asks `unanswered --session <id>`, so it holds only the session
+  whose watcher took delivery. A delivery recorded without an identity gates no
+  one.
+
+**Added**
+
+- **A watcher never covers a review another session already covers.**
+  `watch --all` leaves a store alone while its `watching` heartbeat is fresh,
+  and takes it once that heartbeat is gone — so a second session's sweep cannot
+  take delivery of comments meant for the first. Naming the page with `--file`
+  still covers it regardless: that is the deliberate way to adopt a review from
+  a watcher that is stuck.
+
 ## 6.0.0 — 2026-08-06
 
 **Breaking**

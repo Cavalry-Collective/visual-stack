@@ -48,6 +48,7 @@ calls a comment done. Everything the workspace shows is derived from that list.
 | `replies` | `{ by, text, at }[]`, append-only |
 | `sentAt` | The reviewer let go of it. Null means it is still a draft |
 | `deliveredAt` | The agent was last handed it. Null means it is still queued here |
+| `deliveredTo` | The session the last delivery was recorded for — the `--session` id its watcher was started with. Null when the watcher carried no identity |
 | `dismissedAt` | The reviewer took it off the list after it had been delivered. The record stays; the workspace never shows it again |
 
 Those two timestamps carry the whole of a comment's progress:
@@ -142,13 +143,13 @@ Host selection: `--host <id>` or `VSTACK_HOST=<id>` (affects UI injection only).
 | Command | Contract |
 | --- | --- |
 | `serve --file …` / `serve --app …` | Long-lived via Host `background`. Binds `127.0.0.1` |
-| `watch [--all] [--file …] [--stream]` | Take delivery. Blocks until the reviewer has said something new |
+| `watch [--all] [--file …] [--stream] [--session <id>]` | Take delivery. Blocks until the reviewer has said something new. `--session` names the agent session each delivery binds to |
 | `ack --file/name … --token <token>` | Answer a stream watcher's handshake. Only this arms the `watching` heartbeat |
 | `publish --file/name … [--close ids] [--label …]` | Close comments, snapshot a version, or both |
 | `reply --file/name … --comment <id> --text "…"` | Append `{ by: "agent", text, at }` |
 | `share --file/name … --url <url>` | Record public URL; clear the `share` sentinel |
 | `status --file/name …` | Human/debug snapshot |
-| `unanswered [--all] [--file/name …]` | Comments the agent was handed and has not answered. Exits 1 while any remain |
+| `unanswered [--all] [--file/name …] [--session <id>]` | Comments the agent was handed and has not answered. Exits 1 while any remain. With `--session`, only deliveries recorded for that id count |
 | `reset --file/name …` | Delete every comment and version for the review, and start again at v1 |
 
 ---
@@ -209,7 +210,9 @@ Rules:
 12. Presence is proven. A stream watcher writes its `watching` heartbeat from the moment its handshake is answered, so **Linked** means a session is receiving the stream. Default window 120 s (`--handshake-timeout <seconds>`).
 13. Presence is per review, and per watcher. A watcher heartbeats only the stores it covers, and goes live only on an answer carrying its own token.
 14. An agent that took delivery answers. A comment it was handed is answered by closing it or by replying to it. Neither is a round that stopped halfway, because no tick will raise that comment again until the reviewer writes. `unanswered` names them, and exits 1 while any remain.
-15. A delivered comment goes back to the queue when nothing is listening. That is the way out of a round whose agent session died: those comments are not `unseen`, so no new watcher would ever hand them over. `deliveredAt` is cleared and the comment is Queued again. The engine refuses this while a `watching` heartbeat is fresh, because then an agent still holds it and rule 14 applies instead.
+15. A delivered comment goes back to the queue when nothing is listening. That is the way out of a round whose agent session died: those comments are not `unseen`, so no new watcher would ever hand them over. `deliveredAt` and `deliveredTo` are cleared and the comment is Queued again. The engine refuses this while a `watching` heartbeat is fresh, because then an agent still holds it and rule 14 applies instead.
+16. A delivery binds to a session. A watcher started with `--session <id>` records that id on every comment it hands over, the latest delivery owns the round, and `unanswered --session <id>` answers for that session alone — so a Host that gates the end of a turn never holds one session's turn open for another session's round. A delivery recorded with no identity is reported only by the unfiltered form.
+17. `watch --all` never covers a store whose `watching` heartbeat is fresh: that heartbeat is another watcher, and covering the review twice would deliver the same comment to two sessions. The store joins the sweep once the heartbeat is gone. A store named with `--file` is covered regardless — naming it is a deliberate takeover.
 
 Rule 14 is an obligation on the agent, not a refusal by the engine. Rule 3
 still holds: `publish` closes exactly what it names and accepts everything else

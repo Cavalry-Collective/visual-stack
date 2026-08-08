@@ -129,6 +129,33 @@ try {
   assert.equal(cli('unanswered', '--all').status, 0, 'a comment taken off the list owes nothing')
   assert.equal(gate(), null, 'the gate lets the turn end')
 
+  // A delivery binds to the session whose watcher took it, and the gate holds
+  // that session only. A session that never saw the round walks free — and is
+  // not handed the ids and commands that would close someone else's round.
+  await post('/api/comments', { comments: [comment('c4', 'Tighten the nav')] })
+  assert.match(cli('watch', '--file', page, '--session', 'sess-a').stdout, /REVIEW/,
+    'the tick hands the comment to sess-a')
+  assert.equal(gate({ session_id: 'sess-a' })?.decision, 'block', 'the session that took delivery is held')
+  assert.equal(gate({ session_id: 'sess-b' }), null, 'a session that never took delivery is not')
+  assert.equal(cli('unanswered', '--all').status, 1,
+    'asked without an identity, the round still shows — a person asking means the review, not a session')
+  assert.equal(cli('publish', '--file', page, '--close', 'c4', '--label', 'Nav tightened').status, 0)
+  assert.equal(gate({ session_id: 'sess-a' }), null, 'closing frees the owner too')
+
+  // The sweep never covers a review whose heartbeat is fresh: that is another
+  // session's watcher, and covering it twice would deliver one comment to two
+  // sessions. Once the heartbeat is gone the review is anyone's to take, and
+  // the new delivery re-binds the round to whoever took it.
+  const store = JSON.parse(cli('status', '--file', page).stdout).store
+  await post('/api/comments', { comments: [comment('c5', 'Widen the gutter')] })
+  fs.writeFileSync(path.join(store, 'watching'), String(Date.now()))
+  assert.match(cli('watch', '--all').stdout, /nothing to watch/, 'a covered review is not covered twice')
+  fs.rmSync(path.join(store, 'watching'))
+  assert.match(cli('watch', '--all', '--session', 'sess-b').stdout, /REVIEW/, 'unclaimed, the sweep takes it')
+  assert.equal(gate({ session_id: 'sess-b' })?.decision, 'block', 'delivery bound the round to the sweeper')
+  assert.equal(gate({ session_id: 'sess-a' }), null, 'and to no one else')
+  assert.equal(cli('publish', '--file', page, '--close', 'c5', '--label', 'Gutter widened').status, 0)
+
   // A review nobody is looking at is over. `--all` reads live stores only, so
   // the gate cannot strand a session on a round whose tab has gone.
   await post('/api/comments', { comments: [comment('c2', 'And centre it')] })

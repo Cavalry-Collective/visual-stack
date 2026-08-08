@@ -26,7 +26,11 @@ try { input = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}') } catch
    comes back on the next delivery. */
 if (input.stop_hook_active) process.exit(0)
 
-const check = spawnSync(process.execPath, [SERVER, 'unanswered', '--all'], {
+/* The payload names the session this Stop belongs to, and `unanswered` answers
+   for that session alone — a second session in the same directory must not be
+   told it owes a round its watcher never took delivery of. */
+const session = input.session_id ? ['--session', String(input.session_id)] : []
+const check = spawnSync(process.execPath, [SERVER, 'unanswered', '--all', ...session], {
   cwd: input.cwd || process.cwd(), encoding: 'utf8', timeout: 5000,
 })
 
