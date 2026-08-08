@@ -174,9 +174,14 @@ is a different op from the `background` you used in §3.
 node "$SKILL/assets/review-server.mjs" watch --all --stream    # or --file <page.html>
 ```
 
+Use the exact command your adapter's `watch_stream` entry gives, not the bare form above: it adds
+`--session <your session id>` when your host has one, and that is what binds each delivery to you —
+without it, the round you take cannot be told apart from another session's.
+
 Each line of its output is one event, delivered to you as it happens, and the process keeps running,
 so one watcher covers the whole session — `--all` takes in every review open in the project,
 including ones opened later, and any you started from this directory whose page lives elsewhere.
+It never takes over a review another session's watcher is already covering.
 Run it from the same directory you started the server from; that is what ties the two together.
 
 **It opens with a `HANDSHAKE` line naming a command. Run that command straight away.** The watcher
@@ -242,8 +247,9 @@ On a delivery:
    ```
    It exits 1 and names every comment you were handed and then said nothing about — neither closed
    nor replied to. Those are the ones nothing will remind you of again, because the next delivery
-   only comes when the reviewer writes. On Claude Code a Stop hook runs this for you and holds your
-   turn open until it is clean.
+   only comes when the reviewer writes. Add `--session <your session id>` if your adapter names one,
+   so the answer covers your deliveries and not another session's. On Claude Code a Stop hook runs
+   this for you, with your session id, and holds your turn open until it is clean.
 7. Leave **`watch_stream` running** and say what changed in a few lines. Then wait — don't ask "shall I
    continue?", the loop is the point. (Only re-arm if you used one-shot `watch` without `--stream`.)
 

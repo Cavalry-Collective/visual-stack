@@ -96,6 +96,13 @@ function parseArgs (argv) {
 }
 const args = parseArgs(process.argv.slice(2))
 
+/* The agent session this process acts for — `--session <id>`, supplied by the
+   Host adapter. The engine never knows how a host names its sessions; it only
+   records the identity it was given, so that a delivery binds to the session
+   whose watcher took it and `unanswered --session` can answer for one session
+   without implicating another standing in the same directory. */
+const SESSION = args.session && args.session !== true ? String(args.session) : null
+
 /** Host profile for UI injection (serve). Other commands ignore it. */
 let HOST_PROFILE = null
 try { HOST_PROFILE = loadHost(resolveHostId(args)) } catch (e) {
@@ -251,8 +258,10 @@ const saveState = s => writeJSON(P.state(), s)
    is open or closed. Two timestamps say where it is between the reviewer and
    the agent: `sentAt` is the reviewer letting go of it, which also freezes its
    words; `deliveredAt` is the agent taking it, after which withdrawing it
-   leaves the record behind. Everything the workspace shows is derived from
-   those. */
+   leaves the record behind. `deliveredTo` names the session that took it —
+   whichever identity the last deliverer was started with — so what a session
+   owes is a recorded fact, not an inference from standing in the same
+   directory. Everything the workspace shows is derived from those. */
 
 /**
  * What a review is, read from its own store rather than from this process's
@@ -286,7 +295,7 @@ function saveComments (comments, subject = here()) {
 
 /** Fields the protocol owns. A client may write everything else on a comment it
  *  still holds, and none of these ever. */
-const OWNED = ['state', 'sentAt', 'deliveredAt', 'dismissedAt']
+const OWNED = ['state', 'sentAt', 'deliveredAt', 'deliveredTo', 'dismissedAt']
 
 const normaliseComment = c => ({
   ...c,
@@ -294,6 +303,7 @@ const normaliseComment = c => ({
   replies: c.replies || [],
   sentAt: c.sentAt || null,
   deliveredAt: c.deliveredAt || null,
+  deliveredTo: c.deliveredTo || null,
 })
 
 /**
@@ -462,7 +472,10 @@ function deliver (subject = here()) {
   const going = deliverable(comments)
   const fresh = new Set(going.filter(comment => !comment.deliveredAt).map(comment => comment.id))
   const at = new Date().toISOString()
-  for (const comment of going) comment.deliveredAt = at
+  /* The latest delivery owns the round: a comment handed over again binds to
+     whoever took it this time, which is also how a review adopted after its
+     session died changes hands. A watcher given no identity records none. */
+  for (const comment of going) { comment.deliveredAt = at; comment.deliveredTo = SESSION }
   saveComments(comments, subject)
   fs.mkdirSync(subject.store, { recursive: true })
   writeAtomic(subject.brief, renderBrief(subject, going, fresh))
@@ -932,6 +945,9 @@ async function cmdStream (stores, label, all, subjectFlags) {
     if (all) {
       for (const store of liveStores()) {
         if (seen.has(store)) continue
+        /* Not covered here and heartbeating anyway: another session's watcher
+           has it, and it joins this one only once that heartbeat is gone. */
+        if (watchingRecently(inStore(store, 'watching'))) continue
         stores.push(store)
         seen.set(store, { flags: new Set() })
         say(`OPENED    ${label(store)} · now watching ${stores.length} review(s)`)
@@ -959,7 +975,13 @@ async function cmdWatch () {
   // --all and --file combine: everything live in the project, plus anything
   // living outside it that you name.
   const all = args.all === true || args.all === 'true'
-  let stores = [...(all ? liveStores() : []), ...many.map(storeFor)]
+  /* A fresh heartbeat is another session's watcher, and covering the review
+     anyway would hand the same comment to two sessions. So the sweep leaves a
+     claimed store alone — it is found again the moment its watcher stops. A
+     store named with `--file` is covered regardless: naming it is a deliberate
+     takeover, which is how a review is adopted from a watcher that is stuck. */
+  const unclaimed = store => !watchingRecently(inStore(store, 'watching'))
+  let stores = [...(all ? liveStores().filter(unclaimed) : []), ...many.map(storeFor)]
   // Named subjects only. Never fall back to the placeholder STORE from
   // `watch --all` (cwd/.vstack/local/review) — that path is not a review store, and
   // treating it as one exits the stream the moment it sees no `url` file
@@ -1100,6 +1122,14 @@ const oneLine = note => {
  * `--all` reads every review with a server behind it, which is also the test
  * for whether a round is in flight at all: a review whose tab has gone is over,
  * and there is nothing left to owe.
+ *
+ * `--session <id>` asks for one session's debt and no one else's: only comments
+ * whose delivery was recorded for that id count. Without it, every unanswered
+ * comment counts, whoever took it — the form for a person asking after the
+ * review rather than a gate asking after itself. A delivery recorded with no
+ * session is nobody's to be gated on: naming it to a session that may never
+ * have seen it invites that session to close another's round, and the failure
+ * this command must not have is holding the wrong turn open.
  */
 function cmdUnanswered () {
   const stores = args.all === true || args.all === 'true' ? liveStores() : [STORE]
@@ -1107,7 +1137,8 @@ function cmdUnanswered () {
   let owing = 0
   for (const store of stores) {
     const subject = subjectOf(store)
-    const owed = loadComments(subject).filter(unanswered)
+    const owed = loadComments(subject).filter(comment =>
+      unanswered(comment) && (!SESSION || comment.deliveredTo === SESSION))
     if (!owed.length) continue
     owing += owed.length
     const them = owed.length > 1 ? 'them' : 'it'
@@ -1239,7 +1270,7 @@ function acceptFromReviewer (incoming) {
     if (!raw?.id) continue
     const stored = byId.get(raw.id)
     if (!stored) {
-      const { state, deliveredAt, ...rest } = raw
+      const { state, deliveredAt, deliveredTo, ...rest } = raw
       const fresh = normaliseComment({ ...rest, state: 'open', deliveredAt: null, sentAt: raw.sentAt ? at : null })
       comments.push(fresh)
       byId.set(fresh.id, fresh)
@@ -1582,7 +1613,7 @@ font:14px/1.6 ui-sans-serif,system-ui,-apple-system,sans-serif;color:#667;backgr
       }
       const comments = loadComments()
       const stranded = comments.filter(comment => comment.state === 'open' && comment.deliveredAt)
-      for (const comment of stranded) comment.deliveredAt = null
+      for (const comment of stranded) { comment.deliveredAt = null; comment.deliveredTo = null }
       saveComments(comments)
       touch()
       return sendJSON(res, 200, { ok: true, requeued: stranded.map(comment => comment.id) })
