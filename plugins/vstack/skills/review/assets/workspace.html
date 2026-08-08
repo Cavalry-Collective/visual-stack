@@ -1728,19 +1728,20 @@ const STR = {
     del: 'Delete comment', clearAll: 'Clear all',
     cleared: n => `Cleared ${n} comment${n > 1 ? 's' : ''}`,
     clearDialogTitle: 'Clear all comments?',
-    clearImpact: n => `This takes back ${n} comment${n === 1 ? '' : 's'} still waiting here. Anything {agent} already has stays — reply on those to ask for them back.`,
+    clearImpact: n => `This takes ${n} comment${n === 1 ? '' : 's'} off the list, addressed ones included. {agent} finishes whatever it is working on right now.`,
+    clearFail: n => `The server would not take ${n} of them off — those are still on the review.`,
     clearKept: 'The wireframe and version history will stay.',
     clearCancel: 'Cancel', clearConfirm: 'Clear all',
     clearHistory: 'Clear history',
     clearHistoryTitle: 'Delete past versions',
-    reset: 'Hard reset',
+    reset: 'Hard reset Visual Stack',
     resetTitle: 'Delete every comment and version, and start this review at v1',
     resetWorking: 'Resetting…',
     resetDialogTitle: 'Hard reset this review?',
     resetImpact: (c, v) => `This deletes ${c} comment${c === 1 ? '' : 's'} and ${v} version${v === 1 ? '' : 's'}, including everything {agent} has already answered. It cannot be undone.`,
     resetImpactLive: c => `This deletes ${c} comment${c === 1 ? '' : 's'}, including everything {agent} has already answered. It cannot be undone.`,
-    resetKept: 'The page under review stays as it is, and becomes v1 again.',
-    resetKeptLive: 'The app stays exactly as it is — only the review starts again.',
+    resetKept: 'Nothing {agent} changed is undone. The page keeps every edit it has made, and becomes v1 again.',
+    resetKeptLive: 'Nothing {agent} changed is undone. The app stays exactly as it is — only the review starts again.',
     resetCancel: 'Keep it',
     resetConfirm: 'Hard reset',
     resetDone: 'The review starts again at v1',
@@ -1814,10 +1815,12 @@ const STR = {
     dismiss: 'Dismiss',
     dismissTitle: 'Take this off the list',
     more: 'More', sendOne: 'Send just this one to {agent}',
-    dismissed: 'Taken back',
-    withdrawByReply: '{agent} already has this one — say what you want undone.',
+    dismissed: 'Taken off the list',
+    dismissedWorking: 'Taken off your list — {agent} is already working on it.',
+    dismissFail: 'The server would not take that one off — it is still on the review.',
     closedSome: n => `{agent} closed ${n} comment${n > 1 ? 's' : ''}`,
     undoReply: 'Take back this reply',
+    undoReplyFail: 'That reply could not be taken back — it is still on the thread.',
     revertNote: 'Revert this change — put it back the way it was before.',
     approve: 'Approve & finish', approveSure: 'Approve & close the review?',
     approvedTitle: 'Approved — the review is closed',
@@ -1859,19 +1862,20 @@ const STR = {
     del: '删除批注', clearAll: '全部清除',
     cleared: n => `已清除 ${n} 条批注`,
     clearDialogTitle: '清除所有批注？',
-    clearImpact: n => `这会收回还在等待的 ${n} 条批注。{agent} 已收到的不受影响 — 请在那些批注上回复说明。`,
+    clearImpact: n => `这会从列表中移除 ${n} 条批注，包括已处理的。{agent} 仍会完成正在处理的内容。`,
+    clearFail: n => `服务器未能移除其中 ${n} 条 — 它们仍在本次评审中。`,
     clearKept: '线框图和版本历史都会保留。',
     clearCancel: '取消', clearConfirm: '全部清除',
     clearHistory: '清除历史',
     clearHistoryTitle: '删除过往版本',
-    reset: '硬重置',
+    reset: '硬重置 Visual Stack',
     resetTitle: '删除所有批注与版本，本次评审从 v1 重新开始',
     resetWorking: '正在重置…',
     resetDialogTitle: '硬重置本次评审？',
     resetImpact: (c, v) => `这会删除 ${c} 条批注和 ${v} 个版本，包括 {agent} 已处理的内容，且无法撤销。`,
     resetImpactLive: c => `这会删除 ${c} 条批注，包括 {agent} 已处理的内容，且无法撤销。`,
-    resetKept: '被评审的页面保持不变，并重新成为 v1。',
-    resetKeptLive: '应用本身保持不变 — 只有评审重新开始。',
+    resetKept: '{agent} 所做的改动不会被撤销。页面保留全部改动，并重新成为 v1。',
+    resetKeptLive: '{agent} 所做的改动不会被撤销。应用保持不变 — 只有评审重新开始。',
     resetCancel: '保留',
     resetConfirm: '硬重置',
     resetDone: '评审已从 v1 重新开始',
@@ -1940,10 +1944,12 @@ const STR = {
     dismiss: '不用管了',
     dismissTitle: '从列表中移除',
     more: '更多', sendOne: '只发送这一条给 {agent}',
-    dismissed: '已收回',
-    withdrawByReply: '{agent} 已收到这条 — 请说明需要撤销什么。',
+    dismissed: '已从列表中移除',
+    dismissedWorking: '已从你的列表中移除 — {agent} 仍在处理这条。',
+    dismissFail: '服务器未能移除这条 — 它仍在本次评审中。',
     closedSome: n => `{agent} 关闭了 ${n} 条批注`,
     undoReply: '撤回这条回复',
+    undoReplyFail: '这条回复未能撤回 — 它仍在会话中。',
     revertNote: '撤销这处改动——恢复成修改之前的样子。',
     approve: '批准并结束', approveSure: '确定批准并关闭评审？',
     approvedTitle: '已批准 — 评审已关闭',
@@ -2027,6 +2033,8 @@ const S = {
   threadOpen: new Set(), focusReply: null,
   // Deleted in this tab — never to be folded back in by a refresh.
   forgotten: new Set(),
+  // Replies taken back in this tab, by thread key, for the same reason.
+  retracted: new Set(),
   pendingUpdate: null,
   linked: null,   // null until the connection has actually said one way or other
   // The shareable Artifact: asked for here, published by Claude, link comes back.
@@ -2250,9 +2258,13 @@ function renderWork () {
   const quiet = working > 0 ? quietFor() : 0;
   const stalled = isStalled();
   /* Nothing else calls this while the page sits there waiting, so the strip has
-     to wake itself up to change its own mind. */
+     to wake itself up to change its own mind. The heartbeat stopping is what
+     renders here, so the wait is armed on the round being quiet rather than on
+     how long it has been quiet — that is still zero on the render the presence
+     event triggers, and no further event is coming. */
   clearTimeout(stallTimer);
-  stallTimer = quiet && !stalled ? setTimeout(renderWork, STALL_MS - quiet) : null;
+  stallTimer = working && !stalled && S.watching === false
+    ? setTimeout(renderWork, Math.max(0, STALL_MS - quiet)) : null;
   $('#pwork').hidden = !working && !queued;
   $('#pwork').classList.toggle('stalled', stalled);
   const again = $('#btnAgain');
@@ -2304,13 +2316,20 @@ async function sendAgain () {
 function mergeComments (serverComments) {
   let changed = false, agentSpoke = false, closed = 0;
   const seen = new Set();
+  /* The server leaves a dismissed comment out of the payload, so a payload
+     without it is the confirmation this tab was waiting for. Stop hiding the id
+     then: a reply reopens a dismissed comment, and it has to be able to come
+     back. Anything still listed is a payload the dismissal had not reached. */
+  const arriving = new Set(serverComments.map(c => c.id));
+  for (const id of S.forgotten) if (!arriving.has(id)) S.forgotten.delete(id);
   for (const incoming of serverComments) {
     // Deleted here a moment ago, and the server has not been told yet.
     if (S.forgotten.has(incoming.id)) continue;
     seen.add(incoming.id);
     const local = annById(incoming.id);
     if (!local) { S.ann.push(normalise(incoming)); changed = true; continue }
-    const merged = mergeReplies(local.replies, incoming.replies);
+    const merged = mergeReplies(local.replies,
+      (incoming.replies || []).filter(r => !S.retracted.has(replyKey(r))));
     if (merged.length !== (local.replies || []).length) {
       local.replies = merged;
       S.threadOpen.add(local.id); changed = true;
@@ -2333,9 +2352,10 @@ function mergeComments (serverComments) {
 }
 
 /** Two copies of one append-only thread, merged into the whole of it. */
+const replyKey = r => `${r.by}|${r.at}|${r.text}`;
 function mergeReplies (mine = [], theirs = []) {
   const byKey = new Map();
-  for (const reply of [...mine, ...theirs]) byKey.set(`${reply.by}|${reply.at}|${reply.text}`, reply);
+  for (const reply of [...mine, ...theirs]) byKey.set(replyKey(reply), reply);
   return [...byKey.values()].sort((a, b) => Date.parse(a.at || 0) - Date.parse(b.at || 0));
 }
 
@@ -3499,13 +3519,23 @@ function addGeneral () {
    what the review contains — the server keeps whatever a save leaves out, which
    is what a second tab depends on — so a comment dropped from the payload is
    not deleted, and would come back on the next refresh. */
-function forgetOnServer (id) {
+/** True when the review no longer holds the comment. A server that refuses is
+    the one case this tab must not paper over: dropping the card anyway shows a
+    review the server disagrees with, and the next refresh brings the comment
+    back with nothing said about why. */
+async function forgetOnServer (id) {
   S.forgotten.add(id);
-  if (S.runtime === 'artifact') return;
-  fetch(API + '/comments/dismiss', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id }),
-  }).catch(() => {});
+  if (S.runtime === 'artifact') return true;
+  try {
+    const response = await fetch(API + '/comments/dismiss', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    // Already gone is gone — a second click, or another tab that got there first.
+    if (response.ok || response.status === 404) return true;
+  } catch {}
+  S.forgotten.delete(id);
+  return false;
 }
 
 function removeComment (id) {
@@ -3522,9 +3552,9 @@ const annById = id => S.ann.find(a => a.id === id);
    struck out. Words on top of one are welcome and never required. */
 const SELF_EVIDENT = new Set(['move', 'strike']);
 const hasSubstance = a => !!(a.note || '').trim() || SELF_EVIDENT.has(a.kind);
-/** Everything the panel can actually clear: what is still queued here. Once
-    Claude has been handed a comment, asking for it back is a reply on it. */
-const activeComments = () => S.ann.filter(a => hasSubstance(a) && !a.deliveredAt);
+/** Every comment on the list, whoever is holding it — Clear all is the × on
+    each card done in one go, so it reaches exactly what the cards do. */
+const listedComments = () => S.ann.filter(hasSubstance);
 /** A general comment that has just been made and has nothing in it yet. */
 const blank = a => !!a._fresh && a.kind === 'general';
 /* Once a comment is sent it is a record of what was asked, not a draft: the
@@ -3660,35 +3690,54 @@ function postReply (a, text) {
 }
 
 /**
- * The × on a card. A comment still waiting here is simply taken back. One
- * Claude already holds is not: it may already have been acted on, so asking for
- * it back is a reply saying so, and Claude closes it when the undoing is done.
+ * The × on a card. It takes the comment off the list, whatever state it is in:
+ * a draft goes, one queued here never goes out, and an addressed one stops
+ * being something to read. The one Claude is working on right now is the
+ * exception worth saying out loud — it is off your list, and Claude carries on
+ * with what it was already given.
  */
 async function takeOff (a) {
   if (isHistory()) return;
-  if (a.deliveredAt) {
-    S.threadOpen.add(a.id);
-    S.focusReply = a.id;
-    render();
-    toast(T('withdrawByReply'));
-    return;
-  }
+  const working = isWorking(a);
   S.threadOpen.delete(a.id);
   replyDrafts.delete(a.id);
   if (S.sel === a.id) closeComposer();
-  forgetOnServer(a.id);
   removeComment(a.id);
-  toast(T('dismissed'));
+  toast(T(working ? 'dismissedWorking' : 'dismissed'));
+  if (await forgetOnServer(a.id)) return;
+  // The card goes the moment it is clicked, so it has to come back the moment
+  // the server says it did not.
+  S.ann.push(a);
+  render();
+  toast(T('dismissFail'));
 }
 
-/** Take back the reply you just wrote, while Claude has yet to see it. */
-function undoReply (a, i) {
+/** Take back the reply you wrote. A save that omits it would read as a stale
+    tab and be merged straight back, so removal is its own request — the same
+    shape as dismissing a card. The server refuses once something has been said
+    over it, and then the line comes back rather than this tab disagreeing. */
+async function undoReply (a, i) {
   if (isHistory()) return;
   const reps = a.replies || [];
-  if (i !== reps.length - 1 || reps[i]?.by !== 'reviewer') return;
+  const reply = reps[i];
+  if (i !== reps.length - 1 || reply?.by !== 'reviewer') return;
+  S.retracted.add(replyKey(reply));
   reps.splice(i, 1);
   save();
   render();
+  if (S.runtime === 'artifact') return;
+  try {
+    const response = await fetch(API + '/comments/unreply', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: a.id, at: reply.at, text: reply.text }),
+    });
+    // A comment already gone took its thread with it.
+    if (response.ok || response.status === 404) return;
+  } catch {}
+  S.retracted.delete(replyKey(reply));
+  a.replies = mergeReplies(a.replies, [reply]);
+  render();
+  toast(T('undoReplyFail'));
 }
 
 /**
@@ -3765,8 +3814,8 @@ function threadNote (a, open) {
 }
 /** The whole exchange, and the box to answer it in, without leaving the list. */
 function threadBox (a) {
-  // Your last word, with nothing said back yet, is the one thing here that has
-  // not gone anywhere — so it is the one thing you can take back.
+  // Your last word, with nothing said over it yet, is the one line the thread
+  // can still let go of — so it is the one thing you can take back.
   const pending = (i, m, all) => !isHistory() && m.by === 'reviewer' && i === all.length - 1;
   const msgs = (a.replies || []).map((m, i, all) =>
     `<div class="tmsg${isAgent(m.by) ? ' agent' : ''}">
@@ -4058,11 +4107,14 @@ function renderPanel () {
   for (const a of elsewhere) body.appendChild(itemNode(a, { otherSize: true }));
   if (done.length) {
     /* What Claude has just closed is the part you want to check; what it
-       closed a while ago is a record. Closing stamps the comment, so recent is
-       read off the comments rather than guessed from the version. */
-    const newest = Math.max(...done.map(a => Date.parse(a.closedAt || 0)), 0);
-    const recent = done.filter(a => newest - Date.parse(a.closedAt || 0) < 60_000);
-    const older = done.filter(a => !recent.includes(a));
+       closed a while ago is a record. Closing stamps the comment, so each one
+       carries its own answer and nothing here reads the rest of the list:
+       measured against the newest comment still in it, taking that one off
+       promoted the whole batch beneath it back into view. A comment closed
+       before the stamp existed has none, and is a record. */
+    const justClosed = a => Date.now() - Date.parse(a.closedAt || '') < 60_000;
+    const recent = done.filter(justClosed);
+    const older = done.filter(a => !justClosed(a));
     body.appendChild(group(T('addressedGroup')(done.length)));
     for (const a of recent) body.appendChild(itemNode(a, { done: true }));
     if (older.length) {
@@ -4270,9 +4322,9 @@ function innerScrolls (el) {
 }
 function renderCounts () {
   // Every comment still to be dealt with, whoever is holding it — and, apart
-  // from it, the ones Clear all can still speak for.
+  // from it, everything on the list, which is what Clear all takes off.
   const open = S.ann.filter(a => isOpen(a) && hasSubstance(a));
-  const clearable = activeComments();
+  const clearable = listedComments();
   $('#counts').innerHTML = open.length
     ? `<b>${open.length}</b> ${esc(T('open').toLowerCase())}`
       + (open.some(a => awaitsReply(a)) ? '<br>' + esc(T('waiting')) : '')
@@ -4289,34 +4341,37 @@ function renderClearDialog () {
   const dialog = $('#clearDialog');
   if (!dialog.open) return;
   $('#clearDialogTitle').textContent = T('clearDialogTitle');
-  $('#clearDialogImpact').textContent = T('clearImpact')(activeComments().length);
+  $('#clearDialogImpact').textContent = T('clearImpact')(listedComments().length);
   $('#clearDialogKept').textContent = T('clearKept');
   $('#btnCancelClear').textContent = T('clearCancel');
   $('#btnConfirmClear').textContent = T('clearConfirm');
 }
 
 function openClearDialog () {
-  if (isHistory() || !activeComments().length) return;
+  if (isHistory() || !listedComments().length) return;
   const dialog = $('#clearDialog');
   if (!dialog.open) dialog.showModal();
   renderClearDialog();
   $('#btnCancelClear').focus();
 }
 
-function confirmClearComments () {
+async function confirmClearComments () {
   if (isHistory()) return;
   closeComposer();
-  const n = activeComments().length;
   $('#clearDialog').close();
-  if (!n) return;
-  /* Only what is still waiting here. A comment Claude already holds may have
-     been acted on, so taking that one back is a reply asking for it — clearing
-     a queue cannot speak for those. */
-  const going = activeComments().map(a => a.id);
-  for (const id of going) forgetOnServer(id);
-  S.ann = S.ann.filter(a => !going.includes(a.id));
+  const going = listedComments();
+  if (!going.length) return;
+  S.ann = S.ann.filter(a => !going.includes(a));
   save(); render();
   toast(T('cleared')(going.length));
+  // Same honesty as the × on one card: whatever the server would not take off
+  // is still on the review, so it goes back on the list.
+  const results = await Promise.all(going.map(a => forgetOnServer(a.id).then(ok => ({ a, ok }))));
+  const kept = results.filter(r => !r.ok).map(r => r.a);
+  if (!kept.length) return;
+  S.ann.push(...kept);
+  render();
+  toast(T('clearFail')(kept.length));
 }
 
 /* The button has to say what is behind it, because a folded-away panel says

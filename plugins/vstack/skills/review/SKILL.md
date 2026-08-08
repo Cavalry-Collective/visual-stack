@@ -138,8 +138,8 @@ The page opens in **its own browser window** on the canvas — own viewport, own
 | **Save** (⏎) | on the comment — Enter commits it, Shift+Enter is a new line |
 | **Timeline** (bottom) | drag the handle to scrub through published versions; history is read-only |
 | **EN / 中文** | workspace chrome only — comments stay in whatever words they were written in |
-| **Delete** | on the comment, once it has words in it |
-| **Clear all** | in the comment list footer, behind a confirm |
+| **Delete** | on the comment, once it has words in it. It takes the comment off the user's list whatever state it is in, including one you are working on right now — you are not told, and you finish and close what you were given as normal |
+| **Clear all** | in the comment list footer, behind a confirm. It takes every comment on the list off at once, addressed ones included — the same act as the per-card delete |
 | **Link status** | a dot beside Send — linked to your session, or link lost. Nothing is said until the connection has actually answered |
 | **Send to {agent}** (⌘⏎) | sends straight through — no preview step — and wakes you up. Label uses the Host profile name. Greys out until something actually changes |
 | **In flight** | every comment you were sent keeps an indeterminate progress bar until you publish or reply. No banner covers the page any more — the progress is on the comments it belongs to |

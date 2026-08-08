@@ -190,9 +190,14 @@ try {
   await send([comment('c5', 'Fifth')])
   tick()
   dismissed = await post('/api/comments/dismiss', { id: 'c5' })
-  assert.equal(dismissed.response.status, 409,
-    'once it is with the agent, taking it back is a reply asking for it back')
-  assert.match(dismissed.body.error, /Reply on it/)
+  assert.equal(dismissed.response.status, 200, 'a comment is the reviewer\'s to take off the list')
+  assert.ok(byId('c5').dismissedAt, 'one already delivered keeps its record')
+  assert.equal(byId('c5').state, 'closed', 'and nothing raises it again')
+  const gone = await request('/api/project')
+  assert.equal(gone.body.comments.find(item => item.id === 'c5'), undefined,
+    'the workspace never shows it again')
+  assert.equal(cli('publish', '--close', 'c5').status, 0,
+    'the agent holding it can still close what it was given')
 
   /* ── the agent cannot close what it was never given ── */
 
@@ -200,10 +205,11 @@ try {
   const early = cli('publish', '--close', 'c6')
   assert.equal(early.status, 2)
   assert.match(early.stderr, /c6 has not been sent yet/)
-  const unknown = cli('publish', '--close', 'c5,c404')
+  await send([comment('c7', 'Seventh')])
+  const unknown = cli('publish', '--close', 'c7,c404')
   assert.equal(unknown.status, 2)
   assert.match(unknown.stderr, /c404 is not a comment on this review/)
-  assert.equal(byId('c5').state, 'open', 'a rejected close changes nothing at all')
+  assert.equal(byId('c7').state, 'open', 'a rejected close changes nothing at all')
 
   /* ── a store written by an older version is read where it lies ── */
 

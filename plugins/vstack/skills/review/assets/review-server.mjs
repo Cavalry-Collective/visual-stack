@@ -250,8 +250,9 @@ const saveState = s => writeJSON(P.state(), s)
    One list per review, and the only place a comment's state lives. A comment
    is open or closed. Two timestamps say where it is between the reviewer and
    the agent: `sentAt` is the reviewer letting go of it, which also freezes its
-   words; `deliveredAt` is the agent taking it, after which it can no longer be
-   withdrawn. Everything the workspace shows is derived from those. */
+   words; `deliveredAt` is the agent taking it, after which withdrawing it
+   leaves the record behind. Everything the workspace shows is derived from
+   those. */
 
 /**
  * What a review is, read from its own store rather than from this process's
@@ -285,7 +286,7 @@ function saveComments (comments, subject = here()) {
 
 /** Fields the protocol owns. A client may write everything else on a comment it
  *  still holds, and none of these ever. */
-const OWNED = ['state', 'sentAt', 'deliveredAt']
+const OWNED = ['state', 'sentAt', 'deliveredAt', 'dismissedAt']
 
 const normaliseComment = c => ({
   ...c,
@@ -763,8 +764,13 @@ function liveStores (from = process.cwd(), depth = 5) {
     }
   }
   walk(from, depth)
-  // A store found both ways is one review, so compare resolved paths.
-  return [...new Set([...found, ...pointedStores(from)].map(store => path.resolve(store)))]
+  /* A store found both ways is one review, so compare real paths rather than
+     resolved ones: the walk starts from `process.cwd()`, which has its symlinks
+     collapsed already, while `.serving` records the path the server was given.
+     Under a symlinked prefix — `/tmp` and `/var` on macOS — the same directory
+     otherwise arrives under two names and every caller sees it twice. */
+  const realPath = store => { try { return fs.realpathSync(store) } catch { return path.resolve(store) } }
+  return [...new Set([...found, ...pointedStores(from)].map(realPath))]
 }
 
 /* How long a stream watcher waits to be told its events are being read. Long
@@ -1064,11 +1070,22 @@ function cmdStatus () {
  * notices: the next tick only fires when the reviewer writes again, so an
  * unanswered comment sits there for as long as they stay quiet.
  *
- * Any reply after delivery clears it. A reviewer's reply is not the agent going
- * quiet — that comment is already waiting for the next tick to hand it back.
+ * It is settled by comparing what the agent has said against what it was given,
+ * not against the delivery itself: every tick re-stamps `deliveredAt` on every
+ * open comment, so a comment the agent asked a question about would fall behind
+ * its own delivery as soon as the reviewer wrote anything at all.
  */
-const unanswered = comment => comment.state === 'open' && comment.deliveredAt &&
-  !(comment.replies || []).some(reply => Date.parse(reply.at || '') > Date.parse(comment.deliveredAt))
+const unanswered = comment => {
+  if (comment.state !== 'open' || !comment.deliveredAt) return false
+  const when = reply => Date.parse(reply.at || '') || 0
+  const delivered = Date.parse(comment.deliveredAt)
+  const latest = pick => Math.max(0, ...(comment.replies || []).filter(pick).map(when))
+  // The reviewer's last word that the agent was actually handed. Anything
+  // written since is waiting for the next tick rather than for the agent.
+  const asked = latest(reply => reply.by === REVIEWER_ROLE && when(reply) <= delivered)
+  const answered = latest(reply => reply.by !== REVIEWER_ROLE)
+  return answered <= asked
+}
 
 const oneLine = note => {
   const text = String(note || '').replace(/\s+/g, ' ').trim()
@@ -1096,7 +1113,7 @@ function cmdUnanswered () {
     const them = owed.length > 1 ? 'them' : 'it'
     console.log(`Review "${subject.name}" — you took delivery of ${owed.length} comment${owed.length > 1 ? 's' : ''} and have not answered ${them}:`)
     for (const comment of owed) console.log(`  ${comment.id}  ${oneLine(comment.note)}`)
-    console.log(`\nDo what each one asks and close it, or reply to ask what ${them} means:`)
+    console.log(`\nDo what each one asks and close it, or reply to ask what it means:`)
     console.log(`  node "${bin}" publish ${subject.flags} --close ${owed.map(comment => comment.id).join(',')} --label "what changed"`)
     console.log(`  node "${bin}" reply ${subject.flags} --comment ${owed[0].id} --text "your question"`)
   }
@@ -1166,8 +1183,10 @@ function payload () {
     versions,
     /* The whole list, every time. A comment carries where it is — written,
        queued, with the agent — so a reload or a second tab reads the same
-       review as the tab that wrote it, with nothing to reconstruct. */
-    comments: loadComments(),
+       review as the tab that wrote it, with nothing to reconstruct. What the
+       reviewer took off the list is the one thing left out: the record stays on
+       disk so the agent holding it can still close it. */
+    comments: loadComments().filter(comment => !comment.dismissedAt),
     shareUrl: state.shareUrl || null,
     shareVersion: state.shareVersion || null,
     sharePending: fs.existsSync(P.share()),
@@ -1239,8 +1258,12 @@ function acceptFromReviewer (incoming) {
     stored.replies = replies
     if (!stored.sentAt && raw.sentAt) stored.sentAt = at
     // Answering something called done says it is not done. It is the reviewer's
-    // only way back in, and it needs no separate control.
-    if (answered && stored.state === 'closed') stored.state = 'open'
+    // only way back in, and it needs no separate control. Saying anything on a
+    // comment puts it back on the list, including one taken off it.
+    if (answered && stored.state === 'closed') {
+      stored.state = 'open'
+      stored.dismissedAt = null
+    }
   }
   return saveComments(comments)
 }
@@ -1490,9 +1513,12 @@ font:14px/1.6 ui-sans-serif,system-ui,-apple-system,sans-serif;color:#667;backgr
       return sendJSON(res, 200, { ok: true, comments })
     })
   }
-  /* Taking a comment back. Only while it is still sitting here: once it has
-     been handed over, withdrawing it is a reply saying so, because the agent
-     may already have done the work and has to be told to undo it. */
+  /* Taking a comment off the list. Nothing the agent holds is refused: one
+     already delivered may be half done, and the agent finishes what it was
+     given whatever the reviewer does (rule 4). So a delivered comment keeps its
+     record, closed and marked dismissed — the id still resolves, so the close
+     the agent is about to run is the no-op rule 5 promises. One that never left
+     the workspace has no such reader, and goes outright. */
   if (p === '/api/comments/dismiss' && req.method === 'POST') {
     const body = JSON.parse(await readBody(req) || '{}')
     return withStoreLock(() => {
@@ -1500,12 +1526,41 @@ font:14px/1.6 ui-sans-serif,system-ui,-apple-system,sans-serif;color:#667;backgr
       const target = comments.find(comment => comment.id === body.id)
       if (!target) return sendJSON(res, 404, { error: 'No such comment' })
       if (target.deliveredAt) {
-        return sendJSON(res, 409, {
-          error: 'That one is already with the agent. Reply on it to ask for it back.',
-        })
+        target.dismissedAt = new Date().toISOString()
+        target.state = 'closed'
+        saveComments(comments)
+      } else {
+        saveComments(comments.filter(comment => comment.id !== body.id))
       }
-      saveComments(comments.filter(comment => comment.id !== body.id))
       touch()
+      return sendJSON(res, 200, { ok: true })
+    })
+  }
+  /* Taking a reply back off a thread. The union merge (rule 7) means a save
+     that omits a line is a stale copy, not a removal — so removal is a request
+     of its own, exactly as dismissing is for a comment. Only the thread's last
+     line can go, and only the reviewer's own: words the agent has answered are
+     what the answer means, and stay. The agent is not told; whatever it already
+     took delivery of, it finishes from (rule 4). */
+  if (p === '/api/comments/unreply' && req.method === 'POST') {
+    const body = JSON.parse(await readBody(req) || '{}')
+    return withStoreLock(() => {
+      const comments = loadComments()
+      const target = comments.find(comment => comment.id === body.id)
+      if (!target) return sendJSON(res, 404, { error: 'No such comment' })
+      const replies = target.replies || []
+      const matches = reply => reply.by === REVIEWER_ROLE &&
+        reply.at === body.at && reply.text === body.text
+      if (replies.length && matches(replies.at(-1))) {
+        target.replies = replies.slice(0, -1)
+        saveComments(comments)
+        touch()
+        return sendJSON(res, 200, { ok: true })
+      }
+      // Still on the thread but no longer its last line: something has been
+      // said since, and the words underneath an answer are not takeable-back.
+      if (replies.some(matches)) return sendJSON(res, 409, { error: 'Already answered' })
+      // Not found at all is already gone — a second click, or another tab.
       return sendJSON(res, 200, { ok: true })
     })
   }
@@ -1516,8 +1571,8 @@ font:14px/1.6 ui-sans-serif,system-ui,-apple-system,sans-serif;color:#667;backgr
      comments back where the state table says a sent, undelivered comment
      belongs, and the next tick takes them.
      Refused while a heartbeat says someone is listening, because then the round
-     is not stranded — an agent holds it, and pulling it out from under one is
-     the same race the dismiss endpoint refuses. */
+     is not stranded — an agent holds it and owes an answer on it, and handing
+     the same comment to a second session is the race. */
   if (p === '/api/comments/requeue' && req.method === 'POST') {
     return withStoreLock(() => {
       if (agentListening()) {

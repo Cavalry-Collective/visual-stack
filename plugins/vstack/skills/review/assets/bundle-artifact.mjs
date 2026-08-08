@@ -5,16 +5,17 @@
  * The local loop needs a server (same-origin page, POST-back feedback). To
  * put the same workspace in front of someone who is not at this machine, we
  * inline the page and its published versions into the workspace and switch the
- * send button to "copy for Claude". Output is CSP-safe: no external fonts,
- * scripts, styles or fetches — publishable as a Claude Artifact as-is.
+ * send button to copying the comments for the agent. Output is CSP-safe: no
+ * external fonts, scripts, styles or fetches — publishable as an Artifact as-is.
  *
- *   node bundle-artifact.mjs --file <page.html> [--out review.html] [--versions 3]
+ *   node bundle-artifact.mjs --file <page.html> [--out review.html] [--versions 3] [--host <id>]
  */
 
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { subjectDir, TOOL } from '../../../lib/workdir.mjs'
+import { loadHost, resolveHostId, withHost } from '../../../lib/host.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
@@ -113,6 +114,11 @@ const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&g
 const titled = out.replace(/<title>[^<]*<\/title>/i, () => `<title>${esc(name)} — Review · Visual Stack</title>`)
 if (titled === out) console.error('warning: no <title> to name — the Artifact will be filed under the workspace default')
 out = titled
+
+/* Carry the Host profile in, the same as `serve` does. Without it the bundle
+   falls back to the default profile and a review shared from another host asks
+   the reviewer to copy their comments for the wrong agent. */
+out = withHost(out, loadHost(resolveHostId(args)))
 
 const dest = path.resolve(args.out || path.join(DIR, `${NAME}-review.html`))
 fs.mkdirSync(path.dirname(dest), { recursive: true })

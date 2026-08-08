@@ -78,6 +78,8 @@ try {
   assert.equal(owed.status, 1, 'a delivered comment with nothing said about it is outstanding')
   assert.match(owed.stdout, /c1/, 'it names the comment')
   assert.match(owed.stdout, /publish .* --close c1/, 'it names the command that settles it')
+  assert.equal(owed.stdout.match(/you took delivery of/g).length, 1,
+    'one review is reported once, however many ways its store is reached')
 
   const blocked = gate()
   assert.equal(blocked?.decision, 'block', 'the gate holds the turn open')
@@ -90,6 +92,18 @@ try {
   // is a legitimate way to end a round.
   assert.equal(cli('reply', '--file', page, '--comment', 'c1', '--text', 'How much bigger?').status, 0)
   assert.equal(cli('unanswered', '--all').status, 0, 'a reply hands the round back')
+
+  // The reviewer writes about something else while c1 waits on them. Every tick
+  // re-stamps delivery on every open comment, so c1 is handed over again — but
+  // the agent has had its say on it and owes only the comment it has not.
+  await post('/api/comments', { comments: [comment('c3', 'And centre the footer')] })
+  assert.match(tick().stdout, /REVIEW/, 'the new comment is handed over')
+  const alongside = cli('unanswered', '--all')
+  assert.equal(alongside.status, 1, 'the comment nothing has been said about is outstanding')
+  assert.match(alongside.stdout, /c3/, 'it names that comment')
+  assert.doesNotMatch(alongside.stdout, /c1/,
+    'being handed a comment again does not unanswer the reply already on it')
+  assert.equal(cli('publish', '--file', page, '--close', 'c3', '--label', 'Footer centred').status, 0)
 
   // The reviewer answers. That comment is waiting for the next tick, not for
   // the agent, so it must not hold the turn open.
@@ -104,6 +118,15 @@ try {
   // Closing it finishes the round.
   assert.equal(cli('publish', '--file', page, '--close', 'c1', '--label', 'Hero doubled').status, 0)
   assert.equal(cli('unanswered', '--all').status, 0, 'closing hands the round back')
+  assert.equal(gate(), null, 'the gate lets the turn end')
+
+  // The reviewer takes a delivered comment off the list. It is no longer on the
+  // review, so there is nothing left to answer and the turn can end.
+  await post('/api/comments', { comments: [comment('cx', 'Never mind this one')] })
+  assert.match(tick().stdout, /REVIEW/, 'it is handed over first')
+  assert.equal(cli('unanswered', '--all').status, 1, 'and it is outstanding while it stands')
+  await post('/api/comments/dismiss', { id: 'cx' })
+  assert.equal(cli('unanswered', '--all').status, 0, 'a comment taken off the list owes nothing')
   assert.equal(gate(), null, 'the gate lets the turn end')
 
   // A review nobody is looking at is over. `--all` reads live stores only, so
