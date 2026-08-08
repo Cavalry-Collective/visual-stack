@@ -2759,22 +2759,82 @@ function enterPhaseMode () {
    result collapses the whole page to nothing. Measure at the viewport height and
    only let a document that genuinely overflows grow — and only if that growth
    settles. A layout that keeps growing as we grow it is viewport-driven, so it
-   stays exactly one viewport tall and scrolls its own panes, like a real browser. */
-let sizingFrame = false;
+   stays exactly one viewport tall and scrolls its own panes, like a real browser.
+
+   Full height has one cost: inside the frame the CSS viewport IS the document,
+   so anything the page centres or pins against its viewport — a fixed overlay,
+   a native dialog's top layer — lands screens away from where the reviewer is
+   looking. While such an overlay is up, hold the frame at exactly one viewport
+   tall and move the outer scroll into the page itself, so the overlay sits over
+   what the reviewer can see; when it closes, hand the scroll back and refit.
+   Marks convert through the frame's own scroll at both edges, so they hold in
+   either state. */
+function frameModalOpen () {
+  const win = fwin();
+  if (!win || !fdoc?.body) return false;
+  const shownFixed = el => {
+    const cs = win.getComputedStyle(el);
+    if (cs.position !== 'fixed' || cs.display === 'none' || cs.visibility === 'hidden') return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  };
+  try {
+    // Fixed, not merely open: a non-modal dialog.show() sits in the flow and
+    // behaves the same here as in a real browser.
+    for (const el of fdoc.querySelectorAll('dialog[open], [aria-modal="true"], [role="dialog"], [role="alertdialog"]'))
+      if (shownFixed(el)) return true;
+    // A fixed layer covering the whole viewport is a backdrop even unlabelled.
+    // Overlays portal to the body, so only its children and grandchildren are
+    // worth asking.
+    for (const child of fdoc.body.children)
+      for (const el of [child, ...child.children])
+        if (shownFixed(el)) {
+          const r = el.getBoundingClientRect();
+          if (r.width >= win.innerWidth * 0.9 && r.height >= win.innerHeight * 0.9) return true;
+        }
+  } catch {}
+  return false;
+}
+let sizingFrame = false, modalViewport = false;
 function fitFrameHeight () {
   if (!fdoc) return 0;
   const vh = S.size.height;
   const apply = h => { frame.style.height = h + 'px'; scroller.style.height = h + 'px' };
   const measure = () => Math.max(fdoc.documentElement.scrollHeight, fdoc.body?.scrollHeight || 0, 1);
   sizingFrame = true;
+  if (frameModalOpen()) {
+    // Read the outer scroll before the frame shrinks and clamps it away.
+    const outer = modalViewport ? 0 : vpBox.scrollTop;
+    modalViewport = true;
+    apply(vh);
+    if (outer) try { fwin().scrollTo(0, outer) } catch {}
+    requestAnimationFrame(() => { sizingFrame = false });
+    return vh;
+  }
+  const inner = modalViewport ? (fwin()?.scrollY || 0) : 0;
+  modalViewport = false;
   apply(vh);
   const natural = measure();
   if (natural > vh + 2) {
     apply(natural);
     if (measure() > natural + 2) apply(vh);
   }
+  if (inner) vpBox.scrollTop = inner;
   requestAnimationFrame(() => { sizingFrame = false });
   return parseFloat(frame.style.height) || 0;
+}
+/* Opening a fixed overlay changes no layout the body's ResizeObserver can see,
+   so the mutation watcher asks directly whether the modal state flipped. */
+let modalFitQueued = false;
+function syncModalFit () {
+  if (modalFitQueued) return;
+  modalFitQueued = true;
+  requestAnimationFrame(() => {
+    modalFitQueued = false;
+    if (!fdoc || frameModalOpen() === modalViewport) return;
+    fitFrameHeight();
+    drawMarks();
+  });
 }
 let refitQueued = false;
 function sizeFrame () {
@@ -3375,7 +3435,7 @@ function watchFrame () {
   if (!fdoc) return;
   try { frame._mo?.disconnect() } catch {}
   // The page moved: anything we failed to find last time is worth another look.
-  const mo = frame._mo = new MutationObserver(() => { domEpoch++; scheduleSync() });
+  const mo = frame._mo = new MutationObserver(() => { domEpoch++; syncModalFit(); scheduleSync() });
   try {
     mo.observe(fdoc.documentElement, {
       childList: true, subtree: true, attributes: true,
