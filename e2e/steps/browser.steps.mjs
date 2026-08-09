@@ -157,7 +157,8 @@ Then('the comment offers {string} and {string}, with {string} recommended',
       assert.equal(await choices.count(), 2, 'both options are offered')
     }, 'the options reach the comment')
     assert.deepEqual(
-      (await choices.allInnerTexts()).map(t => t.split('\n')[0].trim()),
+      (await this.browserPage.locator('.item .choice > span').allInnerTexts())
+        .map(t => t.trim()),
       [first, second])
     const marked = this.browserPage.locator('.item .choice.rec')
     assert.equal(await marked.count(), 1, 'exactly one is recommended')

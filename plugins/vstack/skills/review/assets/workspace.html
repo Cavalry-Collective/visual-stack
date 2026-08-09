@@ -634,12 +634,12 @@ body.phase #hiNew{display:inline-flex}
 #composer .cthread{margin:8px 9px 0;display:none;flex-direction:column;gap:7px;
   max-height:190px;overflow:auto}
 #composer .cthread.on{display:flex}
-#composer .msg{border-left:2px solid var(--line-2);padding-left:8px}
+#composer .msg{border-left:2px solid var(--line-2);padding-left:8px;font-size:12.5px}
 #composer .msg.agent,#composer .msg.claude{border-left-color:var(--brand)}
 #composer .msg .who{font:600 10px/1 var(--font);letter-spacing:.04em;text-transform:uppercase;
   color:var(--ink-3);margin-bottom:3px}
 #composer .msg.agent .who,#composer .msg.claude .who{color:var(--brand)}
-#composer .msg .body{font-size:12.5px;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+#composer .msg .body{line-height:1.45;white-space:pre-wrap;word-break:break-word}
 #composer .creply{display:none;margin-top:8px;min-height:44px}
 #composer .creply.on{display:block}
 #composer .cfoot{display:flex;align-items:center;gap:5px;padding:8px 9px;margin-top:8px;
@@ -833,13 +833,16 @@ body.phase #hiNew{display:inline-flex}
 /* Answers to pick from. Full width and stacked: they are sentences, not chips,
    and a row of them would wrap into something you have to read twice. */
 .choices{display:flex;flex-direction:column;gap:5px;margin-top:7px}
-.choice{display:flex;align-items:baseline;gap:7px;width:100%;text-align:left;
+.choice{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;text-align:left;
   padding:7px 9px;border:1px solid var(--line-2);border-radius:7px;background:var(--surface);
-  color:var(--ink);font:inherit;font-size:12.5px;line-height:1.4}
+  color:var(--ink);font:inherit;line-height:1.4}
 .choice:hover:not(:disabled){border-color:var(--brand);background:var(--brand-soft)}
 .choice:disabled{opacity:.55}
-.choice.rec{border-color:var(--ok)}
-.choice em{flex:none;margin-left:auto;font-style:normal;font-size:10.5px;color:var(--ok)}
+/* The one the agent would take is labelled above the answer, in the same
+   eyebrow a group heading uses. Its border stays a shade off full brand, so
+   hovering it still reads as a change. */
+.choice.rec{border-color:var(--brand-line)}
+.choice em{font:650 9.5px/1 var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--brand)}
 .empty{color:var(--ink-3);font-size:12.5px;text-align:center;line-height:1.6}
 .grouphd{font:650 10.5px/1 var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);
   margin:12px 2px 7px;display:flex;align-items:center;gap:6px}
@@ -4062,10 +4065,9 @@ function choiceList (m, isLast) {
   if (!isAgent(m.by) || !m.options?.length) return '';
   const live = isLast && !isHistory();
   return '<div class="choices">' + m.options.map((option, i) =>
-    `<button class="choice${option.recommended ? ' rec' : ''}" data-choice="${i}"${live ? '' : ' disabled'}>
-       <span>${esc(option.text)}</span>` +
+    `<button class="choice${option.recommended ? ' rec' : ''}" data-choice="${i}"${live ? '' : ' disabled'}>` +
     (option.recommended ? `<em>${esc(T('recommended'))}</em>` : '') +
-    '</button>').join('') + '</div>';
+    `<span>${esc(option.text)}</span></button>`).join('') + '</div>';
 }
 
 const replyDrafts = new Map();
