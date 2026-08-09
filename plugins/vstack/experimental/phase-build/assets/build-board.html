@@ -722,7 +722,7 @@ window.VSShell = (function () {
        stacks in the order things entered it: one promoted before a dialog
        would sit under it. Older browsers have no popover and lose nothing but
        the stacking. */
-    try { el.showPopover() } catch {}
+    try { el.showPopover(); } catch {}
     el.classList.add('on');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => {
@@ -856,7 +856,7 @@ window.VSShell = (function () {
     // `defaultLang` is what the artifact was authored in — it opens that way
     // once, and after that the reader's own choice is the one that sticks.
     if (opts.defaultLang && !storedLang) lang = opts.defaultLang === 'zh' ? 'zh' : 'en';
-    if (opts.lang) { lang = opts.lang === 'zh' ? 'zh' : 'en'; store.set(KEY.lang, lang) }
+    if (opts.lang) { lang = opts.lang === 'zh' ? 'zh' : 'en'; store.set(KEY.lang, lang); }
     // Not every page sends something back — the form doesn't — so the primary
     // action stays out of the bar unless a page asks for it.
     const send = $('#send');
@@ -1077,7 +1077,7 @@ function render () {
   const all = layout();
   const mono = doc.subjects[subject].mono ? 'mono' : '';
   NODES().innerHTML = all.map(n => `
-    <div class="node ${n.state} ${mono} ${n.status ? 's-' + n.status : ''}" data-id="${esc(n.id)}" draggable="true"
+    <div class="node ${esc(n.state)} ${mono} ${n.status ? 's-' + esc(n.status) : ''}" data-id="${esc(n.id)}" draggable="true"
          style="left:${n._x}px;top:${n._y}px">
       ${n.status === 'done' ? '<span class="badge">✓</span>'
         : n.status === 'failed' ? '<span class="badge">!</span>'

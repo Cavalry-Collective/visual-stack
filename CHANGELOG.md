@@ -8,6 +8,33 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.4.1 — 2026-08-09
+
+**Fixed**
+
+- **A comment containing a double quote could break the page it was drawn on.**
+  The workspace escaped `&`, `<` and `>` but not quotes, and most of what it
+  builds is an HTML attribute — so a quote in your own words ended the attribute
+  early and the rest of the note was read as markup. Quotes are now escaped
+  everywhere the workspace writes them. The story map and the build board escape
+  the ids they put in attributes for the same reason.
+- **A save could change every object in the review server, not just its own
+  comment.** A saved comment's fields were copied across by name, and a name
+  like `__proto__` reaches the prototype rather than the object. Those names are
+  now skipped.
+- **The update check no longer keeps its cache in the shared temp directory.**
+  On a machine with more than one account, anyone could create that file first
+  and own what the check then wrote to it. It now lives in `~/.vstack/`, owned
+  by the reader and readable only by them. The move resets what the old cache
+  held, so a release you had already dismissed can ask once more.
+- **A failed action shows what went wrong without the stack behind it.** The
+  message is the part a reader can act on and is still shown in full.
+- **A second session starting at the same moment cannot reset the other's
+  counter.** The bridge's sequence file is now created in one step rather than
+  checked and then written.
+- The phase-preview comparison reads `</script >` and `</style >` as the closing
+  tags they are, and strips nested comment markers until none are left.
+
 ## 6.4.0 — 2026-08-09
 
 **Changed**

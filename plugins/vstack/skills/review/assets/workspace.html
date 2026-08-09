@@ -1513,7 +1513,7 @@ window.VSShell = (function () {
        stacks in the order things entered it: one promoted before a dialog
        would sit under it. Older browsers have no popover and lose nothing but
        the stacking. */
-    try { el.showPopover() } catch {}
+    try { el.showPopover(); } catch {}
     el.classList.add('on');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => {
@@ -1647,7 +1647,7 @@ window.VSShell = (function () {
     // `defaultLang` is what the artifact was authored in — it opens that way
     // once, and after that the reader's own choice is the one that sticks.
     if (opts.defaultLang && !storedLang) lang = opts.defaultLang === 'zh' ? 'zh' : 'en';
-    if (opts.lang) { lang = opts.lang === 'zh' ? 'zh' : 'en'; store.set(KEY.lang, lang) }
+    if (opts.lang) { lang = opts.lang === 'zh' ? 'zh' : 'en'; store.set(KEY.lang, lang); }
     // Not every page sends something back — the form doesn't — so the primary
     // action stays out of the bar unless a page asks for it.
     const send = $('#send');
@@ -1803,7 +1803,9 @@ const API = BASE + '/api';
 const $  = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+// Quotes are escaped as well as angle brackets. Most of what this builds is an
+// attribute value, and a reviewer's own words end up inside one.
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const uid = () => 'c' + Math.random().toString(36).slice(2, 8);
 
 /* One severity: everything the reviewer writes is something to do. The mark

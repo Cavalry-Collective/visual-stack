@@ -63,11 +63,23 @@ const MARKET = 'cavalry-collective'   // .claude-plugin/marketplace.json → nam
 const PLUGIN = 'vstack'               // the marketplace entry's name
 const INSTALLS = path.join(os.homedir(), '.claude', 'plugins', 'installed_plugins.json')
 const CODEX_CACHE = path.join(os.homedir(), '.codex', 'plugins', 'cache', MARKET, PLUGIN)
-const CACHE = path.join(os.tmpdir(), 'vstack-update-check.json')
+// The reader's own directory, not the shared temp dir: on a multi-user machine
+// anyone can create a file there first and own what this then writes to.
+const CACHE_DIR = path.join(os.homedir(), '.vstack')
+const CACHE = path.join(CACHE_DIR, 'update-check.json')
 const TTL_MS = 6 * 60 * 60 * 1000
 const TIMEOUT_MS = 2500
 
 const readJSON = f => { try { return JSON.parse(fs.readFileSync(f, 'utf8')) } catch { return null } }
+
+/** Merge into the cache, or carry on without it. Nothing here is worth failing
+ *  a server start for: the cache only saves a question being asked again. */
+const writeCache = fields => {
+  try {
+    fs.mkdirSync(CACHE_DIR, { recursive: true })
+    fs.writeFileSync(CACHE, JSON.stringify({ ...(readJSON(CACHE) || {}), ...fields }), { mode: 0o600 })
+  } catch {}
+}
 const short = sha => String(sha || '').slice(0, 7)
 
 /** Whatever plugin.json still declares — normally nothing, by design. */
@@ -142,9 +154,7 @@ async function ask (kind) {
     // Cache the answer either way: a repo that has not moved should not be
     // asked again every time a server starts. Merged rather than replaced —
     // `met` is a different question and outlives any one answer.
-    try {
-      fs.writeFileSync(CACHE, JSON.stringify({ ...(readJSON(CACHE) || {}), at: Date.now(), kind, value }))
-    } catch {}
+    writeCache({ at: Date.now(), kind, value })
     return value
   } catch {
     return cached?.kind === kind ? cached.value ?? null : null
@@ -171,9 +181,8 @@ const say = (key, title) => ({ pill: 'update', key, title })
  * starts empty every time and a first sighting would be all there ever was.
  */
 function firstSighting (key) {
-  const cache = readJSON(CACHE) || {}
-  if (cache.met === key) return false
-  try { fs.writeFileSync(CACHE, JSON.stringify({ ...cache, met: key })) } catch {}
+  if ((readJSON(CACHE) || {}).met === key) return false
+  writeCache({ met: key })
   return true
 }
 
@@ -188,8 +197,7 @@ function firstSighting (key) {
  */
 export function dismissUpdate (key) {
   if (!key) return
-  const cache = readJSON(CACHE) || {}
-  try { fs.writeFileSync(CACHE, JSON.stringify({ ...cache, seen: String(key) })) } catch {}
+  writeCache({ seen: String(key) })
 }
 
 /**

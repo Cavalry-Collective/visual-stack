@@ -311,6 +311,11 @@ function saveComments (comments, subject = here()) {
  *  still holds, and none of these ever. */
 const OWNED = ['state', 'sentAt', 'deliveredAt', 'deliveredTo', 'dismissedAt']
 
+/** Keys that reach the prototype rather than the object. `JSON.parse` keeps
+ *  them as ordinary own properties, so a save can carry one in, and assigning
+ *  it would change every object in the process rather than this comment. */
+const RESERVED = ['__proto__', 'constructor', 'prototype']
+
 const normaliseComment = c => ({
   ...c,
   state: c.state === 'closed' ? 'closed' : 'open',
@@ -1238,6 +1243,11 @@ const send = (res, code, body, type = 'text/plain; charset=utf-8') => {
 }
 const sendJSON = (res, code, obj) => send(res, code, JSON.stringify(obj), MIME['.json'])
 
+/** What a failed action has to say, for a reader. The message is the useful
+ *  part and the workspace shows it; the stack behind it is noise the page has
+ *  no use for, so only the message crosses. */
+const failureText = e => e?.message || 'The review server could not complete that.'
+
 function readBody (req) {
   return new Promise((resolve, reject) => {
     let raw = ''
@@ -1337,7 +1347,8 @@ function acceptFromReviewer (incoming) {
     // a draft and the reviewer may rewrite it however they like.
     if (!stored.sentAt) {
       for (const [key, value] of Object.entries(raw)) {
-        if (!OWNED.includes(key) && key !== 'replies') stored[key] = value
+        if (OWNED.includes(key) || RESERVED.includes(key) || key === 'replies') continue
+        stored[key] = value
       }
     }
     stored.replies = replies
@@ -1549,7 +1560,7 @@ async function handle (req, res) {
   if (p === '/' || p === '/index.html') return serveWorkspace(res)
   if (p === '/page' && !LIVE) return serveStatic(res, FILE)
   if (p === '/api/project') {
-    try { return sendJSON(res, 200, payload()) } catch (e) { return sendJSON(res, 500, { error: String(e) }) }
+    try { return sendJSON(res, 200, payload()) } catch (e) { return sendJSON(res, 500, { error: failureText(e) }) }
   }
   if (p === '/api/events') {
     res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' })
@@ -1806,7 +1817,7 @@ async function cmdServe () {
   fs.rmSync(P.share(), { force: true })
   const port = Number(args.port || 7788)
   const server = http.createServer((req, res) => {
-    handle(req, res).catch(e => { try { sendJSON(res, 500, { error: String(e) }) } catch {} })
+    handle(req, res).catch(e => { try { sendJSON(res, 500, { error: failureText(e) }) } catch {} })
   })
   if (LIVE) server.on('upgrade', (req, socket, head) => {
     if (req.url.startsWith(BASE + '/') || req.url === BASE) return socket.destroy()

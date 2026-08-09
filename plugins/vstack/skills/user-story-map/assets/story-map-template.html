@@ -838,7 +838,7 @@ window.VSShell = (function () {
        stacks in the order things entered it: one promoted before a dialog
        would sit under it. Older browsers have no popover and lose nothing but
        the stacking. */
-    try { el.showPopover() } catch {}
+    try { el.showPopover(); } catch {}
     el.classList.add('on');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => {
@@ -972,7 +972,7 @@ window.VSShell = (function () {
     // `defaultLang` is what the artifact was authored in — it opens that way
     // once, and after that the reader's own choice is the one that sticks.
     if (opts.defaultLang && !storedLang) lang = opts.defaultLang === 'zh' ? 'zh' : 'en';
-    if (opts.lang) { lang = opts.lang === 'zh' ? 'zh' : 'en'; store.set(KEY.lang, lang) }
+    if (opts.lang) { lang = opts.lang === 'zh' ? 'zh' : 'en'; store.set(KEY.lang, lang); }
     // Not every page sends something back — the form doesn't — so the primary
     // action stays out of the bar unless a page asks for it.
     const send = $('#send');
@@ -1276,27 +1276,27 @@ window.VSScrub = (function () {
     acts.forEach(a=>{
       // The activity is its name. A second line explaining it turned the
       // backbone into prose, and the stories under it already say what it means.
-      h += `<div class="cell act" draggable="true" data-act="${a.id}">
+      h += `<div class="cell act" draggable="true" data-act="${esc(a.id)}">
         <span class="hdl hdl-h" title="${T("grip")}">⠿ ⠿</span>
-        <div class="actls"><span class="an" contenteditable spellcheck="false" data-edit="act-name" data-id="${a.id}">${esc(a.name)}</span>
-        <button class="x-act" data-del-act="${a.id}" title="${T("removeAct")}">×</button></div></div>`;
+        <div class="actls"><span class="an" contenteditable spellcheck="false" data-edit="act-name" data-id="${esc(a.id)}">${esc(a.name)}</span>
+        <button class="x-act" data-del-act="${esc(a.id)}" title="${T("removeAct")}">×</button></div></div>`;
     });
     h += `<div class="cell addact"><button class="addhdr" id="add-activity" title="${T("addActTitle")}">${T("addActivity")}</button></div>`;
     phases.forEach((p,pi)=>{
       const pc = "p"+(pi%6);
-      h += `<div class="cell rail ${pc}" draggable="true" data-phase="${p.id}">
+      h += `<div class="cell rail ${pc}" draggable="true" data-phase="${esc(p.id)}">
         <span class="hdl hdl-v" title="${T("grip")}">⠿</span>
-        <span class="pn" contenteditable spellcheck="false" data-edit="ph-name" data-id="${p.id}">${esc(p.name)}</span>
+        <span class="pn" contenteditable spellcheck="false" data-edit="ph-name" data-id="${esc(p.id)}">${esc(p.name)}</span>
         <span class="bar"></span>
-        <span class="pg" contenteditable spellcheck="false" data-edit="ph-goal" data-id="${p.id}">${esc(p.goal||"")}</span>
-        <button class="x-phase" data-del-phase="${p.id}" title="${T("removePhase")}">×</button></div>`;
+        <span class="pg" contenteditable spellcheck="false" data-edit="ph-goal" data-id="${esc(p.id)}">${esc(p.goal||"")}</span>
+        <button class="x-phase" data-del-phase="${esc(p.id)}" title="${T("removePhase")}">×</button></div>`;
       acts.forEach(a=>{
         const cards = state.stories.filter(s=>s.phase===p.id && s.activity===a.id);
-        h += `<div class="cell stories ${pc}" data-drop-phase="${p.id}" data-drop-act="${a.id}">`;
+        h += `<div class="cell stories ${pc}" data-drop-phase="${esc(p.id)}" data-drop-act="${esc(a.id)}">`;
         cards.forEach(s=>{ h += cardHtml(s); });
-        h += `<button class="addcard" data-add="${p.id}|${a.id}">${T("addStory")}</button></div>`;
+        h += `<button class="addcard" data-add="${esc(p.id)}|${esc(a.id)}">${T("addStory")}</button></div>`;
       });
-      h += `<div class="cell fillp ${pc}" data-fill-phase="${p.id}"></div>`;
+      h += `<div class="cell fillp ${pc}" data-fill-phase="${esc(p.id)}"></div>`;
     });
     h += `<div class="cell addphase"><button class="addhdr" id="add-phase" title="${T("addPhaseTitle")}">${T("addPhase")}</button></div><div class="cell filler" style="grid-column:2 / -1"></div>`;
     map.innerHTML = h;
@@ -1321,14 +1321,14 @@ window.VSScrub = (function () {
   function cardHtml(s){
     const pills = s.tags.map(tagPill).join("");
     const on = sel.has(s.id);
-    return `<div class="card st-${s.status}${on?" sel":""}" draggable="true" data-card="${s.id}">
+    return `<div class="card st-${esc(s.status)}${on?" sel":""}" draggable="true" data-card="${esc(s.id)}">
       <div class="ctrls">
         <span class="grip" title="${T("grip")}">⠿</span>
-        <button class="stbtn" data-status="${s.id}" title="${esc(T("stLabel")[s.status])}">●</button>
-        <button data-tag="${s.id}" title="${T("tagTitle")}">⌗</button>
-        <button data-del="${s.id}" title="${T("del")}">×</button>
+        <button class="stbtn" data-status="${esc(s.id)}" title="${esc(T("stLabel")[s.status])}">●</button>
+        <button data-tag="${esc(s.id)}" title="${T("tagTitle")}">⌗</button>
+        <button data-del="${esc(s.id)}" title="${T("del")}">×</button>
       </div>
-      <p contenteditable="plaintext-only" spellcheck="false" data-edit="card" data-id="${s.id}">${esc(s.text)}</p>
+      <p contenteditable="plaintext-only" spellcheck="false" data-edit="card" data-id="${esc(s.id)}">${esc(s.text)}</p>
       ${pills?`<span class="tags">${pills}</span>`:""}
     </div>`;
   }
