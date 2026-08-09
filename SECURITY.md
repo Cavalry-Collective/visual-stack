@@ -19,6 +19,28 @@ In scope:
 
 Out of scope: vulnerabilities in Claude Code itself — report those to Anthropic.
 
+## What runs on every change
+
+`.github/workflows/security.yml` runs these scans on every pull request, on every push to `main`, and weekly. The `Security gates` job fails unless all three report success, so a scan that is skipped or cancelled blocks the merge in the same way a failing one does.
+
+| Scan | Tool | What it enforces |
+|---|---|---|
+| Static analysis | CodeQL, `security-and-quality` suite | Injection, path traversal, and unsafe DOM construction in the servers and the pages. Findings land in the repository's Security tab. |
+| Secret scan | Gitleaks | No credential in any commit. It reads the full history, not the working tree, because anything ever committed is compromised. |
+| Workflow audit | zizmor | The workflows themselves: token permissions, credential persistence, and untrusted input reaching a `run` block. |
+
+Two scans run outside that workflow, on SonarSource's and OpenSSF's infrastructure rather than ours:
+
+- **SonarQube Cloud** analyses the repository automatically and reports a quality gate on each pull request as its own check. It covers bugs, security hotspots, and maintainability on new code, and it is free for public projects. `.sonarcloud.properties` configures it, and SonarQube Cloud reads that file from `main` only.
+- **OpenSSF Scorecard** runs from `.github/workflows/scorecard.yml`, weekly and on `main`. It rates the repository rather than the code — branch protection, pinned actions, token permissions — and publishes the score the README badge reads.
+
+Both report a check on the pull request. Requiring them is a branch protection setting, not something a workflow can enforce.
+
+Two rules keep those gates meaningful:
+
+- Fix a finding rather than silencing it. A suppression carries a comment saying why it cannot be fixed, next to the line it applies to.
+- Actions are pinned by commit SHA with the version in a trailing comment. A tag moves, and a moved tag runs code nobody reviewed. Dependabot proposes the bumps weekly.
+
 ## Supported versions
 
 `main` only. There are no maintained release branches.

@@ -5,16 +5,17 @@
  * The local loop needs a server (same-origin page, POST-back feedback). To
  * put the same workspace in front of someone who is not at this machine, we
  * inline the page and its published versions into the workspace and switch the
- * send button to "copy for Claude". Output is CSP-safe: no external fonts,
- * scripts, styles or fetches — publishable as a Claude Artifact as-is.
+ * send button to copying the comments for the agent. Output is CSP-safe: no
+ * external fonts, scripts, styles or fetches — publishable as an Artifact as-is.
  *
- *   node bundle-artifact.mjs --file <page.html> [--out review.html] [--versions 3]
+ *   node bundle-artifact.mjs --file <page.html> [--out review.html] [--versions 3] [--host <id>]
  */
 
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { subjectDir, TOOL } from '../../../lib/workdir.mjs'
+import { loadHost, resolveHostId, withHost } from '../../../lib/host.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
@@ -60,16 +61,26 @@ if (fs.existsSync(vdir)) {
     .sort((a, b) => a.n - b.n)
 }
 
-/* Reviews so far, so the shared copy shows what is already answered. */
-const reviews = {}
-const rdir = path.join(STORE, 'reviews')
-if (fs.existsSync(rdir)) {
-  for (const d of fs.readdirSync(rdir)) {
-    const m = /^v(\d+)$/.exec(d)
-    if (!m) continue
-    const saved = readJSON(path.join(rdir, d, 'annotations.json'))
-    if (saved) reviews[m[1]] = saved
+/* The comments so far, so the shared copy shows what is already answered. A
+   store filled by an older version keeps them one directory per version, newest
+   copy of each id winning. */
+let comments = readJSON(path.join(STORE, 'comments.json'))?.comments
+if (!comments) {
+  const newest = new Map()
+  const rdir = path.join(STORE, 'reviews')
+  const versions = fs.existsSync(rdir)
+    ? fs.readdirSync(rdir).flatMap(d => { const m = /^v(\d+)$/.exec(d); return m ? [Number(m[1])] : [] }).sort((a, b) => a - b)
+    : []
+  for (const v of versions) {
+    for (const old of readJSON(path.join(rdir, `v${v}`, 'annotations.json'))?.annotations || []) {
+      newest.set(old.id, {
+        ...old,
+        state: old.status === 'addressed' || old.dismissed ? 'closed' : 'open',
+        deliveredAt: old.sentAt || null,
+      })
+    }
   }
+  comments = [...newest.values()]
 }
 
 const bundle = {
@@ -77,7 +88,7 @@ const bundle = {
   name,
   fileName: path.basename(FILE),
   currentVersion: state.version || 1,
-  html, versions, reviews,
+  html, versions, comments,
 }
 
 const shell = fs.readFileSync(path.join(HERE, 'workspace.html'), 'utf8')
@@ -103,6 +114,11 @@ const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&g
 const titled = out.replace(/<title>[^<]*<\/title>/i, () => `<title>${esc(name)} — Review · Visual Stack</title>`)
 if (titled === out) console.error('warning: no <title> to name — the Artifact will be filed under the workspace default')
 out = titled
+
+/* Carry the Host profile in, the same as `serve` does. Without it the bundle
+   falls back to the default profile and a review shared from another host asks
+   the reviewer to copy their comments for the wrong agent. */
+out = withHost(out, loadHost(resolveHostId(args)))
 
 const dest = path.resolve(args.out || path.join(DIR, `${NAME}-review.html`))
 fs.mkdirSync(path.dirname(dest), { recursive: true })

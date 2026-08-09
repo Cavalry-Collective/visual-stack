@@ -5,69 +5,82 @@ workspace), (2) the **agent session**, and (3) the **reviewer** in the browser.
 
 Host-independent: any Host that fulfills [host.md](host.md) can drive this loop.
 
+One list of comments. Each is open or closed. The agent is the only one who
+calls a comment done. Everything the workspace shows is derived from that list.
+
 ---
 
 ## Participants
 
 | Role | Responsibility |
 | --- | --- |
-| **Engine** | Serves workspace, stores state, freezes versions, emits events |
-| **Agent** | Applies feedback, publishes versions, replies, fulfills Host ops |
+| **Engine** | Serves workspace, keeps the comment list, freezes versions, emits events |
+| **Agent** | Takes delivery, applies comments, replies, closes, publishes versions |
 | **Reviewer** | Comments in the browser; Send / Approve / Share |
 
 ---
 
 ## Subject under review
 
-| Mode | Identity | What a round changes |
+| Mode | Identity | What the agent changes |
 | --- | --- | --- |
 | **File** | `--file <page.html>` | That HTML file |
 | **Live** | `--app <url>` + `--name <slug>` | App source (or notes for a third-party site) |
 
 ---
 
-## On-disk store
+## The comment
 
-Beside the file: `<dir>/.vstack/local/review/<name>/`
-Live (no file): `<cwd>/.vstack/local/review/<name>/`
+`comments.json` is the whole truth for a review. One list, not one per version.
 
-`review/` is where a store is **created**. An implementation must also **read**
-`<dir>/.vstack/local/wireframe/<name>/`, which is where stores made before this
-tool was renamed still are — first directory holding the subject wins, and a
-subject present in both is read from `review/`. Nothing is migrated: a user's
-rounds stay where they were written. `status` reports the resolved `store`, so
-a caller never has to pick between the two itself.
-
-| Path | Role |
+| Field | Meaning |
 | --- | --- |
-| `state.json` | `{ name, version, app?, … }` |
-| `versions/v<n>.html` | Frozen file or DOM capture |
-| `versions/v<n>.meta.json` | Label, date, addressed ids |
-| `reviews/v<n>/annotations.json` | Live comments + threads |
-| `reviews/v<n>/feedback.md` | Markdown brief for the agent |
-| `reviews/v<n>/feedback.json` | Same, structured |
-| `rounds/r<n>.json` | Durable membership, revisions, outcomes, and completion record |
-| `handshake` | A stream watcher waiting to be told its events are being read. Carries the token it printed; `ack` marks the record answered rather than deleting it, and only the watcher whose token it holds acts on it and clears it |
-| `pending` | Notification only: review sent, agent must `claim` it |
-| `approved` | Sentinel: design signed off; engine shutting down |
-| `share` | Sentinel: reviewer wants a shareable link |
-| `url` | Present only while `serve` is running |
-| `watching` | Heartbeat while Host op `watch_stream` is active |
+| `id` | Stable, shared with the workspace |
+| `note` | What the reviewer asked for. Frozen once `sentAt` is set |
+| `kind` | `comment` · `area` · `general` · `move` · `strike` |
+| `anchor` | Element identity (tag, id, cls, role, label, text, region, sel) |
+| `move` / `strike` / `covers` | Payload for the drawn marks |
+| `route` | Live only — the app path it was made on |
+| `size` | Screen size it was made at |
+| `seenAt` | Version on screen when it was written. Display only |
+| `state` | `open` · `closed` |
+| `closedAt` | When the agent closed it |
+| `replies` | `{ by, text, at }[]`, append-only. An agent reply may carry `options: [{ text, recommended }]` — answers the reviewer picks from |
+| `sentAt` | The reviewer let go of it. Null means it is still a draft |
+| `deliveredAt` | The agent was last handed it. Null means it is still queued here |
+| `deliveredTo` | The session the last delivery was recorded for — the `--session` id its watcher was started with. Null when the watcher carried no identity |
+| `dismissedAt` | The reviewer took it off the list after it had been delivered. The record stays; the workspace never shows it again |
 
-`serve` also records the store it is serving under the directory it was run
-from: `<cwd>/.vstack/local/review/.serving/<key>`, one file per live review,
-holding that review's store path. It is written after `url` and removed with it.
+Those two timestamps carry the whole of a comment's progress:
 
-`watch --all` finds a review by walking the directory it was run from **and** by
-following those pointers. The pointer is what covers a page that lives outside
-that directory, whose store lives outside it too. A pointer whose store has no
-`url` is stale, and the reader deletes it.
+| State | `sentAt` | `deliveredAt` | Editable | Withdrawable |
+| --- | --- | --- | --- | --- |
+| Being written | — | — | yes | yes, the record goes |
+| Queued | set | — | no | yes, the record goes |
+| With the agent | set | set | no | yes, the record stays behind it |
 
-Every vstack tool keeps its per-machine working files under
-`.vstack/local/<tool>/`, resolved by `lib/workdir.mjs`: the enclosing `.vstack`
-when the artifact already sits in one, otherwise the one beside it. Engines must
-go through that helper rather than joining the path themselves. `local/` is
-gitignored whole; the rest of `.vstack/` is the pipeline and is committed.
+---
+
+## Who may do what
+
+**Reviewer** — three verbs:
+
+- Add a comment.
+- Reply to a comment. A reply to a closed comment reopens it. Their own reply,
+  while it is still the thread's last line, may be taken back (rule 7).
+- Withdraw a comment, at any point.
+
+A reviewer never closes a comment as done. Withdrawing takes it off the list
+they are working from: a comment the agent has not been handed leaves no record
+at all, and one it has been handed keeps a record marked `dismissedAt` and
+`closed`, so the agent can still close what it was given. The agent is not
+interrupted by a withdrawal and is not told of one.
+
+**Agent** — three verbs:
+
+- Take delivery of the open comments (the tick).
+- Reply to a comment. This never changes its state.
+- Close comments, and optionally snapshot a version.
 
 ---
 
@@ -84,6 +97,44 @@ CSS/UI may use class `agent`; class `claude` remains a synonym for old markup.
 
 ---
 
+## On-disk store
+
+Beside the file: `<dir>/.vstack/local/review/<name>/`
+Live (no file): `<cwd>/.vstack/local/review/<name>/`
+
+`review/` is where a store is **created**. An implementation must also **read**
+`<dir>/.vstack/local/wireframe/<name>/`, which is where stores made before this
+tool was renamed still are — first directory holding the subject wins, and a
+subject present in both is read from `review/`.
+
+| Path | Role |
+| --- | --- |
+| `state.json` | `{ name, version, file? \| app?, start? }` |
+| `comments.json` | Every comment for this review |
+| `brief.md` | The open comments, rewritten on every delivery |
+| `versions/v<n>.html` | Frozen file, or the DOM capture for a live app |
+| `versions/v<n>.meta.json` | `{ n, label, date }` |
+| `reviews/v<n>/` | Only ever read: where a store filled by an older version keeps its comments |
+| `handshake` | A stream watcher waiting to be told its events are being read |
+| `approved` | Sentinel: design signed off; engine shutting down |
+| `share` | Sentinel: reviewer wants a shareable link |
+| `url` | Present only while `serve` is running |
+| `watching` | Heartbeat while Host op `watch_stream` is active |
+
+`serve` also records the store it is serving under the directory it was run
+from: `<cwd>/.vstack/local/review/.serving/<key>`, one file per live review.
+`watch --all` finds a review by walking the directory it was run from **and** by
+following those pointers. A pointer whose store has no `url` is stale, and the
+reader deletes it.
+
+**Reading a store from an older version.** When `comments.json` is absent, build
+it from the `reviews/v<n>/` directories: the newest copy of each id wins,
+`addressed` and a reviewer's dismissal both become `closed`, and anything
+already sent counts as delivered. Those files are left where they are. Nothing
+is migrated behind the user's back.
+
+---
+
 ## CLI surface
 
 All commands: `node review-server.mjs <cmd> …`
@@ -91,15 +142,15 @@ Host selection: `--host <id>` or `VSTACK_HOST=<id>` (affects UI injection only).
 
 | Command | Contract |
 | --- | --- |
-| `serve --file …` / `serve --app …` | Long-lived via Host `background`. Binds `127.0.0.1`. |
-| `ack --file/name … --token <token>` \| `ack --all --token <token>` | Answer a stream watcher's handshake. Only this arms the `watching` heartbeat |
-| `claim --file/name … --round r<n>` | Acknowledge delivery while preserving the durable round ledger |
-| `publish --file/name … --round r<n> --label … [--addressed ids]` | Validate full round coverage, freeze next version, and mark comments addressed |
-| `reply --file/name … --round r<n> --comment <id> --text "…"` | Append `{ by: "agent", text, at }`; status → `question` |
-| `share --file/name … --url <url>` | Record public URL; clear `share` sentinel |
-| `check --file/name …` | Always exits `0`. Names a queued round nobody has claimed |
+| `serve --file …` / `serve --app …` | Long-lived via Host `background`. Binds `127.0.0.1` |
+| `watch [--all] [--file …] [--stream] [--session <id>]` | Take delivery. Blocks until the reviewer has said something new. `--session` names the agent session each delivery binds to |
+| `ack --file/name … --token <token>` | Answer a stream watcher's handshake. Only this arms the `watching` heartbeat |
+| `publish --file/name … [--close ids] [--label …] [--summary …]` | Close comments, snapshot a version, or both. `--summary` records the account of the round, which the workspace shows; the latest one is kept and a publish without it clears it |
+| `reply --file/name … --comment <id> --text "…" [--option "…" … --recommend <n>]` | Append `{ by: "agent", text, at }`, with `options: [{ text, recommended }]` when options are given. The reviewer answers by pressing one, which posts those words as their reply |
+| `share --file/name … --url <url>` | Record public URL; clear the `share` sentinel |
 | `status --file/name …` | Human/debug snapshot |
-| `watch [--all] [--file …] --stream` | Event stream via Host `watch_stream` |
+| `unanswered [--all] [--file/name …] [--session <id>]` | Comments the agent was handed and has not answered. Exits 1 while any remain. With `--session`, only deliveries recorded for that id count |
+| `reset --file/name …` | Delete every comment and version for the review, and start again at v1 |
 
 ---
 
@@ -112,28 +163,30 @@ One line of stdout per event (from `watch --stream`):
 | `WATCHING` | Stream armed | — |
 | `HANDSHAKE` | The watcher asking whether anyone receives it | Run the `ack` command it prints, immediately |
 | `LINKED` | The handshake was answered and at least one review is covered | — |
-| `UNLINKED` | The handshake was answered and no review turned up to cover, so no workspace goes Linked | Start it again via `watch_stream` with `--file` if a review is running elsewhere; a later serve in the same directory is picked up without it |
+| `UNLINKED` | The handshake was answered and no review turned up to cover | Start it again with `--file` if a review is running elsewhere |
 | `UNWIRED` | The handshake went unanswered; the watcher exits `3` | Start it again via `watch_stream` |
-| `REVIEW` | `pending` written; round id and path to `feedback.md` | `claim` the round, apply brief, publish/reply |
-| `REPLIED` | Reviewer answered a question | Continue that comment’s thread |
+| `REVIEW` | Comments have been handed over; names how many and the brief | Read `brief.md`, apply it, `publish --close` / `reply` |
 | `SHARE` | Link requested | Host `share` if capable; then `share --url` |
 | `APPROVED` | Sign-off; server exiting | Confirm; next pipeline stage as skill says |
 | `OPENED` | Another live store joined `--all` | — |
 | `CLOSED` | Tab/store gone | Drop; exit when none left |
 
+A reply raises no event of its own: it is the same comment coming round again
+with more said on it.
+
 ---
 
-## Round protocol
+## The loop
 
 ```
 serve (background) + watch_stream
         │
         ▼
-reviewer comments ──Send──► round record + pending + feedback.md
+reviewer comments ──Send──► comments.json
         │                         │
-        │                    REVIEW event
+        │                    REVIEW event  ──► brief.md (delivery recorded)
         │                         ▼
-        │              agent: claim · apply · reply/check · publish
+        │              agent: apply · reply/close · publish
         │                         │
         │◄──── version ready ─────┘
         │
@@ -143,53 +196,29 @@ reviewer comments ──Send──► round record + pending + feedback.md
 
 Rules:
 
-1. Only a validated `publish --round … --addressed …` closes comments (reviewer has no resolve).
-2. The engine rejects publication unless every round member is addressed, dismissed, or waiting on the reviewer.
-3. The engine rejects unknown IDs, changed comment revisions, unclaimed rounds, and stale round IDs.
-4. A round in flight cannot be called off. The reviewer's only correction is to send again, which supersedes the brief. Do not delete protocol files manually.
-5. Retrying an already completed `publish --round …` is idempotent and creates no extra version.
-6. One `watch_stream` per session is enough with `--all`.
-7. Presence is proven. A stream watcher writes its `watching` heartbeat from the moment its handshake is answered, so **Linked** means a session is receiving the stream. Default window 120 s (`--handshake-timeout <seconds>`).
-8. Presence is per review, and per watcher. A watcher heartbeats only the stores it covers, and goes live only on an answer carrying its own token — a second watcher's handshake is not an answer to the first. It reports `LINKED` once it covers a review, and `UNLINKED` when none has turned up.
-9. Presence is also claim-backed. The engine reports the agent present (workspace **Linked**) only while the `watching` heartbeat is fresh **and** no queued round has sat unclaimed past the claim window (90 s). A stalled round drops presence — a watcher whose events nobody reads must look the same to the reviewer as no watcher at all.
+1. Only `publish --close` says a comment is done. The reviewer has no resolve. Withdrawing (rule 9) takes a comment off their list and says nothing about the work.
+2. A tick hands over **every** open comment, not only the new ones, and marks which are new since the last delivery.
+3. Whatever the agent does not close stays open and comes back on the next tick. There is no coverage to satisfy.
+4. **Nothing can refuse a close.** An agent that has taken delivery can always finish, whatever the reviewer did meanwhile.
+5. Closing what is already closed is a no-op, so a retried command is safe.
+6. A comment's words are frozen when the reviewer sends it. The engine keeps the stored note whatever a client saves afterwards.
+7. A reply is append-only in a save, from either role: two copies of a thread merge to the union of both, so a line missing from one copy is never a removal. Removal is a request of its own. The reviewer may take back their own reply while it is the thread's last line; once anything has been said over it, it stays. The agent is not told of a take-back and finishes from whatever it already took delivery of (rule 4).
+8. A reviewer's reply to a closed comment reopens it. An agent's reply never changes state.
+9. A comment may be withdrawn at any point. Undelivered, it is deleted. Delivered, it is marked `dismissedAt` and `closed`: it leaves the workspace, no tick raises it again, and the id still resolves so the agent holding it can close it.
+10. A version is a snapshot to look at. It records no comments, and no comment records a version.
+11. One `watch_stream` per session is enough with `--all`.
+12. Presence is proven. A stream watcher writes its `watching` heartbeat from the moment its handshake is answered, so **Linked** means a session is receiving the stream. Default window 120 s (`--handshake-timeout <seconds>`).
+13. Presence is per review, and per watcher. A watcher heartbeats only the stores it covers, and goes live only on an answer carrying its own token.
+14. An agent that took delivery answers. A comment it was handed is answered by closing it or by replying to it. Neither is a round that stopped halfway, because no tick will raise that comment again until the reviewer writes. `unanswered` names them, and exits 1 while any remain.
+15. A delivered comment goes back to the queue when nothing is listening. That is the way out of a round whose agent session died: those comments are not `unseen`, so no new watcher would ever hand them over. `deliveredAt` and `deliveredTo` are cleared and the comment is Queued again. The engine refuses this while a `watching` heartbeat is fresh, because then an agent still holds it and rule 14 applies instead.
+16. A delivery binds to a session. A watcher started with `--session <id>` records that id on every comment it hands over, the latest delivery owns the round, and `unanswered --session <id>` answers for that session alone — so a Host that gates the end of a turn never holds one session's turn open for another session's round. A delivery recorded with no identity is reported only by the unfiltered form.
+17. `watch --all` never covers a store whose `watching` heartbeat is fresh: that heartbeat is another watcher, and covering the review twice would deliver the same comment to two sessions. The store joins the sweep once the heartbeat is gone. A store named with `--file` is covered regardless — naming it is a deliberate takeover.
 
----
+Rule 14 is an obligation on the agent, not a refusal by the engine. Rule 3
+still holds: `publish` closes exactly what it names and accepts everything else
+being left open. A Host that can gate the end of a turn is where the obligation
+is enforced — see the Stop hook in `plugins/vstack/hooks/`. A Host that cannot
+gets the rule as an instruction and nothing more.
 
-## Feedback brief
-
-`feedback.md` + `feedback.json` carry at least:
-
-| Field | Meaning |
-| --- | --- |
-| `id` | Pass to `--addressed` |
-| `kind` | `comment` · `area` · `general` · `move` · `strike` |
-| `note` | Requirement text. Empty is valid on `move` and `strike` |
-| `anchor` | Element identity (tag, id, classes, text, region, selector) |
-| `move` | `move` only — `{ target: { …anchor identity, where }, delta }`, `where` is `inside` · `before` · `after` |
-| `strike` | `strike` only — `{ scope: 'text' \| 'element', text }` |
-| `screenSize` | Layout the comment was made at |
-| `route` | Live only — app path |
-| `status` | `open` · `question` · `addressed` |
-| `replies` | `{ by, text, at }[]` |
-| `reopened` / `wantsRevert` | Returned from Refine / Revert |
-
-A comment carries its requirement in `note`. A `move` and a `strike` carry it in
-their own fields instead, so a reader must not treat an empty `note` as an
-incomplete comment. `move.target` outranks `move.delta`: the element and side
-survive a reflow and the pixel distance does not.
-
----
-
-## Share
-
-- **File review:** subject file (self-contained HTML) is what gets a public URL.
-- **Live review:** a DOM capture for the current round; agent must say it is a still.
-- Offline bundle (`bundle-artifact.mjs`): no session; Send becomes copy-to-clipboard.
-
----
-
-## Non-goals of this contract
-
-- How the Host names its tools (see Host adapters).
-- Pipeline / `.vstack/pipeline.json` (skill handoff, not the review engine).
-- Marketplace install paths (Host profile `install` + `updateDetect` only).
+Rule 4 is the liveness property. Every dead-end this protocol has had came from
+a rule that could stop a round ending.

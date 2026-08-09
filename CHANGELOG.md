@@ -8,6 +8,172 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.4.0 — 2026-08-09
+
+**Changed**
+
+- **One place decides what the product looks like.** The palette now comes from
+  `design/tokens.css`, the design guide's token source, instead of being decided
+  in the shared shell. Every page — the review workspace, the story map, the
+  spec tree, the build board, the chooser — picks up the guide's Cavalry brand:
+  purple-cast neutrals in place of the cool greys, and the brand red at the step
+  that holds its contrast on white. Nothing moved and nothing was renamed; only
+  the colours changed.
+- Dark is now part of that source rather than something the shell decided on its
+  own, so both themes come from the same place.
+
+## 6.3.0 — 2026-08-09
+
+**Fixed**
+
+- **Codex never told you a new version was out.** The update banner only knew
+  how to recognise a Claude Code install, and the Codex profile had the check
+  switched off, so a Codex copy stayed on whatever release it was installed at
+  with nothing to say so. Codex installs are now recognised by the version
+  directory Codex unpacks them into, and the banner shows the two commands that
+  take the update:
+
+  ```text
+  codex plugin marketplace upgrade cavalry-collective
+  codex plugin add vstack@cavalry-collective
+  ```
+
+  A running Codex thread keeps the copy it started with, so start a new thread
+  after updating.
+- An install sitting behind a symlinked path — `/var` and `/tmp` on macOS, or a
+  home directory that has moved — was not recognised as an install, and got no
+  banner.
+
+## 6.2.0 — 2026-08-09
+
+**Changed**
+
+- **Clear all no longer takes the comments you are still working on.** It clears
+  the addressed ones, and a checkbox on the confirm takes the open ones as well.
+  The box is off every time the dialog opens, so tidying the list can never lose
+  a comment you had not finished with.
+- **The banner that announces a finished round no longer names a version.** It
+  says the round is done, which reads the same for a live app as for a
+  wireframe, and the button beside it is now **Refresh**. A live review never
+  advanced a version, so that banner had never appeared there at all.
+- The handle that reopens the comments panel is part of the chrome again rather
+  than wearing the brand colour. Its count badge is what says comments are
+  waiting.
+
+**Added**
+
+- **`publish --summary "…"`** records the account of the round you would give in
+  chat, and the workspace shows it under the banner. It opens and closes on an
+  accordion chevron, and however you leave it is how the next round arrives.
+  One summary is kept, the latest; a publish without it clears it.
+- **`reply --option "…" --option "…" --recommend <n>`** turns a question into
+  answers to pick from, one marked *Recommended*. Pressing one answers with
+  those words, and the box to type something else is still there.
+- **The comments panel is resizable.** Drag its inner edge, or focus it and use
+  the arrow keys. The width is remembered for this browser.
+- A comment about the page as a whole now has a **Save** button and the
+  Shift+Enter hint, the same as one made on the page. Enter saves it as a draft
+  instead of sending it — it goes out with your next Send, like every other
+  comment.
+
+**Fixed**
+
+- **A comment closed while you watched dropped straight into the folded
+  "Earlier" group.** The workspace never picked up the close stamp from the
+  server, so everything read as closed long ago instead of standing where you
+  could check it.
+- **A question showed a progress bar while it waited on you.** A comment whose
+  last word is the agent's no longer counts as work in flight: no bar, no place
+  in the "working on N" count, and it does not trip the stalled timer.
+- The stack catalogue the parked `start` tool shows named packs the template no
+  longer has.
+
+## 6.1.0 — 2026-08-08
+
+**Fixed**
+
+- **A second session in the same project was gated on a review it had never
+  seen.** With two agent sessions open in one directory, the Stop hook told the
+  uninvolved one it owed answers on another session's comments — naming the ids
+  and the command that would close them, which invited the wrong session to
+  finish someone else's round. Delivery now records the session it went to: the
+  watcher is started with `--session <id>` (the host adapter supplies the id),
+  and the gate asks `unanswered --session <id>`, so it holds only the session
+  whose watcher took delivery. A delivery recorded without an identity gates no
+  one.
+
+**Added**
+
+- **A watcher never covers a review another session already covers.**
+  `watch --all` leaves a store alone while its `watching` heartbeat is fresh,
+  and takes it once that heartbeat is gone — so a second session's sweep cannot
+  take delivery of comments meant for the first. Naming the page with `--file`
+  still covers it regardless: that is the deliberate way to adopt a review from
+  a watcher that is stuck.
+
+## 6.0.0 — 2026-08-06
+
+**Breaking**
+
+- **Rounds are gone.** A review is one list of comments, each open or closed, and
+  the agent is the only one who closes. `rounds/`, the `pending` sentinel, the
+  per-version comment copies and `feedback.json` are no longer written. `claim`
+  and `check` are removed: taking delivery is the tick itself, and there is no
+  unclaimed round to name.
+- **`publish --addressed` is now `publish --close`,** and it no longer has to
+  account for every comment. What you close is closed; what you leave stays open
+  and comes back on the next delivery. `--label` is independent of it: either
+  flag alone is valid.
+- **On-disk shape.** Comments live in `comments.json`; the brief is `brief.md`,
+  rewritten on each delivery. A store written by an earlier version is read where
+  it lies — newest copy of each id wins, `addressed` and dismissed both become
+  closed — and nothing is moved.
+- **A version records no comments.** `versions/v<n>.meta.json` is a label and a
+  date. Snapshots are for looking at.
+
+**Added**
+
+- **A round the agent took is finished before its turn can end.** `unanswered`
+  reports every comment the agent was handed and then said nothing about —
+  neither closed nor replied to. On Claude Code a Stop hook runs it and holds the
+  turn open until the round is answered. Nothing else caught this: a delivery
+  only fires when the reviewer writes again, so a comment the agent went quiet on
+  sat there for as long as they stayed quiet too.
+- **Send again, when the agent stops responding.** After a minute with nothing
+  listening, the workspace says the agent has stalled rather than animating
+  progress that is not happening, and offers to put those comments back in the
+  queue. A comment already delivered is invisible to a watcher started
+  afterwards, so a restarted session used to sit idle on a review it could not be
+  handed. Refused while a heartbeat says an agent still holds them.
+- **Hard reset**, in the cog. Starts a review over, behind a confirm that says how
+  many comments and versions go. The page under review is left alone and becomes
+  v1 again.
+
+**Fixed**
+
+- **What a failed action had to say could not be read.** A message raised while a
+  dialog was open sat under that dialog's own backdrop, dimmed and blurred by it.
+  Messages now join the top layer, so they arrive on top of the thing that
+  failed.
+- **A comment could stop being closable.** Replying to one changed the
+  fingerprint its round had recorded, so the reviewer answering the agent's own
+  question was what blocked the comment from ever closing — and the workspace
+  held back the re-send that would have cleared it. Neither rule exists now, and
+  the protocol states the property that was missing: nothing can refuse a close.
+  An agent that has taken delivery can always finish.
+
+**Changed**
+
+- A comment's words are frozen when the reviewer sends it. Anything to add after
+  that is a reply, which means two writers can no longer disagree about what was
+  asked, and the merge heuristics that arbitrated them are gone.
+- `question` is no longer a state — a comment waits on the reviewer when the last
+  reply is the agent's. Withdrawing a comment already delivered is a reply asking
+  for it back. Revert and Refine both write into the thread.
+- The workspace holds no protocol state. Queued, being worked on, editable and
+  withdrawable are all read off the comment, so a reload or a second tab sees the
+  same review as the tab that wrote it.
+
 ## 5.0.0 — 2026-08-05
 
 **Breaking**

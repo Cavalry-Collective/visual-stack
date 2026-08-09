@@ -104,8 +104,18 @@ When serving a workspace, the server:
 The workspace uses `name` (and related strings) for chrome. It never hardcodes
 a product name.
 
-Update banners use `install` from the same profile when the Host supports
-update detection (`capabilities.updateDetect`).
+The server also checks whether a newer release exists, and hands the answer to
+the page. `capabilities.updateDetect` says where an installed copy is found:
+
+| `capabilities.updateDetect` | Where the installed version comes from |
+| --- | --- |
+| `claude-install` | Claude Code's record in `~/.claude/plugins/installed_plugins.json` |
+| `codex-install` | The version directory Codex unpacked the copy into, under `~/.codex/plugins/cache/` |
+| `none` | Nowhere. No check runs and no banner appears |
+
+A Host that is not `none` must also give `install.commands`, because the banner
+shows the reader how to take the update. A copy running from a clone matches no
+install, and never produces a banner.
 
 ---
 

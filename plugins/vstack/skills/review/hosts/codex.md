@@ -18,7 +18,7 @@ node "$SKILL/assets/review-server.mjs" serve --file "$FILE" --port 7788 --host c
 | `background(cmd)` | persistent shell execution (`exec_command`) | Start with a short yield and retain the returned session id. The review server must stay alive. |
 | `watch_stream(cmd)` | a second persistent `exec_command`, then `write_stdin` | Run `watch --all --stream`; poll the session with an empty write, normally for 30 seconds at a time, until it emits an event. Keep polling while reviews remain open. |
 | `stop(handle)` | `write_stdin` | Send Ctrl-C (`\u0003`) to the retained server or watcher session. |
-| `run(cmd)` | foreground `exec_command` | Use for `publish`, `claim`, `reply`, `ack`, `check`, `share`, and `status`. |
+| `run(cmd)` | foreground `exec_command` | Use for `publish`, `reply`, `ack`, `share`, `status`, and `unanswered`. |
 | `edit` | `apply_patch` | Change the wireframe or application source without overwriting unrelated work. |
 | `share(file)` | no generic public Artifact publisher | Profile uses `capabilities.share: copy`; offer the HTML file or an offline bundle instead of inventing a URL. |
 | `browser_capture` | Codex Browser controls, when installed | Navigate, resize, screenshot, and run `harvest-reference.js`. If Browser is unavailable, use screenshots supplied by the user. |
@@ -54,7 +54,10 @@ normal persistent command session:
 3. Answer the `HANDSHAKE` line the stream opens with, using `run`: `ack --all --token <token>`. The watcher goes live once you do; answer within two minutes.
 4. On `REVIEW`, `REPLIED`, `SHARE`, `APPROVED`, or `CLOSED`, follow
    the core skill and review-loop contract.
-5. Resume polling after each published round. Do not send the final response
+5. Run `unanswered --all` before you end a turn, and settle whatever it names.
+   Codex cannot gate the end of a turn, so rule 14 of
+   [review-loop.md](../../../contracts/review-loop.md) is yours to keep.
+6. Resume polling after each publish. Do not send the final response
    while the review is still active; keep the Codex turn open until approval,
    closure, or an explicit request from the user to stop.
 
@@ -83,6 +86,14 @@ codex plugin add vstack@cavalry-collective
 Start a new Codex thread and invoke **`$vstack:review`**, or describe a wireframe or
 UI-review task and let the skill trigger implicitly.
 
-Update detection is disabled for Codex (`updateDetect: none`); use
-`codex plugin marketplace upgrade cavalry-collective` and reinstall the plugin
-when testing a newer marketplace revision.
+Update detection uses the version directory Codex unpacked this copy into
+(`capabilities.updateDetect: codex-install`), so the workspace says when a newer
+release exists. Update with the two commands the banner shows:
+
+```text
+codex plugin marketplace upgrade cavalry-collective
+codex plugin add vstack@cavalry-collective
+```
+
+A running Codex thread keeps the copy it started with. Start a new thread after
+updating.

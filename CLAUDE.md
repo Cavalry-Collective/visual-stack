@@ -17,6 +17,11 @@ also ships a Codex manifest (`.codex-plugin/`) and a Grok host adapter
 host that discovers skills from a project directory gets instructions in its
 host adapter, not a checked-in skill directory that then has to be kept in sync.
 
+`.claude/commands/` is the one exception, and it holds maintainer tooling only:
+commands for working *on* this repo, which ship to nobody and mirror no part of
+the plugin. `/ship` is the only one. A command there states no rule of its own —
+it points at the section of this file that owns the rule.
+
 Plain Node ≥ 18 ES modules, standard library only. There is no package.json,
 build step, bundler, or linter. (`node_modules/` at the root appears only when
 recording the README demo, which installs playwright-core.)
@@ -29,6 +34,22 @@ Tests are standalone Node scripts — run them directly, one file per suite:
 node plugins/vstack/skills/review/tests/review-lifecycle.mjs   # end-to-end review server round-trip
 node plugins/vstack/skills/review/tests/host-profiles.mjs      # host profiles conform to host.schema.json
 node plugins/vstack/skills/review/tests/workdir.mjs            # .vstack/local working-dir resolution
+node plugins/vstack/skills/review/tests/round-gate.mjs         # `unanswered` and the Stop hook that runs it
+node plugins/vstack/skills/review/tests/update-check.mjs       # per-host update detection and the banner it produces
+node plugins/vstack/skills/review/tests/design-tokens.mjs      # the shell's palette still matches design/tokens.css
+```
+
+The Gherkin end-to-end suite lives in `e2e/` — the one directory with a
+`package.json`, kept outside `plugins/` so the plugin itself stays
+dependency-free. It drives the real review server and CLI; a mock agent
+(`e2e/support/mock-agent.mjs`) plays the agent role, so no model or API key is
+involved. CI runs it under both hosts.
+
+```bash
+cd e2e && npm ci
+npx playwright install chromium     # once, for the @browser scenarios
+npx cucumber-js                     # VSTACK_HOST=claude (default)
+VSTACK_HOST=codex npx cucumber-js   # the same suite under the Codex profile
 ```
 
 The shared UI shell is stamped into pages, not linked (see below):
@@ -48,7 +69,27 @@ claude plugin validate ./plugins/vstack --strict # the plugin manifest
 
 `.github/workflows/ci.yml` runs all of the above on every pull request.
 
-CI cannot install the plugin, so rehearse that locally before a release.
+The security scans run in `.github/workflows/security.yml`, and a merge is
+blocked until every one of them passes. Two of them run locally:
+
+```bash
+gitleaks git --no-banner --redact --verbose   # secrets, over the full history
+uvx zizmor@1.29.0 .github/workflows/          # workflow audit
+```
+
+SonarQube Cloud analyses the repository on its own and reports a quality gate
+on the pull request. It is configured by `.sonarcloud.properties`, which it
+reads from `main` only, so a change there takes effect after the merge.
+
+`SECURITY.md` owns what each gate enforces, the rule that a finding is fixed
+rather than silenced, and the rule that every action is pinned by commit SHA
+with its version in a trailing comment. Adding a step that uses an action means
+resolving that SHA with
+`gh api repos/<owner>/<action>/commits/<tag> --jq .sha`. Declare each job's
+`permissions` on the job, never at workflow level, so a new job cannot inherit
+one it does not need.
+
+CI rehearses the install, and you can run the same thing locally.
 `CLAUDE_CONFIG_DIR` keeps it out of the real config: without it, a local-path
 marketplace is written to user settings and shadows the published
 `cavalry-collective` until it is removed. The source must be `./`, not `.`.
@@ -61,12 +102,42 @@ CLAUDE_CONFIG_DIR=$SANDBOX/.claude claude plugin details vstack   # what a user 
 rm -rf $SANDBOX
 ```
 
+The same rehearsal under Codex. `CODEX_HOME` is what keeps it out of the real
+config, and the directory has to exist before Codex will use it:
+
+```bash
+export CODEX_HOME=$(mktemp -d)/codex && mkdir -p "$CODEX_HOME"
+codex plugin marketplace add "$PWD"
+codex plugin add vstack@cavalry-collective
+codex plugin list                                 # what a user sees
+```
+
 Nothing above runs a review end to end. For that, load the plugin from disk and
 drive the skill in a real project:
 
 ```bash
 claude --plugin-dir ./plugins/vstack
 ```
+
+Codex has no equivalent flag, and no way to read a working copy live. Adding the
+clone as a local marketplace **copies** it into
+`$CODEX_HOME/plugins/cache/cavalry-collective/vstack/<version>/`, and Codex runs
+that copy. So a change made in the clone reaches Codex only when you re-run:
+
+```bash
+codex plugin add vstack@cavalry-collective   # re-copies, even at the same version
+```
+
+Then start a new Codex thread, because a running one keeps the copy it started
+with. `codex plugin marketplace upgrade` does not do this — it refuses on
+anything but a Git source.
+
+A marketplace is keyed by the `name` in `.claude-plugin/marketplace.json`, so
+the clone and the published repository are both `cavalry-collective` and cannot
+be configured at once. Codex refuses the second one until the first is removed
+with `codex plugin marketplace remove cavalry-collective`. Working on the plugin
+in your real `~/.codex` therefore means giving up the published install until
+you add it back.
 
 ## Architecture
 
@@ -88,6 +159,13 @@ The layering rule that everything else follows (`plugins/vstack/contracts/README
   `--host` / `VSTACK_HOST` (default `claude`). Loaded via `lib/host.mjs`.
 - **On-disk roles are stable:** review threads use `by: "agent" | "reviewer"`.
   Older files may say `"claude"`; readers treat that as `"agent"`.
+- **Hooks are adapter surface.** `plugins/vstack/hooks/hooks.json` is Claude
+  Code's only entry point into the plugin, and no other host reads it. It
+  registers one Stop hook, `hooks/round-gate.mjs`, which blocks the end of a
+  turn while a review comment the agent took delivery of is still unanswered.
+  The hook decides nothing itself: `review-server.mjs unanswered` owns what an
+  unfinished round is, so every host gets the same answer by running it. Rule 14
+  of `contracts/review-loop.md` is what it enforces.
 
 ### Two engines, one live-link protocol
 
@@ -95,8 +173,8 @@ The layering rule that everything else follows (`plugins/vstack/contracts/README
   a self-contained HTML page inside the workspace, or reverse-proxies a running
   app (`--app`) so the workspace shares an origin with what it annotates (that
   origin-sharing is why comments can attach to elements, not coordinates). CLI
-  subcommands (`publish`, `claim`, `reply`, `ack`, `share`, `status`,
-  `check`, `watch`) drive the protocol; sentinels and round records live on disk.
+  subcommands (`serve`, `watch`, `publish`, `reply`, `ack`, `share`, `status`,
+  `unanswered`, `reset`) drive the protocol; sentinels and round records live on disk.
 - `lib/json-bridge.mjs` — the live link for JSON-document pages (user-story-map,
   plus the experimental spec and phase-build tools): the page POSTs saves and
   bumps a seq counter the agent's watcher wakes on; agent edits are pushed back
@@ -119,6 +197,14 @@ shared shell (`lib/shell/`: tokens, top bar, scrubber, `window.VSShell` /
 hand-edit a stamped region; page-specific controls go in `vstack:slot` blocks,
 which survive stamping. New pages register in the `PAGES` list in
 `build-shell.mjs`.
+
+The palette itself is decided in [`design/`](design/README.md), not in the
+shell. `design/tokens.css` owns the scales; `lib/shell/tokens.css` carries them
+as the roles pages consume (`--surface`, `--ink`, `--brand`). It is a copy,
+because a stamped page may fetch nothing — so changing a colour means editing
+both files and running `stamp`, and `tests/design-tokens.mjs` fails when they
+disagree. The type scale is the guide's; the families are not, since a webfont
+is an external request.
 
 ### On-disk state
 
@@ -180,10 +266,11 @@ hosts, and `.claude-plugin/marketplace.json` repeats the Claude entry.
 `version` is declared, so it is what a host compares against to decide an update
 exists. **Pushing commits without bumping it ships nothing to anyone.**
 
-- Bump `version` in both host manifests, and add the release to `CHANGELOG.md`,
-  in the release commit.
-- Tag `vX.Y.Z` on the commit that lands on `main`.
-  `.github/workflows/release.yml` fails when the tag and the manifest disagree.
+- Bump `version` in both host manifests, and add the `CHANGELOG.md` entry, in
+  the pull request that changes the plugin — not in a release commit afterwards.
+  `.github/scripts/check-version.mjs` fails the PR when either is missing.
+- Never tag by hand. `.github/workflows/release.yml` tags `main` and publishes
+  the release from what the merge already declares.
 - MAJOR for a breaking change to a skill name, an on-disk path, or a protocol.
   MINOR for new behaviour. PATCH for a fix.
 - Orphaning a user's in-flight state is MAJOR, and it needs a `LEGACY` entry in
@@ -193,38 +280,80 @@ exists. **Pushing commits without bumping it ships nothing to anyone.**
   installed before a version existed. Changing how the version is declared means
   changing that file.
 
-### Cutting a release when asked
+### Releasing
 
-When the user says to cut, ship, or publish a release, run this end to end. The
-`main` ruleset requires a pull request, so nothing lands directly on `main`.
+Merging to `main` is the release: this repository is what a user installs, so
+the code is live the moment it lands. The version and the changelog entry
+therefore belong in the pull request that changes the plugin, and a release is
+not a separate piece of work.
 
-1. **Decide the version.** Read the commits since the last tag, apply the semver
-   rule above, and tell the user the number you picked and why in one line.
-   Proceed on that number. Stop and ask only when the same set of commits reads
-   as either MINOR or MAJOR depending on how a breaking change is judged.
-2. **Verify before proposing anything.** Run the tests, the shell check, both
-   validate commands, and the install rehearsal from *Commands*. A failure here
-   ends the release. Report it and fix it first.
-3. **Branch.** `release/vX.Y.Z` off current `main`.
-4. **Bump and record.** `version` in both host manifests, and a `CHANGELOG.md`
-   entry written from the merged commits, newest first, with breaking changes
-   called out.
-5. **Open the PR.** Title `vX.Y.Z — <the release's one-line point>`. The body is
-   the changelog entry, so it can be reused as the release notes.
-6. **Watch CI.** `gh pr checks <number> --watch`. Every check must pass. A red
-   check means fix it on the branch and watch again, never merge past it.
-7. **Merge when green.** Squash. The user has standing approval for this merge
-   and for the tag and release that follow, so do not ask again for a release
-   they asked for.
-8. **Tag `main`.** Pull the squashed commit, tag it `vX.Y.Z`, and push the tag.
-   The release workflow re-checks the tag against the manifest.
-9. **Publish the GitHub release** with the changelog entry as its notes, then
-   give the user the release URL.
+When a pull request touches `plugins/`, include in the same branch:
 
-Stop and report rather than working around a problem: a red check that is not
-yours to fix, a ruleset that rejects the merge, or a tag that already exists.
+1. `version` raised to the same value in both host manifests, by the semver rule
+   above.
+2. The matching `CHANGELOG.md` entry, newest first, breaking changes called out.
+   This is published verbatim as the release notes, so write it for a user.
 
-Nothing here is a dry run. Every step from 5 onward is public.
+The `Plugin changes ship a version` check fails the PR without both. Nothing
+downstream can catch this: a merge that leaves the version alone publishes the
+code and tells nobody, and the only repair is a second release.
+
+After the merge, `.github/workflows/release.yml` tags `main` as `vX.Y.Z` and
+publishes the GitHub release. It keys on whether that version is already tagged,
+so it is safe to re-run and does nothing on a merge that changed no version.
+
+Never tag by hand, never publish a GitHub release by hand, and never bump a
+version on `main` outside a pull request. A wrong version is fixed by the next
+release.
+
+When the user asks about a release that has already happened, read the state
+rather than doing anything. `gh release list --limit 3` and `git log --oneline
+origin/main -3` say whether it published. A version on `main` with no tag means
+the Release workflow failed, and `gh run list --workflow Release --limit 3` says
+why. Nothing changed under `plugins/` means there is nothing to ship, which is an
+answer rather than a reason to invent a version.
+
+### Shipping a change when asked
+
+`/ship` runs this. It is also what to do whenever the user says to ship, land,
+release, or merge the work on the current branch. The user asking for it is
+standing approval for the pull request and the merge, so do not ask again.
+
+Everything from step 2 is public.
+
+1. **Check the branch carries what it must.** Run the tests, the shell check and
+   both validate commands locally first — a red check you could have caught is
+   wasted round-trips. If anything under `plugins/` changed, the version and the
+   `CHANGELOG.md` entry go in now, per *Releasing* above. Say which version you
+   picked and why, in one line.
+2. **Open the pull request.** Branch off `main` if the work is not already on
+   one. The title is the sentence a reader sees in `git log`; the body says what
+   changed and how it was driven end to end.
+3. **Watch both channels until they settle.**
+   - `gh pr checks <number> --watch`. Every required check must pass.
+   - `gh pr view <number> --comments` and `gh api
+     repos/Cavalry-Collective/visual-stack/pulls/<number>/comments` for review
+     threads. SonarQube and the review bots comment here rather than only failing
+     a check, so a green check list is not the whole picture.
+4. **Fix on the branch and push.** Then watch again. A security finding is fixed,
+   never silenced or ignored. Answer a review comment that you are not acting on,
+   rather than leaving it unanswered.
+5. **Merge when everything is green.** Squash.
+6. **Confirm what it published.** A version bump tags `main` and publishes the
+   release within about a minute. Give the user the release URL. A merge that
+   carried no version bump publishes nothing, which is correct — say so.
+
+Stop and report instead of working around a problem:
+
+- The same check fails twice with the same error after your fix. Name what you
+  tried.
+- A failure that is not yours: a service outage, a rate limit, a check that
+  passes on `main`.
+- A review comment that asks for a decision the user has not made.
+- The ruleset rejects the merge.
+
+Never merge with `--admin`, never bypass a ruleset, and never turn a check off to
+get past it.
 
 ### Contributor-facing files
 
@@ -333,21 +462,91 @@ tooling-agnostic.
 
 ## Demo recordings (README GIFs)
 
-Use these dimensions for every demo recording — they were tuned so the text
-reads clearly in the README:
+`docs/assets/wireframe-demo.gif` is regenerated by one command. It needs
+playwright, which the e2e suite already depends on, and ffmpeg.
 
-- **Browser viewport 920 × 760**, and export the GIF at native resolution —
-  never downscale the frames.
-- **Review the demo page at phone width** (the workspace's 390px size) with the
-  canvas zoom locked at 100%. The workspace refits zoom on every version load
-  (size switch, Review changes, timeline scrub), so a recording script must
-  pin it — set zoom to 1 and no-op the refit for the session.
-- Keep the subject app trivially simple (the todo list works well) so the
-  before/after change is obvious at a glance.
-- Keep it snappy: fast typing, short holds, ~1.4× speedup at assembly, and
-  clamp idle gaps (e.g. the round-trip wait) to ~0.5s.
-- Target: ~12 seconds, under 1 MB, saved to `docs/assets/wireframe-demo.gif`.
+```bash
+cd e2e && npm ci            # once — the recording borrows playwright from here
+node docs/demo/record-demo.mjs
+```
 
-Recordings are scripted — headless Chrome via playwright-core driving the real
-review server end to end (publish v1, comment, send, claim, publish v2), with
-frames captured as JPEGs and assembled with ffmpeg (two-pass palette).
+Nothing about the recording is staged. `docs/demo/record-demo.mjs` publishes
+`docs/demo/pages/v1.html` to a real review server, drives the shipped workspace
+in headless Chrome the way a reviewer would, and plays the agent's turn through
+the review CLI — take delivery of the round, swap in `pages/v2.html`, publish it
+back. A change to the workspace shows up in the next recording, so re-record
+after one.
+
+**To change what the demo says**, edit the two pages and the note constants at
+the top of the script. v2 must answer every mark v1 receives, and nothing else:
+the demo is a review round, so an unexplained change reads as the agent going
+off on its own.
+
+What the recording shows, in order: a point comment on the compose row, an area
+comment dragged over the task list, a strike dragged through the words "all
+completed tasks" in the footer button, Send, the agent's banner, then Review
+changes and the new version. All three marks carry a written note, including the
+strike — a mark that needs no words still reads better beside the two that have
+them.
+
+**Every mark must land where the reader can see the result.** The change each
+one asks for has to be inside the visible canvas in v2, which is shorter than
+the phone frame — a footer that fits in v1 can fall below the fold once v2 adds
+a row. The script sends only after the review holds all three marks, so a
+gesture that captured nothing fails the run instead of shipping a demo of two.
+
+These are tuned for how the GIF reads in the README. Keep them:
+
+- **Browser viewport 920 × 760**, exported at native resolution. Never
+  downscale the frames.
+- **The demo page is reviewed at phone width** (the workspace's 390px size)
+  with the canvas zoom locked at 100%. The workspace refits zoom on every
+  version load (size switch, Review changes, timeline scrub), so the script
+  pins it — set zoom to 1 and no-op the refit for the session.
+- **The subject app is a plain light todo list**, and v2 is a small targeted
+  edit to it. A redesign between versions reads as a different app rather than
+  as feedback being applied.
+- **Fast and snappy**: ~15ms per typed character, ~340ms of eased cursor
+  movement per leg, and no deliberate holds. Assembly caps any state that sits
+  still at 400ms, and the closing frame at 0.55s — the GIF loops, so a long
+  look at the result is time the reader spends waiting to see it again.
+- **Comments are ordinary review notes** — a full sentence naming the change.
+  No jokes.
+- Target: ~11 seconds at 25fps, under 1 MB.
+
+These are load-bearing and easy to undo by accident:
+
+- **Capture frames as PNG.** A lossy re-encode perturbs every block in the
+  frame, so two frames differing only by the cursor differ everywhere and the
+  GIF encoder can no longer skip what did not change. PNG is worth about half
+  the file size.
+- **Draw the cursor from real mouse events.** A screenshot contains no pointer,
+  so the script injects one and moves it from the page's own `mousemove`. Being
+  told where the pointer is instead would let the drawing and the input drift
+  apart.
+- **Watch with `watch --stream`.** The one-shot form has to exit to deliver a
+  round, and the top bar reads Unlinked in the gap before something is watching
+  again. The streaming form stays up for the whole recording, which is also what
+  a real session runs. It goes live only once its handshake is answered, so the
+  script reads the token off its own output and acks it.
+- **Tools are picked by their shortcut**, not by clicking the toolbar. Sending
+  the pointer up to the bar and back is a long move away from the page for
+  something a reviewer does with one key. A key pressed while a composer has
+  focus is text, so the composer is closed and blurred first.
+- **A press only starts a gesture on clear canvas.** The workspace ignores a
+  press that lands on an existing mark, and spends one on an open composer
+  closing it — so the script shuts the composer before the strike. A selected
+  mark also draws its note beneath itself, which is why the page keeps the
+  struck control well below the list the area comment covers. Space in the
+  layout is what keeps them apart; do not close the gap.
+- **A text strike needs both ends inside the words.** A point just past the last
+  character is in no text node, no caret resolves there, and the strike silently
+  takes nothing.
+
+## UI tweaks and composition reuse
+
+- **Existing screens are the baseline for tweak work.** Before changing an existing screen, inspect the current implementation in the affected state and viewport, using the running app or the review context already supplied with the request. Treat the request as a delta, not permission to redesign: preserve its layout, hierarchy, spacing, typography, component variants, copy, states, and responsive behaviour unless the request explicitly changes them. A tweak never re-derives the screen from the design guide or its original mockup; the existing app is the reference.
+- **Reuse components and compositions.** Before adding or changing a UI action, search the same feature and then the app for the most comparable existing instance of that action or composition. Reusing the same atom is not sufficient: in comparable contexts, also match placement, density, label shape, loading/disabled behaviour, and responsive treatment. If the new instance deliberately differs, record the contextual reason.
+- **One owner at the second comparable instance.** When the same semantic composition appears twice in comparable contexts, give it one implementation in the same change: reuse or extend the owning molecule/organism, or extract one at the appropriate tier. Share a coherent interaction, not merely a bundle of matching classes. If the contexts require meaningfully different behaviour, keep them separate and document the distinction.
+- **Verify without duplicating the visual workflow.** For a tweak to an existing screen, reuse the running screen or supplied review capture as the baseline; no separate before/after capture is required. Confirm the requested delta is present and unrelated visual structure is unchanged.
+- **Self-review the baseline.** For every UI composition added or changed, name the comparable existing instance or documented pattern used as its baseline — or say why none fits — and confirm that unrelated visual structure was preserved.

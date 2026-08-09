@@ -2,6 +2,21 @@
 
 # Visual Stack
 
+[![CI](https://github.com/Cavalry-Collective/visual-stack/actions/workflows/ci.yml/badge.svg)](https://github.com/Cavalry-Collective/visual-stack/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+<!-- Hidden until each one reports green again.
+     Security workflow: failing.
+     OpenSSF Scorecard: "invalid repo path" — the project is not registered with scorecard.dev.
+     Sonar quality gate: not computed. Sonar security rating: E.
+
+[![Security](https://github.com/Cavalry-Collective/visual-stack/actions/workflows/security.yml/badge.svg)](https://github.com/Cavalry-Collective/visual-stack/actions/workflows/security.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Cavalry-Collective/visual-stack/badge)](https://scorecard.dev/viewer/?uri=github.com/Cavalry-Collective/visual-stack)
+[![Quality gate](https://sonarcloud.io/api/project_badges/measure?project=Cavalry-Collective_visual-stack&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Cavalry-Collective_visual-stack)
+[![Security rating](https://sonarcloud.io/api/project_badges/measure?project=Cavalry-Collective_visual-stack&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=Cavalry-Collective_visual-stack)
+-->
+
+
 ## Stop prompting. Start pointing.
 
 Visual Stack adds a Figma-like feedback layer to AI coding agents.
@@ -71,7 +86,7 @@ As feedback becomes more visual, chat becomes the bottleneck. Context gets burie
 
 Visual Stack keeps every comment attached to the element, route, and version it refers to. Your agent receives the feedback with the visual context intact.
 
-No archaeology through 200 messages. No screenshot named `final-final-v2-actually-final.png`. No arguing about which blue.
+No scrolling back through the chat. No screenshot graveyard on your desktop. No describing what you could just point at.
 
 ## Requirements
 
@@ -92,6 +107,10 @@ Each workspace is linked to one agent session. The link holds while that session
 ### Review Lifecycle
 
 ![Your comments are submitted as one review round. The agent claims the round and reads its brief, asking for clarification when a comment is unclear. Comments sent while the round is in progress join it. Publishing is blocked until every comment has been applied, answered, or dismissed, and the published version appears in the same workspace.](docs/assets/review-lifecycle.svg)
+
+## Security
+
+Installing this plugin runs its code on your machine, so every change to `main` passes a set of scans before it lands: static analysis, a secret scan over the whole history, a workflow audit, and a code-quality gate. The badges above report the last run. [SECURITY.md](SECURITY.md) says what each gate enforces and how to report a vulnerability.
 
 ## Contribute
 

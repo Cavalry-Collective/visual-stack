@@ -74,10 +74,12 @@ if (PREFILL_PATH) {
    from here is not an error — it renders from its README with no tags. The same
    tables double as the catalog snapshot when the form runs before any clone. */
 const KNOWN = {
-  'vercel':                     { title:'Vercel SPA',     tags:['React','SPA','Vercel','Neon'] },
-  'vercel-ssr':                 { title:'Vercel SSR',     tags:['Next.js','SSR','Vercel','Neon'] },
-  'nextjs-nestjs-postgres':     { title:'Next + NestJS',  tags:['Next.js','NestJS','Postgres','Prisma'] },
-  'taro-fastify-mysql-tencent': { title:'Taro / Tencent', tags:['Taro','WeChat','Fastify','MySQL','Tencent'] },
+  'vercel-csr':            { title:'Vercel SPA',     tags:['React','Vite','Fastify','Postgres','Vercel'] },
+  'vercel-ssr':            { title:'Vercel SSR',     tags:['Next.js','SSR','Postgres','Vercel'] },
+  'enterprise':            { title:'Next + NestJS',  tags:['Next.js','NestJS','Postgres','Prisma'] },
+  'mern':                  { title:'MERN',           tags:['React','Express','MongoDB','Mongoose'] },
+  'django':                { title:'React + Django', tags:['React','Django','Postgres','Python'] },
+  'wechat':                { title:'Taro / Tencent', tags:['Taro','H5','Fastify','MySQL','Tencent'] },
   'multi-tenancy':         { title:'Multi-tenancy',  tags:['tenant scoping','row isolation','scoped storage'] },
   'saas-billing':          { title:'SaaS billing',   tags:['plans','entitlements','seats','usage','webhooks'] },
   'otp-auth':              { title:'OTP auth',       tags:['OTP','SMS','email','challenge store'] },
@@ -89,10 +91,12 @@ const KNOWN = {
 }
 
 const DESC = {
-  'vercel':                     'Client-rendered React. No server rendering.',
-  'vercel-ssr':                 'Server-rendered Next.js. Marketing and app in one deployment.',
-  'nextjs-nestjs-postgres':     'Separate API service with its own lifecycle.',
-  'taro-fastify-mysql-tencent': 'WeChat mini-program, hosted in mainland China.',
+  'vercel-csr':            'Client-rendered React with a Fastify API on Vercel.',
+  'vercel-ssr':            'One full-stack Next.js application on Vercel.',
+  'enterprise':            'Server-first Next.js with a separate NestJS API.',
+  'mern':                  'Client-rendered React with an Express API and MongoDB.',
+  'django':                'Client-rendered React with a Django REST API.',
+  'wechat':                'Mobile-first Taro H5, hosted on Tencent Cloud.',
   'multi-tenancy':         'Organisations share one deployment, data stays isolated.',
   'saas-billing':          'Subscriptions, entitlements and seats as a layer.',
   'otp-auth':              'Sign in with a code sent by SMS or email.',
@@ -104,7 +108,7 @@ const DESC = {
 }
 
 const SNAPSHOT = {
-  packs:  ['vercel', 'vercel-ssr', 'nextjs-nestjs-postgres', 'taro-fastify-mysql-tencent'],
+  packs:  ['vercel-csr', 'vercel-ssr', 'enterprise', 'mern', 'django', 'wechat'],
   addons: ['multi-tenancy', 'saas-billing', 'otp-auth', 'llm-calls',
            'enterprise-compliance', 'test-mode', 'seo', 'premium-design'],
 }

@@ -160,14 +160,34 @@ window.VSShell = (function () {
   }
 
   /* ── a toast: the page saying "done" without stopping anyone ── */
+  /* Long enough for the opacity transition in shell.css to finish before the
+     toast leaves the top layer, so it fades rather than vanishing. */
+  const TOAST_FADE_MS = 300;
   let toastTimer = null;
   function toast (msg, ms = 2200) {
     let el = document.querySelector('.vs-toast');
-    if (!el) { el = document.createElement('div'); el.className = 'vs-toast'; document.body.appendChild(el) }
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'vs-toast';
+      /* A modal dialog paints in the top layer, above every z-index there is,
+         and its backdrop blurs what lies under it. A toast raised while one is
+         open has to join the top layer or it is unreadable behind the very
+         dialog whose failure it is reporting. */
+      el.popover = 'manual';
+      document.body.appendChild(el);
+    }
     el.textContent = msg;
+    /* Promoted on each toast rather than left open, because the top layer
+       stacks in the order things entered it: one promoted before a dialog
+       would sit under it. Older browsers have no popover and lose nothing but
+       the stacking. */
+    try { el.showPopover() } catch {}
     el.classList.add('on');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove('on'), ms);
+    toastTimer = setTimeout(() => {
+      el.classList.remove('on');
+      toastTimer = setTimeout(() => { try { el.hidePopover() } catch {} }, TOAST_FADE_MS);
+    }, ms);
   }
 
   /* ── two-step confirm on one button ──
@@ -275,6 +295,9 @@ window.VSShell = (function () {
     const btn = $('#settingsBtn'), menu = $('#settingsMenu');
     if (!btn || !menu) return;
     const open = on => { menu.hidden = !on; btn.setAttribute('aria-expanded', String(on)) };
+    // A control in the cog's slot can act on the page behind it, so the page
+    // needs a way to put the menu away first.
+    closeSettings = () => open(false);
     btn.addEventListener('click', e => { e.stopPropagation(); open(menu.hidden) });
     menu.addEventListener('click', e => e.stopPropagation());
     document.addEventListener('click', () => open(false));
@@ -308,9 +331,12 @@ window.VSShell = (function () {
     return api;
   }
 
+  let closeSettings = () => {};
+
   const api = {
     init, setTheme, setLang, setLink, setWatching, setServerVersion, hideLink, name, wip,
     connect, toast, armConfirm, esc,
+    closeSettings: () => closeSettings(),
     get theme () { return theme },
     get lang () { return lang },
     onLang (fn) { langListeners.push(fn) },

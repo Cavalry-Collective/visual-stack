@@ -37,8 +37,8 @@
         },
         "updateDetect": {
           "type": "string",
-          "enum": ["claude-install", "none"],
-          "description": "How to detect an installed copy for update banners."
+          "enum": ["claude-install", "codex-install", "none"],
+          "description": "Where to look for an installed copy when deciding whether to show an update banner. none skips the check."
         }
       }
     },

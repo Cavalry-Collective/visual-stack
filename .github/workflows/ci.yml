@@ -6,20 +6,21 @@ on:
   pull_request:
     branches: [main]
 
-permissions:
-  contents: read
-
 jobs:
   tests:
     name: Tests (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
         node: ['18', '22']
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ matrix.node }}
       - name: Review lifecycle
@@ -28,13 +29,67 @@ jobs:
         run: node plugins/vstack/skills/review/tests/host-profiles.mjs
       - name: Working-directory resolution
         run: node plugins/vstack/skills/review/tests/workdir.mjs
+      - name: Round gate
+        run: node plugins/vstack/skills/review/tests/round-gate.mjs
+      - name: Update check
+        run: node plugins/vstack/skills/review/tests/update-check.mjs
+      - name: Design tokens
+        run: node plugins/vstack/skills/review/tests/design-tokens.mjs
+
+  e2e:
+    name: E2E (${{ matrix.host }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        host: [claude, codex]
+    defaults:
+      run:
+        working-directory: e2e
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - name: Install the suite
+        run: npm ci
+      # The @browser scenarios drive the workspace in a real Chromium.
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      # The Gherkin features in e2e/features/ drive the real review server and
+      # CLI; the host decides which profile the workspace is stamped with.
+      - name: Review loop end to end
+        env:
+          VSTACK_HOST: ${{ matrix.host }}
+        run: npx cucumber-js --format progress --format summary:cucumber-summary.txt
+      - name: Publish the result to the run summary
+        if: always()
+        env:
+          HOST: ${{ matrix.host }}
+        run: |
+          {
+            echo "### E2E ($HOST)"
+            echo '```'
+            cat cucumber-summary.txt 2>/dev/null || echo 'The suite did not produce a summary.'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   shell:
     name: Stamped shell is current
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
       # Fails when a page's stamped region has drifted from lib/shell/.
@@ -45,19 +100,42 @@ jobs:
   manifests:
     name: Manifests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
+      # Unpinned on purpose: this job has to run the validator a marketplace
+      # reviewer would run today, and there is no lockfile to pin it against.
+      # --ignore-scripts keeps every transitive dependency's lifecycle script
+      # from running; the CLI does not work without its own postinstall, so
+      # that one is run explicitly and is the only script that executes.
       - name: Install Claude Code
-        run: npm install --global @anthropic-ai/claude-code
+        run: | # zizmor: ignore[adhoc-packages]
+          npm install --global --ignore-scripts @anthropic-ai/claude-code
+          node "$(npm root -g)/@anthropic-ai/claude-code/install.cjs"
       # The community-marketplace review pipeline runs this same check on every
       # submission, so a warning here is a warning a reviewer would see.
       - name: Validate the marketplace
         run: claude plugin validate . --strict
       - name: Validate the plugin
         run: claude plugin validate ./plugins/vstack --strict
+      # The path a user takes. CLAUDE_CONFIG_DIR points it at a throwaway
+      # directory so the local marketplace entry is never written to a real one,
+      # where it would shadow the published cavalry-collective. The source must
+      # be ./ and not .
+      - name: Rehearse the install
+        run: |
+          SANDBOX=$(mktemp -d)
+          export CLAUDE_CONFIG_DIR="$SANDBOX/.claude"
+          claude plugin marketplace add ./
+          claude plugin install vstack@cavalry-collective
+          claude plugin details vstack
+          rm -rf "$SANDBOX"
       # Both hosts read a version out of their own manifest, so they can drift
       # apart silently and ship the same commit under two version numbers.
       - name: Host manifests declare the same version
@@ -73,3 +151,23 @@ jobs:
             }
             console.log(`Both host manifests declare ${claude}.`)
           '
+
+  version:
+    name: Plugin changes ship a version
+    # Only a pull request has a base to compare against. A push to main has
+    # already been through this.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # The check reads the manifest at the base of the branch, which a shallow
+      # clone does not have.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Compare against the base of the branch
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node .github/scripts/check-version.mjs
