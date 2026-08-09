@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Today</title>
+<style>
+  :root{
+    --bg:#fcfcfd; --card:#fff; --ink:#16181d; --muted:#8b8f9a;
+    --line:#ecedf1; --accent:#4b5bf7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:18px 20px;background:var(--bg);color:var(--ink);
+       font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+       -webkit-font-smoothing:antialiased}
+
+  h1{margin:0;font-size:30px;font-weight:700;letter-spacing:-.02em}
+  .sub{margin:6px 0 0;font-size:14px;color:var(--muted)}
+
+  .compose{display:flex;gap:10px;margin:20px 0 22px}
+  .field{flex:1;height:48px;padding:0 15px;border:1px solid var(--line);border-radius:12px;
+         background:var(--card);font:inherit;color:var(--muted);display:flex;align-items:center}
+  .due{width:48px;height:48px;flex:none;border:1px solid var(--line);border-radius:12px;
+       background:var(--card);display:grid;place-items:center;padding:0}
+  .due svg{width:20px;height:20px;stroke:#6a7080;fill:none;stroke-width:1.9;
+           stroke-linecap:round;stroke-linejoin:round}
+  .add{height:48px;padding:0 20px;border:0;border-radius:12px;background:var(--accent);
+       color:#fff;font:inherit;font-size:15px;font-weight:600}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  ul{list-style:none;margin:0;padding:0}
+  li{display:flex;align-items:center;gap:14px;height:45px;padding:0 17px;
+     border-bottom:1px solid var(--line)}
+  li:last-child{border-bottom:0}
+  .tick{width:22px;height:22px;flex:none;border:1.8px solid #d2d5dd;border-radius:50%}
+  li.done .tick{border-color:var(--accent);background:var(--accent);
+                background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'><path d='M5 12.5 10 17.5 19 7'/></svg>");
+                background-size:14px;background-repeat:no-repeat;background-position:center}
+  .task{font-size:15px}
+  li.done .task{color:var(--muted);text-decoration:line-through}
+
+  .group{padding:10px 17px 6px;font-size:11.5px;font-weight:700;letter-spacing:.09em;
+         text-transform:uppercase;color:var(--muted);border-top:1px solid var(--line);
+         background:#fbfbfd}
+
+  .foot{display:flex;align-items:center;margin-top:60px;font-size:14px;color:var(--muted)}
+  .clear{margin-left:auto;border:0;background:none;font:inherit;font-size:14px;
+         font-weight:600;color:var(--accent);padding:0}
+</style>
+
+<h1>Today</h1>
+<p class="sub">Monday, 3 August · 6 tasks</p>
+
+<div class="compose">
+  <div class="field">Add a task…</div>
+  <button class="due" aria-label="Due date">
+    <svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/>
+      <path d="M3.5 9.5h17M8 3.2v3.6M16 3.2v3.6"/></svg>
+  </button>
+  <button class="add">Add</button>
+</div>
+
+<div class="card">
+  <ul>
+    <li><span class="tick"></span><span class="task">Buy groceries for the week</span></li>
+    <li><span class="tick"></span><span class="task">Call the dentist</span></li>
+    <li><span class="tick"></span><span class="task">Ship the release notes</span></li>
+    <li><span class="tick"></span><span class="task">Pay the electricity bill</span></li>
+  </ul>
+  <p class="group">Done · 2</p>
+  <ul>
+    <li class="done"><span class="tick"></span><span class="task">Water the plants</span></li>
+    <li class="done"><span class="tick"></span><span class="task">Morning run</span></li>
+  </ul>
+</div>
+
+<div class="foot"><span>4 to do · 2 done</span><button class="clear">Clear</button></div>
