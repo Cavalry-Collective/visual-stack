@@ -108,6 +108,28 @@ body.panelshut #main{--pw:0px}
 #panel{min-width:0;overflow:hidden}
 #panel > *{width:var(--panelw);flex:none}
 #pbody{flex:1 1 auto!important}
+/* How much of the window the comments take is the reviewer's call: the panel's
+   inner edge is a grip, and where they leave it is where it stays. Two ids to
+   outrank the width every other child of the panel gets. */
+#panel > #panelGrip{position:absolute;left:0;top:0;bottom:0;width:7px;z-index:44;
+  cursor:col-resize;background:transparent;outline:none}
+/* Wide enough to grab, and what it shows is a slim line rather than the whole
+   target. Grey: the edge is a thing to move, not a thing to worry about.
+   Flush at left:0 — absolute positioning starts inside the panel's own 1px
+   border, so the line lands against it and the two read as one edge. */
+#panel > #panelGrip::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:transparent;transition:background .12s}
+#panel > #panelGrip:hover::after,#panel > #panelGrip:focus-visible::after{background:var(--line-2)}
+body.resizing #panel > #panelGrip::after{background:var(--ink-3)}
+/* The panel's own border is the other pixel of the same edge, so it takes the
+   same colour — otherwise the line reads as a stripe beside the edge. */
+#panel:has(> #panelGrip:hover),#panel:has(> #panelGrip:focus-visible){border-left-color:var(--line-2)}
+body.resizing #panel{border-left-color:var(--ink-3)}
+body.panelshut #panelGrip{display:none}
+/* The pointer owns the drag: no text selection under it, and no easing on a
+   column that is meant to track the cursor exactly. */
+body.resizing{cursor:col-resize;user-select:none}
+body.resizing #main{transition:none}
 /* Up at the top, level with the panel's own heading — halfway down the window
    it read as floating, and the thing it belongs to starts here. */
 #panelHandle{display:flex;grid-column:2;grid-row:1;align-self:start;justify-self:start;
@@ -123,12 +145,11 @@ body.panelopen #panelHandle svg{transform:rotate(180deg)}
 body.phase #panelHandle{display:none!important}
 #panelHandle:hover{color:var(--ink);background:var(--surface-2)}
 #panelHandle svg{width:13px;height:13px;display:block;transition:transform .16s ease-out}
-/* Shut, the handle is the only way back to the comments, so it wears the brand
-   — at this size a neutral chevron on the edge went unnoticed. */
-body.panelshut #panelHandle{color:var(--brand);
-  border-color:var(--brand-line);background:var(--brand-soft)}
-body.panelshut #panelHandle:hover{background:var(--brand);border-color:var(--brand);color:#fff}
-body.panelshut #panelHandle:hover .pbadge{background:#fff;color:var(--brand)}
+/* Shut, the handle stays part of the chrome rather than wearing the brand. Its
+   badge is what says comments are waiting, so the colour is not carrying that. */
+body.panelshut #panelHandle{color:var(--ink);
+  border-color:var(--line-2);background:var(--surface)}
+body.panelshut #panelHandle:hover{background:var(--surface-2);border-color:var(--line-2);color:var(--ink)}
 /* The handle is narrower than a default badge, so its own count runs tighter. */
 #handleBadge{min-width:14px;height:14px;padding:0 2px;font-size:9px}
 /* Keep comments beside the canvas for every width that still uses the desktop
@@ -148,6 +169,9 @@ body.panelshut #panelHandle:hover .pbadge{background:#fff;color:var(--brand)}
   body.panelopen #panel{transform:none}
   /* Cards fill the panel at whatever width it ended up. */
   #panel > *{width:100%}
+  /* The panel is a drawer over the page here, not a column beside it, so there
+     is no line between the two to move. */
+  #panel > #panelGrip{display:none}
   /* Under the chrome like the panel it belongs to — pinned to a bar's height
      it would sit on top of an update notice and cover the × that dismisses it. */
   #panelHandle{grid-column:1;position:fixed;right:0;top:calc(var(--chromeh,46px) + 18px);
@@ -701,6 +725,14 @@ body.phase #hiNew{display:inline-flex}
   padding:5px 7px;resize:vertical;min-height:46px}
 .item .gnote:focus{outline:none;border-color:var(--brand);
   box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 12%,transparent)}
+/* The same footer the on-canvas composer carries, so a comment typed in the
+   list is finished the same way as one typed on the page. */
+.item .gfoot{display:flex;align-items:center;gap:5px;margin-top:6px}
+.item .gfoot .hint{flex:1;font-size:11px;color:var(--ink-3)}
+.item .gsave{height:24px;padding:0 10px;border-radius:6px;background:var(--ink);
+  color:var(--surface);font-weight:600;font-size:11.5px;flex:none}
+.item .gsave:hover{filter:brightness(1.25)}
+.item .gsave .kbd{font:500 9.5px/1 var(--mono);opacity:.6;margin-left:4px}
 .item.off{opacity:.68}
 .item.off:hover{opacity:1}
 .item .kind .offtag{color:var(--ink-3);font-style:italic}
@@ -798,6 +830,16 @@ body.phase #hiNew{display:inline-flex}
   color:var(--ink-3);font-size:12px;line-height:1;display:grid;place-items:center;opacity:0}
 .item .tmsg:hover .tkill,.item .tkill:focus-visible{opacity:1}
 .item .tkill:hover{color:var(--brand);background:var(--brand-soft)}
+/* Answers to pick from. Full width and stacked: they are sentences, not chips,
+   and a row of them would wrap into something you have to read twice. */
+.choices{display:flex;flex-direction:column;gap:5px;margin-top:7px}
+.choice{display:flex;align-items:baseline;gap:7px;width:100%;text-align:left;
+  padding:7px 9px;border:1px solid var(--line-2);border-radius:7px;background:var(--surface);
+  color:var(--ink);font:inherit;font-size:12.5px;line-height:1.4}
+.choice:hover:not(:disabled){border-color:var(--brand);background:var(--brand-soft)}
+.choice:disabled{opacity:.55}
+.choice.rec{border-color:var(--ok)}
+.choice em{flex:none;margin-left:auto;font-style:normal;font-size:10.5px;color:var(--ok)}
 .empty{color:var(--ink-3);font-size:12.5px;text-align:center;line-height:1.6}
 .grouphd{font:650 10.5px/1 var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);
   margin:12px 2px 7px;display:flex;align-items:center;gap:6px}
@@ -856,6 +898,35 @@ body.phase #hiNew{display:inline-flex}
 .banner.on ~ .banner.on ~ .banner.on{top:150px}
 .banner .btn{height:25px;font-size:11.5px}
 #workBanner .txt,#shareBanner .txt{min-width:0;overflow:hidden;text-overflow:ellipsis}
+/* Two things stacked, not one green box: the line that announces the round is
+   the snackbar and keeps the green; the account under it is a page of the
+   agent's writing, and reads as one. So the container itself carries nothing. */
+#workBanner.on{flex-direction:column;align-items:stretch;gap:6px;
+  background:none;border:0;padding:0;box-shadow:none;
+  /* One width whether the account is open or folded: the banner is in a fixed
+     place on screen, and a box that resizes under the pointer is a box you
+     have to aim at twice. */
+  width:min(560px,calc(100% - 24px))}
+#workBanner .brow{display:flex;align-items:center;gap:10px;
+  padding:8px 10px 8px 14px;border-radius:10px;
+  background:var(--ok-soft);border:1px solid var(--ok);box-shadow:var(--shadow-pop)}
+/* The headline takes the slack, so every button sits at the right edge — level
+   with the edge of the account below it. */
+#workBanner .brow .txt{flex:1}
+#workBanner .summary{padding:10px 12px;border-radius:10px;background:var(--surface);
+  border:1px solid var(--line);box-shadow:var(--shadow-pop);max-height:40vh;overflow:auto}
+/* The words are the agent's own, newlines and all, and they are the reason the
+   banner stops being one line. */
+#workBanner .summary .stext{white-space:pre-wrap;font-size:12px;line-height:1.5;color:var(--ink-2)}
+/* The one control the account needs: the chevron every accordion uses. It
+   points the way the account will move — up while it is open and about to
+   fold, down while it is folded and about to come back. Bare, because the two
+   things you might do about the round are the buttons beside it. */
+#workBanner .chev{flex:none;width:26px;height:26px;display:grid;place-items:center;
+  border-radius:6px;background:none;border:0;color:var(--ink-2);cursor:pointer}
+#workBanner .chev:hover{color:var(--ink);background:color-mix(in srgb,var(--ok) 16%,transparent)}
+#workBanner .chev svg{width:16px;height:16px;display:block;transition:transform .16s ease-out}
+#workBanner .chev[aria-expanded=true] svg{transform:rotate(180deg)}
 
 /* The tools, down the left edge of the canvas. Same shell as the zoom controls
    in the corner below it — both are things you reach for while working on the
@@ -904,6 +975,9 @@ body.viewing #toolbar button[aria-pressed=true]{background:var(--surface-2);colo
 .confirmDialog .modalbody{padding:20px 20px 16px}
 .confirmDialog h2{margin:0 0 9px;font-size:17px;line-height:1.25}
 .confirmDialog p{margin:0;color:var(--ink-2);font-size:13px;line-height:1.55}
+.confirmDialog .opt{display:flex;align-items:center;gap:8px;margin-top:12px;
+  font-size:13px;color:var(--ink-2);cursor:pointer}
+.confirmDialog .opt input{flex:none;width:14px;height:14px;margin:0}
 .confirmDialog .kept{margin-top:10px;padding:9px 10px;border-radius:7px;background:var(--surface-2);
   border:1px solid var(--line);color:var(--ink-2)}
 .confirmDialog .modalactions{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;
@@ -1009,7 +1083,7 @@ body.viewing #toolbar button[aria-pressed=true]{background:var(--surface-2);colo
       <div class="row about" id="cogAbout" hidden>
         <span class="lbl">Version</span>
         <span class="abouts">
-          <span class="one"><em>workspace</em><b id="cogVersionPage">—</b></span>
+          <span class="one"><em>workspace UI</em><b id="cogVersionPage">—</b></span>
           <span class="one" id="cogServerLine"><em>server</em><b id="cogVersionServer">—</b></span>
         </span>
       </div>
@@ -1105,9 +1179,23 @@ body.viewing #toolbar button[aria-pressed=true]{background:var(--surface-2);colo
         <!-- Only ever announces a version that has landed. Work in flight is
              shown on the comments it belongs to, in the panel. -->
         <div class="banner good" id="workBanner">
-          <span class="txt" id="workText"></span>
-          <button class="btn sm primary" id="btnRefresh">Review changes</button>
-          <button class="btn sm" id="btnDismissWork">Later</button>
+          <div class="brow">
+            <span class="txt" id="workText"></span>
+            <button class="btn sm primary" id="btnRefresh">Review changes</button>
+            <button class="btn sm" id="btnDismissWork">Later</button>
+            <button class="chev" id="btnSummary" aria-controls="workSummary" hidden>
+              <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor"
+                   stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 6.5 8 10.5l4-4"/>
+              </svg>
+            </button>
+          </div>
+          <!-- What the agent would have told them in the terminal. The chevron
+               above opens and closes it, and the next round opens the way this
+               one was left. -->
+          <div class="summary" id="workSummary" hidden>
+            <div class="stext" id="workSummaryText"></div>
+          </div>
         </div>
         <!-- The link is asked for here and lands minutes later, long after the
              reviewer stopped watching the ▾. Say so where the news goes. -->
@@ -1162,6 +1250,7 @@ body.viewing #toolbar button[aria-pressed=true]{background:var(--surface-2);colo
       <span class="pbadge" id="handleBadge"></span>
     </button>
     <div id="panel">
+      <div id="panelGrip" role="separator" aria-orientation="vertical" tabindex="0"></div>
       <div id="phead"><b>Comments</b><span class="scope pill" id="pscope"></span>
         <button id="btnGeneral" aria-label="Add a comment">+</button></div>
       <div id="pwork" hidden>
@@ -1193,6 +1282,10 @@ body.viewing #toolbar button[aria-pressed=true]{background:var(--surface-2);colo
   <div class="modalbody">
     <h2 id="clearDialogTitle"></h2>
     <p id="clearDialogImpact"></p>
+    <!-- Off by default: an open comment is work the reviewer still wants, and
+         tidying the list is not a reason to lose it. -->
+    <label class="opt"><input type="checkbox" id="clearOpenToo">
+      <span id="clearOpenTooLabel"></span></label>
     <p class="kept" id="clearDialogKept"></p>
   </div>
   <div class="modalactions">
@@ -1728,7 +1821,9 @@ const STR = {
     del: 'Delete comment', clearAll: 'Clear all',
     cleared: n => `Cleared ${n} comment${n > 1 ? 's' : ''}`,
     clearDialogTitle: 'Clear all comments?',
-    clearImpact: n => `This takes ${n} comment${n === 1 ? '' : 's'} off the list, addressed ones included. {agent} finishes whatever it is working on right now.`,
+    clearImpact: 'Addressed comments come off the list. Anything still open stays where it is unless you tick the box below. {agent} finishes whatever it is working on right now.',
+    clearOpenToo: 'Clear the comments that are still open too',
+    recommended: 'Recommended',
     clearFail: n => `The server would not take ${n} of them off — those are still on the review.`,
     clearKept: 'The wireframe and version history will stay.',
     clearCancel: 'Cancel', clearConfirm: 'Clear all',
@@ -1763,6 +1858,7 @@ const STR = {
     comment: 'Comment', areaComment: 'Area comment', generalComment: 'On the page',
     moveComment: 'Move', strikeComment: 'Delete', strikeText: 'Delete text',
     addGeneral: 'Add a comment about the page as a whole', notePlaceholder: 'What needs to change?',
+    panelWidth: 'Drag to set how wide the comments are',
     /* Move and Delete already say what they want. Anything typed on one adds to
        it, so the box asks for that rather than for the whole instruction. */
     extraPlaceholder: 'Anything to add? (optional)',
@@ -1788,8 +1884,9 @@ const STR = {
     working: n => `Sent ${n} comment${n > 1 ? 's' : ''} — {agent} is working…`,
     hiNew: 'Highlight new', hiNewTitle: 'Outline what this phase adds over the one before it',
     phaseCur: 'the full design', phaseOf: n => `Phase ${n}`,
-    editing: '{agent} is editing the page…', ready: v => `<b>v${v} is ready</b>`, changed: '<b>The page changed</b> — reload to see it',
-    reviewChanges: 'Review changes', later: 'Later', backToCurrent: 'Back to current',
+    editing: '{agent} is editing the page…', roundDone: '<b>{agent} is done</b>', changed: '<b>The page changed</b> — reload to see it',
+    summaryToggle: 'Show or hide what changed',
+    reviewChanges: 'Refresh', later: 'Later', backToCurrent: 'Back to current',
     viewingOld: v => `Viewing v${v} — read only`, readOnly: v => `read-only · v${v}`,
     reloadTitle: 'Reload the page', current: 'current', replied: '{agent} replied',
     nowReviewing: v => `Now reviewing v${v}`, historyBlocked: 'Viewing an earlier version — return to current to comment',
@@ -1845,7 +1942,6 @@ const STR = {
     offsiteToast: 'That link left the site. Comments only work inside it — press ‹ to go back.',
     routeBarTitle: 'Type a path and press Enter to go there',
     goingTo: r => `Going to ${r}`,
-    roundReady: n => `<b>Round ${n} is done</b>`,
     appChanged: '<b>The app changed</b> — reload to see it',
     nowRound: n => `Now on round ${n}`,
     noCapture: 'Nothing was sent for review from this round, so there is no capture of it',
@@ -1862,7 +1958,9 @@ const STR = {
     del: '删除批注', clearAll: '全部清除',
     cleared: n => `已清除 ${n} 条批注`,
     clearDialogTitle: '清除所有批注？',
-    clearImpact: n => `这会从列表中移除 ${n} 条批注，包括已处理的。{agent} 仍会完成正在处理的内容。`,
+    clearImpact: '已处理的批注会从列表中移除。未处理的会保留，除非勾选下方选项。{agent} 仍会完成正在处理的内容。',
+    clearOpenToo: '同时清除仍未处理的批注',
+    recommended: '建议',
     clearFail: n => `服务器未能移除其中 ${n} 条 — 它们仍在本次评审中。`,
     clearKept: '线框图和版本历史都会保留。',
     clearCancel: '取消', clearConfirm: '全部清除',
@@ -1894,6 +1992,7 @@ const STR = {
     comment: '批注', areaComment: '区域批注', generalComment: '关于整个页面',
     moveComment: '移动', strikeComment: '删除', strikeText: '删除文字',
     addGeneral: '添加一条关于整个页面的批注', notePlaceholder: '需要改什么？',
+    panelWidth: '拖动以调整批注栏宽度',
     extraPlaceholder: '还有什么要补充的？（可选）',
     moveNote: '移动这个', strikeNote: '删除这个',
     dropInside: '→ 移入', dropBefore: '→ 移到之前', dropAfter: '→ 移到之后',
@@ -1917,8 +2016,9 @@ const STR = {
     working: n => `已发送 ${n} 条批注 — {agent} 处理中…`,
     hiNew: '高亮新增', hiNewTitle: '标出本阶段相对上一阶段新增的部分',
     phaseCur: '完整设计', phaseOf: n => `阶段 ${n}`,
-    editing: '{agent} 正在修改页面…', ready: v => `<b>v${v} 已就绪</b>`, changed: '<b>页面已更新</b> — 重新加载查看',
-    reviewChanges: '查看更新', later: '稍后', backToCurrent: '回到最新版本',
+    editing: '{agent} 正在修改页面…', roundDone: '<b>{agent} 已完成</b>', changed: '<b>页面已更新</b> — 重新加载查看',
+    summaryToggle: '展开或收起变更说明',
+    reviewChanges: '刷新', later: '稍后', backToCurrent: '回到最新版本',
     viewingOld: v => `正在查看 v${v} — 只读`, readOnly: v => `只读 · v${v}`,
     reloadTitle: '重新加载页面', current: '当前', replied: '{agent} 回复了',
     nowReviewing: v => `正在评审 v${v}`, historyBlocked: '正在查看历史版本 — 回到最新版本才能批注',
@@ -1974,7 +2074,6 @@ const STR = {
     offsiteToast: '该链接已离开站点，批注只在站内有效 — 按 ‹ 返回。',
     routeBarTitle: '输入路径后按回车跳转',
     goingTo: r => `正在前往 ${r}`,
-    roundReady: n => `<b>第 ${n} 轮已完成</b>`,
     appChanged: '<b>应用已更新</b> — 重新加载查看',
     nowRound: n => `当前为第 ${n} 轮`,
     noCapture: '这一轮没有发送过评审，因此没有留下快照',
@@ -2031,6 +2130,7 @@ const S = {
   offscreen: new Set(),
   // Threads opened in the panel, and which reply box the cursor is in.
   threadOpen: new Set(), focusReply: null,
+  editingNote: null,   // the general comment whose box is open
   // Deleted in this tab — never to be folded back in by a refresh.
   forgotten: new Set(),
   // Replies taken back in this tab, by thread key, for the same reason.
@@ -2071,6 +2171,10 @@ async function boot () {
   S.versions = data.versions || [];
   S.comments = data.comments || [];
   S.version = S.viewing = data.currentVersion || 1;
+  /* Whatever the agent last said is already said by the time the page opens —
+     the banner is for a round landing while the reviewer watches, not for one
+     they missed. So the first payload sets the mark rather than announcing. */
+  S.summaryAt = data.summary?.at || null;
   S.historyClearedAt = data.historyClearedAt || null;
   S.app = data.app || null;
   S.startPath = data.startPath || '/';
@@ -2112,10 +2216,12 @@ const isOpen = a => !isClosed(a);
 const sent = a => !!a.sentAt;
 /** Written and released, but Claude has not been handed it yet. */
 const isQueued = a => !!a.sentAt && !a.deliveredAt;
-/** In Claude's hands: it went out with a delivery and has not come back closed. */
-const isWorking = a => !!a.deliveredAt && isOpen(a);
 /** Claude spoke last and nobody has answered — the one state that waits on you. */
 const awaitsReply = a => isOpen(a) && isAgent((a.replies || []).at(-1)?.by);
+/** In Claude's hands: it went out with a delivery and has not come back closed.
+    A question is the exception — the comment is open and delivered, but the move
+    is the reviewer's, so progress on it would say the opposite of what is true. */
+const isWorking = a => !!a.deliveredAt && isOpen(a) && !awaitsReply(a);
 
 function loadAnnotations () {
   const local = S.runtime === 'artifact' ? lsGet() : null;
@@ -2185,6 +2291,11 @@ async function onReloadEvent () {
     return;
   }
   const bumped = (data.currentVersion || 1) !== S.version;
+  /* A round the agent has just accounted for. In a live review this is the only
+     signal there is — the app is the app, and no version moves — so the banner
+     hangs off the summary rather than off a new picture to adopt. */
+  const freshSummary = !!data.summary?.at && data.summary.at !== S.summaryAt;
+  if (freshSummary) S.summaryAt = data.summary.at;
   if (!bumped && data.html === S.html) {
     // Only the comments moved — fold them in without touching the page.
     const merged = mergeComments(data.comments || []);
@@ -2196,6 +2307,7 @@ async function onReloadEvent () {
       if (merged.agentSpoke) toast(T('replied'));
       if (merged.closed) toast(T('closedSome')(merged.closed));
     }
+    if (freshSummary) showWork(T('roundDone'), data.summary.text);
     return;
   }
   S.pendingUpdate = data;
@@ -2207,15 +2319,45 @@ async function onReloadEvent () {
        the picture. */
     if (mergeComments(data.comments || []).changed) render();
     const meta = (data.versions || []).find(v => v.n === data.currentVersion);
-    showWork((live() ? T('roundReady')(data.currentVersion) : T('ready')(data.currentVersion))
-      + (meta?.label ? ' — ' + esc(meta.label) : ''));
+    /* Not "v3 is ready": a live review is the app itself and has no version the
+       reviewer thinks in, so the news is that the round is done, in words that
+       fit both. The label still says what changed. */
+    showWork(T('roundDone') + (meta?.label ? ' — ' + esc(meta.label) : ''), data.summary?.text);
   } else if (!S.ann.some(isWorking)) showWork(live() ? T('appChanged') : T('changed'));
 }
-function showWork (html) {
+function showWork (html, summary = null) {
   $('#workBanner').classList.add('on');
   $('#workText').innerHTML = '<span class="tick">✓</span> ' + html;
+  setWorkSummary(summary);
 }
 const hideWork = () => $('#workBanner').classList.remove('on');
+
+/* The account of the round opens and closes on its chevron, and the way it was
+   left is the way the next one arrives — a reviewer who folded it away is not
+   asked again, and one who reads it does not have to keep opening it. The
+   choice is about this reviewer's screen, so it lives in the browser. */
+const SUMMARY_KEY = 'vstack:review:summary-open';
+const summaryOpen = () => { try { return localStorage.getItem(SUMMARY_KEY) !== '0' } catch { return true } };
+
+function showSummary (on, remember = true) {
+  $('#workSummary').hidden = !on;
+  // The chevron turns on aria-expanded, so the state is said once.
+  $('#btnSummary').setAttribute('aria-expanded', String(on));
+  if (remember) try { localStorage.setItem(SUMMARY_KEY, on ? '1' : '0') } catch {}
+}
+
+function setWorkSummary (text) {
+  $('#workSummaryText').textContent = text || '';
+  $('#btnSummary').hidden = !text;
+  showSummary(!!text && summaryOpen(), false);
+}
+
+function wireWorkSummary () {
+  const btn = $('#btnSummary');
+  btn.title = T('summaryToggle');
+  btn.setAttribute('aria-label', T('summaryToggle'));
+  btn.onclick = () => showSummary($('#workSummary').hidden);
+}
 
 /** Is the session on the other end still there? Silent until it knows — a dot
     that says "lost" during the first handshake is just wrong. */
@@ -2339,9 +2481,13 @@ function mergeComments (serverComments) {
       if (isClosed(incoming)) closed++;
       local.state = incoming.state; changed = true;
     }
-    // Delivery and sending are the server's to stamp — it is the one that knows.
+    // Delivery, sending and closing are the server's to stamp — it is the one
+    // that knows. Without the close stamp every comment closed in this session
+    // reads as one closed long ago, and drops straight into the Earlier fold
+    // instead of standing where the reviewer can check it.
     if (incoming.deliveredAt !== local.deliveredAt) { local.deliveredAt = incoming.deliveredAt; changed = true }
     if (incoming.sentAt !== local.sentAt) { local.sentAt = incoming.sentAt; changed = true }
+    if (incoming.closedAt !== local.closedAt) { local.closedAt = incoming.closedAt; changed = true }
   }
   // Withdrawn somewhere else — another tab, or this one before a reload.
   const gone = S.ann.filter(a => !seen.has(a.id) && sent(a));
@@ -2440,6 +2586,7 @@ function applyLang () {
   $('#btnNow').textContent = T('backToCurrent');
   $('#btnRefresh').textContent = T('reviewChanges');
   $('#btnDismissWork').textContent = T('later');
+  wireWorkSummary();
   $('#btnCopyShare').textContent = T('copyLink');
   $('#btnDismissShare').textContent = T('later');
   if ($('#shareBanner').classList.contains('on')) showShareReady();
@@ -2513,6 +2660,7 @@ function wireChrome () {
   // One button, on the panel's edge: it pushes the comments away and pulls them
   // back, so there is never a second control saying the same thing elsewhere.
   $('#panelHandle').onclick = () => setPanel(!document.body.classList.contains('panelopen'));
+  wirePanelResize();
   $('#btnGeneral').onclick = addGeneral;
   $('#btnAgain').onclick = sendAgain;
   // Open beside the page when there is room for it, away when there is not —
@@ -3571,6 +3719,7 @@ function addGeneral () {
   const c = normalise({ id: uid(), size: S.size.id, kind: 'general',
     ...(live() ? { route: S.route } : {}) });
   c._fresh = true;
+  S.editingNote = c.id;
   S.ann.push(c);
   save(); render();     // the card's own field takes the cursor
 }
@@ -3695,11 +3844,15 @@ function openComposer (id, focus) {
   const thread = composer.querySelector('.cthread');
   const replies = a.replies || [];
   thread.classList.toggle('on', replies.length > 0);
-  thread.innerHTML = replies.map(m =>
+  thread.innerHTML = replies.map((m, i) =>
     `<div class="msg ${isAgent(m.by) ? 'agent' : ''}">
        <div class="who">${who(m.by)}</div>
        <div class="body">${esc(m.text)}</div>
+       ${choiceList(m, i === replies.length - 1)}
      </div>`).join('');
+  const askedHere = replies.at(-1);
+  $$('.choice', thread).forEach(b => b.onclick = () =>
+    sendPanelReply(a, askedHere?.options?.[Number(b.dataset.choice)]?.text || ''));
 
   const reply = composer.querySelector('.creply');
   const canReply = !isHistory() && (replies.length > 0 || awaitsReply(a));
@@ -3883,6 +4036,7 @@ function threadBox (a) {
          title="${esc(T('undoReply'))}" aria-label="${esc(T('undoReply'))}">×</button>` : ''}
        <span class="who">${esc(who(m.by))}</span>
        <span class="body">${esc(m.text)}</span>
+       ${choiceList(m, i === all.length - 1)}
      </div>`).join('');
   // The send sits inside the field, not under it — one row, an arrow, the way
   // every reply box anyone has used works.
@@ -3899,6 +4053,21 @@ function threadBox (a) {
     </div>
   </div>`;
 }
+/* A question can come with the answers the agent has in mind. Pressing one is
+   the whole reply, so the common case is a click — and the box underneath is
+   still there, because the answer nobody listed is the reason to ask at all.
+   Only the last word in the thread is a live question: options above it were
+   answered already, and stand as a record of what was offered. */
+function choiceList (m, isLast) {
+  if (!isAgent(m.by) || !m.options?.length) return '';
+  const live = isLast && !isHistory();
+  return '<div class="choices">' + m.options.map((option, i) =>
+    `<button class="choice${option.recommended ? ' rec' : ''}" data-choice="${i}"${live ? '' : ' disabled'}>
+       <span>${esc(option.text)}</span>` +
+    (option.recommended ? `<em>${esc(T('recommended'))}</em>` : '') +
+    '</button>').join('') + '</div>';
+}
+
 const replyDrafts = new Map();
 function toggleThread (id) {
   S.threadOpen.has(id) ? S.threadOpen.delete(id) : S.threadOpen.add(id);
@@ -4287,8 +4456,10 @@ function itemNode (a, { otherSize, done, asked } = {}) {
       </div>` : ''}
     </div>
     ${live() && a.route ? `<div class="route" title="${esc(T('routeTitle'))}">${esc(a.route)}</div>` : ''}
-    ${a.kind === 'general' && !isHistory() && !sent(a)
-      ? `<textarea class="gnote" rows="2" placeholder="${esc(T('notePlaceholder'))}">${esc(a.note || '')}</textarea>`
+    ${a.kind === 'general' && !isHistory() && !sent(a) && (blank(a) || S.editingNote === a.id)
+      ? `<textarea class="gnote" rows="2" placeholder="${esc(T('notePlaceholder'))}">${esc(a.note || '')}</textarea>
+         <div class="gfoot"><span class="hint">${esc(T('newlineHint'))}</span>
+           <button class="gsave">${esc(T('save'))} <span class="kbd">⏎</span></button></div>`
       : `<div class="note${a.note || SELF_EVIDENT.has(a.kind) ? '' : ' blank'}">${esc(a.note || unwritten(a))}</div>`}
     ${threadNote(a, open)}
     ${open ? threadBox(a) : ''}
@@ -4323,19 +4494,27 @@ function itemNode (a, { otherSize, done, asked } = {}) {
       save(); renderCounts();
     });
     gnote.addEventListener('blur', () => { if (!hasSubstance(a)) removeComment(a.id) });
+    /* Enter saves and stops there. Sending is the reviewer's own act, on their
+       own timing, for the whole list at once — a general comment is not the one
+       kind that leaves on its own. Shift+Enter is the newline, as everywhere
+       else in the workspace. */
+    const finish = () => {
+      a.note = gnote.value.trim();
+      if (a._fresh && a.note) delete a._fresh;
+      if (!hasSubstance(a)) { gnote.blur(); return }   // the blur takes the empty card away
+      S.editingNote = null;
+      save();
+      render();       // the box closes and the words stand as the comment
+    };
     gnote.addEventListener('keydown', e => {
       if (e.key === 'Escape') { gnote.blur(); return }
       if (e.key !== 'Enter' || e.shiftKey || e.isComposing || e.keyCode === 229) return;
-      // Enter sends: this box has no Save button beside it, so the key that
-      // finishes a thought should be the key that hands it over. Shift+Enter
-      // is the newline, as everywhere else in the workspace.
       e.preventDefault();
-      a.note = gnote.value.trim();
-      if (a._fresh && a.note) delete a._fresh;
-      gnote.blur();
-      if (hasSubstance(a)) { save(); openSend() }
+      finish();
     });
-    if (a._fresh) setTimeout(() => gnote.focus({ preventScroll: true }), 0);
+    const gsave = $('.gsave', el);
+    if (gsave) gsave.onclick = e => { e.stopPropagation(); finish() };
+    if (a._fresh || S.editingNote === a.id) setTimeout(() => gnote.focus({ preventScroll: true }), 0);
   }
   const send1 = $('.isend', el);
   if (send1) send1.onclick = e => { e.stopPropagation(); openSend(a.id) };
@@ -4365,9 +4544,20 @@ function itemNode (a, { otherSize, done, asked } = {}) {
       e.stopPropagation();
       undoReply(a, Number(b.dataset.ri));
     });
+    // Picking an option is answering with those words, so it takes the same
+    // path a typed answer does and reads the same in the thread afterwards.
+    const asked = (a.replies || []).at(-1);
+    $$('.choice', box).forEach(b => b.onclick = e => {
+      e.stopPropagation();
+      sendPanelReply(a, asked?.options?.[Number(b.dataset.choice)]?.text || '');
+    });
   }
   el.onclick = () => {
-    if (a.kind === 'general') { $('.gnote', el)?.focus(); return }
+    if (a.kind === 'general') {
+      if ($('.gnote', el)) { $('.gnote', el).focus(); return }
+      if (!isHistory() && !sent(a)) { S.editingNote = a.id; render() }
+      return;
+    }
     // Carried and still open: say where it came from, because the version it was
     // made on is not the one on screen. Carried and addressed: nothing to say.
     if ((a.size || 'desktop') !== S.size.id) { setSize(a.size); setTimeout(() => reveal(a), 320); return }
@@ -4432,11 +4622,20 @@ function renderCounts () {
   renderHistoryButton();
 }
 
+/* What Clear all would take. Addressed comments are a record of finished work,
+   so clearing them loses nothing; an open one is still wanted, and goes only
+   when the reviewer says so on the dialog. */
+const clearScope = () => {
+  const listed = listedComments();
+  return $('#clearOpenToo')?.checked ? listed : listed.filter(isClosed);
+};
+
 function renderClearDialog () {
   const dialog = $('#clearDialog');
   if (!dialog.open) return;
   $('#clearDialogTitle').textContent = T('clearDialogTitle');
-  $('#clearDialogImpact').textContent = T('clearImpact')(listedComments().length);
+  $('#clearDialogImpact').textContent = T('clearImpact');
+  $('#clearOpenTooLabel').textContent = T('clearOpenToo');
   $('#clearDialogKept').textContent = T('clearKept');
   $('#btnCancelClear').textContent = T('clearCancel');
   $('#btnConfirmClear').textContent = T('clearConfirm');
@@ -4445,6 +4644,8 @@ function renderClearDialog () {
 function openClearDialog () {
   if (isHistory() || !listedComments().length) return;
   const dialog = $('#clearDialog');
+  // A default, not a preference: every time it is asked, the open ones stay.
+  $('#clearOpenToo').checked = false;
   if (!dialog.open) dialog.showModal();
   renderClearDialog();
   $('#btnCancelClear').focus();
@@ -4452,9 +4653,9 @@ function openClearDialog () {
 
 async function confirmClearComments () {
   if (isHistory()) return;
+  const going = clearScope();
   closeComposer();
   $('#clearDialog').close();
-  const going = listedComments();
   if (!going.length) return;
   S.ann = S.ann.filter(a => !going.includes(a));
   save(); render();
@@ -4492,6 +4693,61 @@ function setPanel (on) {
   document.body.classList.toggle('panelopen', on);
   document.body.classList.toggle('panelshut', !on);
   $('#panelHandle').setAttribute('aria-expanded', String(on));
+}
+
+/* ── how wide the comments are ──
+   Narrow enough and a comment is unreadable; wide enough and there is no page
+   left to read it against. So the width is the reviewer's to set, between those
+   two, and it is remembered per browser rather than per review — it is about
+   this screen, not about this design. */
+const PANEL_MIN = 260, PANEL_KEY = 'vstack:review:panelw';
+const panelMax = () => Math.max(PANEL_MIN, Math.min(720, Math.round(window.innerWidth * 0.6)));
+
+function setPanelWidth (px, remember = true) {
+  const w = Math.min(panelMax(), Math.max(PANEL_MIN, Math.round(px)));
+  document.documentElement.style.setProperty('--panelw', w + 'px');
+  $('#panelGrip')?.setAttribute('aria-valuenow', String(w));
+  if (remember) try { localStorage.setItem(PANEL_KEY, String(w)) } catch {}
+  return w;
+}
+
+function wirePanelResize () {
+  const grip = $('#panelGrip'), panel = $('#panel');
+  if (!grip) return;
+  grip.setAttribute('aria-label', T('panelWidth'));
+  const saved = (() => { try { return Number(localStorage.getItem(PANEL_KEY)) } catch { return 0 } })();
+  if (saved) setPanelWidth(saved, false);
+
+  // Pointer capture, so a drag that outruns the grip — or leaves the window —
+  // still ends on this element rather than being lost.
+  grip.addEventListener('pointerdown', e => {
+    if (e.button) return;
+    e.preventDefault();
+    grip.setPointerCapture(e.pointerId);
+    document.body.classList.add('resizing');
+    const startX = e.clientX, startW = panel.getBoundingClientRect().width;
+    const drag = ev => setPanelWidth(startW + (startX - ev.clientX));
+    const stop = () => {
+      grip.removeEventListener('pointermove', drag);
+      document.body.classList.remove('resizing');
+    };
+    grip.addEventListener('pointermove', drag);
+    grip.addEventListener('pointerup', stop, { once: true });
+    grip.addEventListener('pointercancel', stop, { once: true });
+  });
+
+  grip.addEventListener('keydown', e => {
+    const step = e.key === 'ArrowLeft' ? 16 : e.key === 'ArrowRight' ? -16 : 0;
+    if (!step) return;
+    e.preventDefault();
+    setPanelWidth(panel.getBoundingClientRect().width + step);
+  });
+
+  // A window that shrinks can leave the panel wider than the cap allows.
+  window.addEventListener('resize', () => {
+    const now = panel.getBoundingClientRect().width;
+    if (now > panelMax()) setPanelWidth(now, false);
+  });
 }
 
 /* Send stays Send, even with a round out. Noticing something else while Claude

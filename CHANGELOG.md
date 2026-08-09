@@ -8,6 +8,50 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.2.0 — 2026-08-09
+
+**Changed**
+
+- **Clear all no longer takes the comments you are still working on.** It clears
+  the addressed ones, and a checkbox on the confirm takes the open ones as well.
+  The box is off every time the dialog opens, so tidying the list can never lose
+  a comment you had not finished with.
+- **The banner that announces a finished round no longer names a version.** It
+  says the round is done, which reads the same for a live app as for a
+  wireframe, and the button beside it is now **Refresh**. A live review never
+  advanced a version, so that banner had never appeared there at all.
+- The handle that reopens the comments panel is part of the chrome again rather
+  than wearing the brand colour. Its count badge is what says comments are
+  waiting.
+
+**Added**
+
+- **`publish --summary "…"`** records the account of the round you would give in
+  chat, and the workspace shows it under the banner. It opens and closes on an
+  accordion chevron, and however you leave it is how the next round arrives.
+  One summary is kept, the latest; a publish without it clears it.
+- **`reply --option "…" --option "…" --recommend <n>`** turns a question into
+  answers to pick from, one marked *Recommended*. Pressing one answers with
+  those words, and the box to type something else is still there.
+- **The comments panel is resizable.** Drag its inner edge, or focus it and use
+  the arrow keys. The width is remembered for this browser.
+- A comment about the page as a whole now has a **Save** button and the
+  Shift+Enter hint, the same as one made on the page. Enter saves it as a draft
+  instead of sending it — it goes out with your next Send, like every other
+  comment.
+
+**Fixed**
+
+- **A comment closed while you watched dropped straight into the folded
+  "Earlier" group.** The workspace never picked up the close stamp from the
+  server, so everything read as closed long ago instead of standing where you
+  could check it.
+- **A question showed a progress bar while it waited on you.** A comment whose
+  last word is the agent's no longer counts as work in flight: no bar, no place
+  in the "working on N" count, and it does not trip the stalled timer.
+- The stack catalogue the parked `start` tool shows named packs the template no
+  longer has.
+
 ## 6.1.0 — 2026-08-08
 
 **Fixed**

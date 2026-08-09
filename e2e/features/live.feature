@@ -21,6 +21,14 @@ Feature: Live app review
     Then the comment "A" is closed
     And no version file was frozen
 
+  @browser
+  Scenario: S17 — a live round announces itself through its summary
+    Given the reviewer has sent a comment "A" on route "/"
+    And the agent has taken delivery
+    And the reviewer opens the workspace
+    When the agent closes "A", publishes "Fixed spacing" and summarises "Tightened the header spacing in Header.tsx."
+    Then the banner says the round is done and shows "Tightened the header spacing in Header.tsx."
+
   @round1
   Scenario: S12 — a hard reset in a live review deletes comments only
     Given the reviewer has sent a comment "A" on route "/"

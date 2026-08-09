@@ -45,7 +45,7 @@ calls a comment done. Everything the workspace shows is derived from that list.
 | `seenAt` | Version on screen when it was written. Display only |
 | `state` | `open` · `closed` |
 | `closedAt` | When the agent closed it |
-| `replies` | `{ by, text, at }[]`, append-only |
+| `replies` | `{ by, text, at }[]`, append-only. An agent reply may carry `options: [{ text, recommended }]` — answers the reviewer picks from |
 | `sentAt` | The reviewer let go of it. Null means it is still a draft |
 | `deliveredAt` | The agent was last handed it. Null means it is still queued here |
 | `deliveredTo` | The session the last delivery was recorded for — the `--session` id its watcher was started with. Null when the watcher carried no identity |
@@ -145,8 +145,8 @@ Host selection: `--host <id>` or `VSTACK_HOST=<id>` (affects UI injection only).
 | `serve --file …` / `serve --app …` | Long-lived via Host `background`. Binds `127.0.0.1` |
 | `watch [--all] [--file …] [--stream] [--session <id>]` | Take delivery. Blocks until the reviewer has said something new. `--session` names the agent session each delivery binds to |
 | `ack --file/name … --token <token>` | Answer a stream watcher's handshake. Only this arms the `watching` heartbeat |
-| `publish --file/name … [--close ids] [--label …]` | Close comments, snapshot a version, or both |
-| `reply --file/name … --comment <id> --text "…"` | Append `{ by: "agent", text, at }` |
+| `publish --file/name … [--close ids] [--label …] [--summary …]` | Close comments, snapshot a version, or both. `--summary` records the account of the round, which the workspace shows; the latest one is kept and a publish without it clears it |
+| `reply --file/name … --comment <id> --text "…" [--option "…" … --recommend <n>]` | Append `{ by: "agent", text, at }`, with `options: [{ text, recommended }]` when options are given. The reviewer answers by pressing one, which posts those words as their reply |
 | `share --file/name … --url <url>` | Record public URL; clear the `share` sentinel |
 | `status --file/name …` | Human/debug snapshot |
 | `unanswered [--all] [--file/name …] [--session <id>]` | Comments the agent was handed and has not answered. Exits 1 while any remain. With `--session`, only deliveries recorded for that id count |

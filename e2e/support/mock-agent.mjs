@@ -14,11 +14,22 @@ export function takeDelivery (world) {
   return run.stdout
 }
 
-export function closeAndPublish (world, notes, label) {
+export function closeAndPublish (world, notes, label, summary) {
   const ids = notes.map(note => world.idFor(note)).join(',')
   const args = ['publish', ...world.subjectArgs(), '--close', ids]
   if (label) args.push('--label', label)
+  if (summary) args.push('--summary', summary)
   return world.cli(...args)
+}
+
+/** A question the reviewer answers by picking, with one option recommended. */
+export function askWithOptions (world, note, text, options, recommend) {
+  const argv = ['reply', ...world.subjectArgs(), '--comment', world.idFor(note), '--text', text]
+  for (const option of options) argv.push('--option', option)
+  if (recommend) argv.push('--recommend', String(recommend))
+  const run = world.cli(...argv)
+  assert.equal(run.status, 0, run.stderr)
+  return run
 }
 
 export function reply (world, note, text) {
