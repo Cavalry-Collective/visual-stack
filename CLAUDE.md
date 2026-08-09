@@ -36,6 +36,7 @@ node plugins/vstack/skills/review/tests/host-profiles.mjs      # host profiles c
 node plugins/vstack/skills/review/tests/workdir.mjs            # .vstack/local working-dir resolution
 node plugins/vstack/skills/review/tests/round-gate.mjs         # `unanswered` and the Stop hook that runs it
 node plugins/vstack/skills/review/tests/update-check.mjs       # per-host update detection and the banner it produces
+node plugins/vstack/skills/review/tests/design-tokens.mjs      # the shell's palette still matches design/tokens.css
 ```
 
 The Gherkin end-to-end suite lives in `e2e/` — the one directory with a
@@ -196,6 +197,14 @@ shared shell (`lib/shell/`: tokens, top bar, scrubber, `window.VSShell` /
 hand-edit a stamped region; page-specific controls go in `vstack:slot` blocks,
 which survive stamping. New pages register in the `PAGES` list in
 `build-shell.mjs`.
+
+The palette itself is decided in [`design/`](design/README.md), not in the
+shell. `design/tokens.css` owns the scales; `lib/shell/tokens.css` carries them
+as the roles pages consume (`--surface`, `--ink`, `--brand`). It is a copy,
+because a stamped page may fetch nothing — so changing a colour means editing
+both files and running `stamp`, and `tests/design-tokens.mjs` fails when they
+disagree. The type scale is the guide's; the families are not, since a webfont
+is an external request.
 
 ### On-disk state
 

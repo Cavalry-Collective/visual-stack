@@ -8,6 +8,20 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.4.0 — 2026-08-09
+
+**Changed**
+
+- **One place decides what the product looks like.** The palette now comes from
+  `design/tokens.css`, the design guide's token source, instead of being decided
+  in the shared shell. Every page — the review workspace, the story map, the
+  spec tree, the build board, the chooser — picks up the guide's Cavalry brand:
+  purple-cast neutrals in place of the cool greys, and the brand red at the step
+  that holds its contrast on white. Nothing moved and nothing was renamed; only
+  the colours changed.
+- Dark is now part of that source rather than something the shell decided on its
+  own, so both themes come from the same place.
+
 ## 6.3.0 — 2026-08-09
 
 **Fixed**

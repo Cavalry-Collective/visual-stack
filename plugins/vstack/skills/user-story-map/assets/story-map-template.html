@@ -25,58 +25,67 @@
 /* One palette for every vstack page. Roles, not colours: a page asks for
    --surface, not for white, so light and dark are the same stylesheet.
 
+   The values come from `design/tokens.css`, which owns the palette. They are
+   copied rather than imported because a page has to work opened off disk and
+   inlined into an Artifact under a CSP that blocks every external request —
+   nothing here may be fetched. `tests/design-tokens.mjs` fails when the two
+   files disagree, so the copy cannot drift quietly.
+
    Page-specific hues (the story map's phase bands, the board's new/have/touch,
    the spec's priorities) stay in the page, below this block — they mean
    something only there. Everything here is shared, and is the reason a board
    and a spec look like the same product.
 
    Three states, in this order: the OS preference, then an explicit choice.
-   `data-theme` absent means auto. */
+   `data-theme` absent means auto.
+
+   The type scale is the guide's; the families are not. Space Grotesk and Inter
+   would each be an external request, so every page reads in the system stack. */
 :root{
-  --paper:#eef0f3; --surface:#ffffff; --surface-2:#f7f8fa;
-  --ink:#16171c; --ink-2:#43454d; --ink-3:#71737c;
-  --line:#e2e4e9; --line-2:#d0d2d9;
-  --brand:#d23b2e; --brand-soft:#fdefed; --brand-line:#f3b3ac;
-  --ok:#10876e; --ok-soft:#e9f9f2;
-  --shadow:0 1px 2px rgba(16,17,22,.06);
-  --shadow-pop:0 1px 2px rgba(16,17,22,.06),0 8px 24px rgba(16,17,22,.10);
-  --window-shadow:0 2px 6px rgba(16,17,22,.10),0 18px 48px rgba(16,17,22,.16);
-  --radius:9px;
+  --paper:#efecf4; --surface:#ffffff; --surface-2:#f6f4f8;
+  --ink:#171320; --ink-2:#453f52; --ink-3:#665e72;
+  --line:#e6e2ec; --line-2:#cfc9d8;
+  --brand:#e02b20; --brand-soft:#fff1f0; --brand-line:#ffb3ad;
+  --ok:#0b8157; --ok-soft:#e9f9f2;
+  --shadow:0 1px 2px rgba(23,19,32,.08);
+  --shadow-pop:0 1px 2px rgba(23,19,32,.08),0 4px 16px rgba(23,19,32,.12);
+  --window-shadow:0 4px 16px rgba(23,19,32,.12),0 16px 48px rgba(23,19,32,.22);
+  --radius:8px;
   --font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
   color-scheme:light;
 }
 @media (prefers-color-scheme:dark){:root{
-  --paper:#0e0f12; --surface:#17191e; --surface-2:#1d1f25;
-  --ink:#f1f2f4; --ink-2:#bcbfc7; --ink-3:#8b8e97;
-  --line:#282a31; --line-2:#363942;
-  --brand:#f0685c; --brand-soft:rgba(240,104,92,.14); --brand-line:rgba(240,104,92,.38);
+  --paper:#0e0c13; --surface:#171320; --surface-2:#1e1a28;
+  --ink:#f3f1f7; --ink-2:#bdb7c8; --ink-3:#8d86a0;
+  --line:#2a2534; --line-2:#372f45;
+  --brand:#ff6b60; --brand-soft:rgba(255,107,96,.14); --brand-line:rgba(255,107,96,.38);
   --ok:#2fb89b; --ok-soft:rgba(47,184,155,.14);
   --shadow:0 1px 2px rgba(0,0,0,.4);
-  --shadow-pop:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.5);
-  --window-shadow:0 2px 6px rgba(0,0,0,.5),0 18px 48px rgba(0,0,0,.6);
+  --shadow-pop:0 1px 2px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.5);
+  --window-shadow:0 4px 16px rgba(0,0,0,.5),0 16px 48px rgba(0,0,0,.6);
   color-scheme:dark;
 }}
 :root[data-theme=light]{
-  --paper:#eef0f3; --surface:#ffffff; --surface-2:#f7f8fa;
-  --ink:#16171c; --ink-2:#43454d; --ink-3:#71737c;
-  --line:#e2e4e9; --line-2:#d0d2d9;
-  --brand:#d23b2e; --brand-soft:#fdefed; --brand-line:#f3b3ac;
-  --ok:#10876e; --ok-soft:#e9f9f2;
-  --shadow:0 1px 2px rgba(16,17,22,.06);
-  --shadow-pop:0 1px 2px rgba(16,17,22,.06),0 8px 24px rgba(16,17,22,.10);
-  --window-shadow:0 2px 6px rgba(16,17,22,.10),0 18px 48px rgba(16,17,22,.16);
+  --paper:#efecf4; --surface:#ffffff; --surface-2:#f6f4f8;
+  --ink:#171320; --ink-2:#453f52; --ink-3:#665e72;
+  --line:#e6e2ec; --line-2:#cfc9d8;
+  --brand:#e02b20; --brand-soft:#fff1f0; --brand-line:#ffb3ad;
+  --ok:#0b8157; --ok-soft:#e9f9f2;
+  --shadow:0 1px 2px rgba(23,19,32,.08);
+  --shadow-pop:0 1px 2px rgba(23,19,32,.08),0 4px 16px rgba(23,19,32,.12);
+  --window-shadow:0 4px 16px rgba(23,19,32,.12),0 16px 48px rgba(23,19,32,.22);
   color-scheme:light;
 }
 :root[data-theme=dark]{
-  --paper:#0e0f12; --surface:#17191e; --surface-2:#1d1f25;
-  --ink:#f1f2f4; --ink-2:#bcbfc7; --ink-3:#8b8e97;
-  --line:#282a31; --line-2:#363942;
-  --brand:#f0685c; --brand-soft:rgba(240,104,92,.14); --brand-line:rgba(240,104,92,.38);
+  --paper:#0e0c13; --surface:#171320; --surface-2:#1e1a28;
+  --ink:#f3f1f7; --ink-2:#bdb7c8; --ink-3:#8d86a0;
+  --line:#2a2534; --line-2:#372f45;
+  --brand:#ff6b60; --brand-soft:rgba(255,107,96,.14); --brand-line:rgba(255,107,96,.38);
   --ok:#2fb89b; --ok-soft:rgba(47,184,155,.14);
   --shadow:0 1px 2px rgba(0,0,0,.4);
-  --shadow-pop:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.5);
-  --window-shadow:0 2px 6px rgba(0,0,0,.5),0 18px 48px rgba(0,0,0,.6);
+  --shadow-pop:0 1px 2px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.5);
+  --window-shadow:0 4px 16px rgba(0,0,0,.5),0 16px 48px rgba(0,0,0,.6);
   color-scheme:dark;
 }
 /* /vstack:shell tokens */

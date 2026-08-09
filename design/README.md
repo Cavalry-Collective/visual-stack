@@ -1,34 +1,47 @@
-# design — UI prototype / design reference
+# design — the visual source for every page Visual Stack ships
 
-**Reference only — not part of the buildable workspace.** Prototypes live here and
-are the source for visual design, screen inventory, copy, and flows. **Do not copy
-the prototype code** into the apps (its structure is a single-file simulation, not
-the app stack). See the *UI mockup / design reference* section in the root `CLAUDE.md`.
+This folder decides what the product looks like. `tokens.css` holds the palette,
+type, spacing, shape and elevation scales; `design-guide.html` shows them
+rendered, and is the page to open when deciding whether a change reads as the
+same product.
 
-This folder also holds the **design guide** — `design-guide.html` + `tokens.css`,
-the visual keystone confirmed before any UI work (`apps/frontend/CLAUDE.md` →
-*Design guide*) — and **`CLAUDE.md`**, the rules for creating the prototypes
-(prototype work only, not app development). Everything below concerns the prototypes.
+Everything Visual Stack ships is a page: the review workspace, the story map,
+the spec tree, the build board, the chooser. They are the screens this guide
+governs. There is no separate application.
 
-The guide ships as foundations and is **hydrated per project**: reconciled with the
-chosen UI component approach, then populated with that project's own component
-specimens as they are built (`apps/frontend/CLAUDE.md` → *Hydrating the design guide*).
+## How the tokens reach the pages
 
-## Layout
+A page never links this folder. Every page has to work three ways — served over
+http, opened off disk, and inlined into an Artifact under a CSP that blocks all
+external requests — so nothing is fetched at runtime.
 
-Keep prototypes findable so "point the relevant prototype at the spec" is mechanical, not a hunt.
+1. `tokens.css` is the source: the primitive scales, and the role each one fills.
+2. `plugins/vstack/lib/shell/tokens.css` carries those values as the roles pages
+   actually consume — `--surface`, `--ink`, `--brand`, `--line`.
+3. `plugins/vstack/lib/build-shell.mjs stamp` copies the shell into every page
+   between its `vstack:shell` markers.
 
-- **One prototype = one self-contained HTML file per feature** (see `CLAUDE.md` → *Deliverable contract*), named by the feature's semantic name — never by tool export names like `screen-3-final-v2`. A prototype's screens are navigated inside the file.
-- **Inventory table (below) is the index — keep it current** as screens are added. Columns: **screen** (semantic name) · **prototype file** · **owning spec**. Several screens may point at the same prototype file. The *screen* name must match its name in the central route registry (`apps/frontend/CLAUDE.md`), so a screen, its prototype, and its URL cross-reference through the registry — which stays the **only** route→URL surface (the frontend file forbids a second list, so this table carries no route column).
-- **Flows** are shown by the prototype's own navigation — don't mandate separate flow diagrams.
+So a colour changes here, and reaches the product on the next stamp. Run
+`build-shell.mjs check` to find a page that has drifted.
 
-| Screen | Prototype file | Owning spec |
-|---|---|---|
-| _(example) dashboard_ | `dashboard.html` | `specs/2026-01-01-dashboard.md` |
+## Rules that come from the pages, not from the guide
 
-## Building from a prototype
+- **Roles, not colours.** A page asks for `--surface`, never for white. That is
+  what lets one stylesheet serve light and dark.
+- **Both themes are first-class.** Every page supports the OS preference and an
+  explicit choice. A value added for light needs its dark counterpart in the
+  same change.
+- **System fonts only.** The type scale is honoured; the families are not. A
+  webfont is an external request, which an Artifact's CSP blocks and a file on
+  disk cannot make, and embedding faces would land in every stamped page.
+- **Page-specific hues stay in the page.** The story map's phase bands, the
+  board's new/have/touch, the spec's priorities mean something only there. This
+  folder holds what is shared.
 
-A screen's **initial build** is verified against its design reference — never declared done from reading the code. Prototypes guide that first build only: once a screen is iterated and improved it drifts from the prototype by design, so **later changes are verified against the running app, not re-checked against the prototype**.
+## Where the rest of the rules live
 
-- **With a prototype — verify, don't assume.** After first building a screen that has a prototype, run the app and view the built screen at the project's declared primary form factor plus the responsive baseline's other end (e.g. mobile + desktop), compare against the prototype, and iterate until layout, spacing, visual hierarchy, and copy match. **Capture and actually look at the rendered output** (a screenshot or equivalent) — don't reason about the code and declare it done. This is the success marker for the screen's **initial build** (ties to root `CLAUDE.md` *Goal-driven execution*). The capture/visual-diff tool is a per-project choice; the view-and-compare-against-reference step is mandatory regardless of tool.
-- **Without a prototype — don't invent silently.** For a non-trivial **new** screen with no prototype, sketch the screens/copy/flow in the feature's spec under `specs/` and get it approved there before building — reuse the existing spec gate, don't create a second approval process. For minor changes to an existing screen, build to the conventions in `apps/frontend/CLAUDE.md` and note in the PR that it was "built to convention, no prototype." Never improvise UI for a non-trivial new screen with no reference.
+- Working on the pages, the stamped shell and the build: the root
+  [`CLAUDE.md`](../CLAUDE.md) → *Self-contained pages and the stamped shell*.
+- Changing an existing screen: root `CLAUDE.md` → *UI tweaks and composition
+  reuse*.
+- Working in this folder: [`CLAUDE.md`](CLAUDE.md).

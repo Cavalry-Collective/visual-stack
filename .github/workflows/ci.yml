@@ -33,6 +33,8 @@ jobs:
         run: node plugins/vstack/skills/review/tests/round-gate.mjs
       - name: Update check
         run: node plugins/vstack/skills/review/tests/update-check.mjs
+      - name: Design tokens
+        run: node plugins/vstack/skills/review/tests/design-tokens.mjs
 
   e2e:
     name: E2E (${{ matrix.host }})

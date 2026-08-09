@@ -1,6 +1,6 @@
 /*
   KEYSTONE — design tokens, the single token source.
-  (see apps/frontend/CLAUDE.md → "Design guide")
+  (see design/README.md — the shell derives its roles from these)
 
   Three tiers:
     1. PRIMITIVE  — raw scales. Rebrand HERE; everything re-derives.
@@ -45,10 +45,12 @@
   --white: #ffffff;
 
   --gray-50:  #f6f4f8;
+  --gray-100: #efecf4;  /* the ground a window sits on — see --ground */
   --gray-200: #e6e2ec;
   --gray-300: #cfc9d8;
   --gray-400: #aaa2b3;
   --gray-600: #665e72;
+  --gray-700: #453f52;  /* secondary text: darker than muted, lighter than ink */
   --gray-900: #171320;
 
   --red-50:  #fff1f0;
@@ -78,7 +80,7 @@
   --font-family-base: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI",
     Roboto, Helvetica, Arial, sans-serif;
   --font-family-display: "Space Grotesk", var(--font-family-base);
-  --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-family-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 
   --font-size-100: 0.75rem;   /* 12 — caption, overline          */
   --font-size-200: 0.875rem;  /* 14 — labels, tables, dense UI   */
@@ -154,8 +156,12 @@
 
   /* ════════════════ 2 · SEMANTIC ════════════════ */
 
+  /* The ground a window or card sits on. shadcn has no role for it because it
+     assumes a page, and every Visual Stack page frames something. */
+  --ground: var(--gray-100);
   --background: var(--white);
   --foreground: var(--gray-900);
+  --foreground-2: var(--gray-700);   /* secondary text, still body-legible */
   --card: var(--white);
   --card-foreground: var(--gray-900);
   --popover: var(--white);
@@ -199,6 +205,7 @@
   --destructive-strong: var(--red-600); /* text on the subtle tint — formula step 600 */
   --destructive-subtle: var(--red-50);
   --destructive-border: var(--red-200);
+  --primary-border: var(--red-200);   /* the tint's edge, paired with --primary-subtle */
   --destructive-foreground: var(--white);
   --info: var(--violet-400);
   --info-subtle: var(--violet-50);
@@ -235,6 +242,51 @@
   --box-padding-sm: var(--space-2);  /* dense tables, chips           */
   --box-padding: var(--space-3);     /* cards, dialogs, widgets (default) */
   --box-padding-lg: var(--space-4);  /* spacious panels, sheets       */
+}
+
+/* ════════════════ DARK ════════════════
+
+   Every page Visual Stack ships renders in both themes, and a page asks for a
+   role rather than a colour so one stylesheet serves both. That makes dark part
+   of the source here, not a remap a project does later.
+
+   The semantic tier alone is restated. Neutrals keep the purple cast; the red
+   and green lift, because a hue that holds 4.5:1 on white does not hold it on a
+   dark ground. Tints become translucent so they sit on whatever is beneath. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --ground: #0e0c13;
+  --background: #171320;
+  --card: #171320;
+  --popover: #171320;
+  --foreground: #f3f1f7;
+  --foreground-2: #bdb7c8;
+  --muted: #1e1a28;
+  --muted-foreground: #8d86a0;
+  --foreground-disabled: #625b73;
+  --border: #2a2534;
+  --border-strong: #372f45;
+  --input: #372f45;
+
+  --primary: #ff6b60;
+  --primary-hover: #ff8a81;
+  --primary-active: #ffa79f;
+  --primary-subtle: rgba(255, 107, 96, 0.14);
+  --primary-border: rgba(255, 107, 96, 0.38);
+  --primary-foreground: #171320;
+  --link: #ff6b60;
+  --ring: #ff6b60;
+
+  --success: #2fb89b;
+  --success-strong: #6fd9c2;
+  --success-subtle: rgba(47, 184, 155, 0.14);
+  --success-border: rgba(47, 184, 155, 0.38);
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --shadow-3: 0 16px 48px rgba(0, 0, 0, 0.6);
+  --scrim: rgba(0, 0, 0, 0.6);
 }
 
 /* Reduced motion — essential feedback never rides on motion alone */
