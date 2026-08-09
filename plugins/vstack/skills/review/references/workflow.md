@@ -54,6 +54,12 @@ node "$SKILL/assets/review-server.mjs" publish --file "$FILE" --label "Initial v
 node "$SKILL/assets/review-server.mjs" publish --file "$FILE" \
   --close c1f3k2,c9dk1 --label "Filters collapsed"
 
+# --summary adds the account you would give in chat; the workspace shows it on the
+# banner when the round lands. The latest one is kept, and a publish without it clears it.
+node "$SKILL/assets/review-server.mjs" publish --file "$FILE" \
+  --close c1f3k2 --label "Filters collapsed" \
+  --summary "Filters are behind one control now. I left the date column alone."
+
 # ask about a comment instead of guessing — the question lands on the mark
 node "$SKILL/assets/review-server.mjs" reply --file "$FILE" \
   --comment c7f2a1 --text "Every overdue row, or only the ones assigned to you?"

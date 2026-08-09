@@ -83,6 +83,12 @@ When('the agent closes {string} and publishes {string}', function (note, label) 
   assert.equal(run.status, 0, run.stderr)
 })
 
+When('the agent closes {string}, publishes {string} and summarises {string}',
+  function (note, label, summary) {
+    const run = agent.closeAndPublish(this, [note], label, summary)
+    assert.equal(run.status, 0, run.stderr)
+  })
+
 When('the agent closes {string} again', function (note) {
   agent.closeAndPublish(this, [note])
 })

@@ -13,6 +13,33 @@ const SERVER = path.resolve(HERE, '../../plugins/vstack/skills/review/assets/rev
 const PAGE_V1 = '<!doctype html><title>Review e2e page</title><main><h1 id="title">Todo</h1></main>'
 const EDIT_MARKER = 'Todo — edited'
 
+/* Two shapes of long page, because the canvas treats them differently and each
+   one hid a bug. A page tall in pixels lets the frame grow to the whole
+   document, so the canvas does the scrolling. A page sized in viewport units
+   grows with the frame, so the fit gives up and the page keeps its own
+   scrollbar — and then the frame's scroll and the canvas's disagree. */
+const TAIL = '<p id="tail">The last thing on the page</p>'
+const PAGE_TALL = `<!doctype html><title>Review e2e page</title><style>
+  body{margin:0;position:relative;font:16px system-ui}
+  #title{margin:0;padding:20px}#open-confirm{margin-left:20px}
+  main{min-height:2400px}#tail{position:absolute;left:20px;top:2280px;margin:0}
+  dialog{padding:20px}</style>
+<main><h1 id="title">Todo</h1>
+  <button id="open-confirm">Delete everything</button>${TAIL}</main>
+<dialog id="confirm"><p id="confirm-text">Delete everything?</p>
+  <button id="confirm-cancel">Cancel</button></dialog>
+<script>
+  const confirmEl = document.getElementById('confirm')
+  document.getElementById('open-confirm').addEventListener('click', () => confirmEl.showModal())
+  document.getElementById('confirm-cancel').addEventListener('click', () => confirmEl.close())
+</script>`
+const PAGE_SELF_SCROLL = `<!doctype html><title>Review e2e page</title><style>
+  body{margin:0;position:relative;min-height:260vh;font:16px system-ui}
+  #title{margin:0;padding:20px}#tail{position:absolute;left:20px;bottom:40px;margin:0}</style>
+<main><h1 id="title">Todo</h1>${TAIL}</main>`
+
+export const PAGES = { tall: PAGE_TALL, selfScroll: PAGE_SELF_SCROLL }
+
 /* Scenarios run serially; each takes a pair of ports (review server + fixture
    app) so a slow teardown can never collide with the next scenario. */
 let portCursor = 21000 + (process.pid % 400) * 20
@@ -47,11 +74,11 @@ export class ReviewWorld {
     return run
   }
 
-  async startFileReview (hostId = this.hostId) {
+  async startFileReview (hostId = this.hostId, html = PAGE_V1) {
     this.live = false
     this.name = 'page'
     this.page = path.join(this.temp, 'page.html')
-    fs.writeFileSync(this.page, PAGE_V1)
+    fs.writeFileSync(this.page, html)
     const published = this.cli('publish', ...this.subjectArgs(), '--label', 'Initial version')
     assert.equal(published.status, 0, published.stderr)
     await this.serve(['--file', this.page], hostId)

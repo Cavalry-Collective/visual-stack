@@ -19,8 +19,9 @@
  *   node review-server.mjs serve   --file <page.html> [--port 7788] [--idle-timeout 90] [--no-open]
  *   node review-server.mjs serve   --app <url> [--name <slug>] [--start /path] [--port 7788]
  *   node review-server.mjs watch   --file <page.html>   (blocks; hands over the open comments)
- *   node review-server.mjs publish --file <page.html> [--close c1,c3] [--label "…"]
+ *   node review-server.mjs publish --file <page.html> [--close c1,c3] [--label "…"] [--summary "…"]
  *   node review-server.mjs reply   --file <page.html> --comment <id> --text "…"
+ *                                  [--option "…" --option "…" [--recommend <n>]]
  *   node review-server.mjs ack     --file <page.html> --token <token>
  *   node review-server.mjs share   --file <page.html> --url <artifact-url>
  *   node review-server.mjs status  --file <page.html>
@@ -95,6 +96,19 @@ function parseArgs (argv) {
   return out
 }
 const args = parseArgs(process.argv.slice(2))
+
+/** Every value given for a flag that may be repeated, in the order typed —
+    `--option A --option B`. parseArgs keeps one value per flag, which is right
+    for every other flag there is. */
+function repeatedArg (flag) {
+  const argv = process.argv.slice(2), out = []
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] !== `--${flag}`) continue
+    const next = argv[i + 1]
+    if (next !== undefined && !next.startsWith('--')) { out.push(next); i++ }
+  }
+  return out
+}
 
 /* The agent session this process acts for — `--session <id>`, supplied by the
    Host adapter. The engine never knows how a host names its sessions; it only
@@ -444,6 +458,11 @@ function renderBrief (subject, going, fresh) {
       for (const reply of comment.replies || []) {
         L.push('')
         L.push(`> **${reply.by === REVIEWER_ROLE ? 'They replied' : 'You asked'}:** ${reply.text}`)
+        // The options you offered, so a question that comes back reads as the
+        // question you actually asked rather than only its opening line.
+        for (const option of reply.options || []) {
+          L.push(`> - ${option.text}${option.recommended ? ' *(you recommended this)*' : ''}`)
+        }
       }
       L.push('')
     }
@@ -452,7 +471,8 @@ function renderBrief (subject, going, fresh) {
   L.push('Close what you have done. Anything you do not name stays open and comes back next time,')
   L.push('so ask about whatever is unclear instead of guessing:')
   L.push('```bash')
-  L.push(`node review-server.mjs publish ${subject.flags} --close <ids> --label "<what changed>"`)
+  L.push(`node review-server.mjs publish ${subject.flags} --close <ids> --label "<what changed>" \\`)
+  L.push(`  --summary "<the rest of what you would tell them>"   # optional, shown in the workspace`)
   L.push(`node review-server.mjs reply ${subject.flags} --comment <id> --text "<your question>"`)
   L.push('```')
   return L.join('\n') + '\n'
@@ -524,6 +544,11 @@ function listVersions () {
 function cmdPublish (quiet) {
   const ids = [...new Set(String(args.close ?? args.addressed ?? '').split(',').map(s => s.trim()).filter(Boolean))]
   const label = args.label && args.label !== true ? String(args.label) : null
+  /* The label names the version in one line; the summary is what the agent
+     would say in chat about the round it just finished. The workspace shows it
+     where the news lands, so a reviewer who is not reading the terminal still
+     gets the account of what changed. */
+  const summary = args.summary && args.summary !== true ? String(args.summary).trim() : null
   /* A version is a frozen copy of the page under review, and a running app has
      no such thing: what a capture of one produces is a likeness with its scripts
      stripped and half its styling missing, which is worse than not offering it.
@@ -580,6 +605,15 @@ function cmdPublish (quiet) {
     const state = loadState()
     state.version = n
     state.name = pageName()
+    saveState(state)
+  }
+  /* One summary at a time, and it belongs to the round that has just landed —
+     a publish that carries none clears the last one rather than leaving the
+     workspace showing an account of work that is now two rounds old. Written
+     for a live review too, which has no version to hang it on. */
+  if (ids.length || snapshot) {
+    const state = loadState()
+    state.summary = summary ? { text: summary, at: new Date().toISOString() } : null
     saveState(state)
   }
 
@@ -644,6 +678,20 @@ function cmdReply () {
     console.error('Need --comment <id> --text "…"')
     process.exit(1)
   }
+  /* A question the reviewer answers by picking rather than by typing. The
+     options are offered on the comment, one of them can be marked as the one
+     you would take, and the box to type something else is still there — a
+     choice you did not think of is the whole reason the question was asked. */
+  const options = repeatedArg('option')
+  const recommend = args.recommend === undefined ? 0 : Number(args.recommend)
+  if (options.length === 1) {
+    console.error('A choice needs at least two --option values')
+    process.exit(2)
+  }
+  if (options.length && (!Number.isInteger(recommend) || recommend < 0 || recommend > options.length)) {
+    console.error(`--recommend must be between 1 and ${options.length}, or left out`)
+    process.exit(2)
+  }
   const comments = loadComments()
   const target = comments.find(comment => comment.id === id)
   if (!target) { console.error(`No comment ${id} found`); process.exit(1) }
@@ -653,9 +701,13 @@ function cmdReply () {
   // disagree with it.
   target.replies = (target.replies || []).concat({
     by: AGENT_ROLE, text, at: new Date().toISOString(),
+    ...(options.length
+      ? { options: options.map((option, i) => ({ text: option, recommended: i + 1 === recommend })) }
+      : {}),
   })
   saveComments(comments)
-  console.log(`Replied to ${id} — the reviewer will see it on the comment`)
+  console.log(`Replied to ${id} — the reviewer will see it on the comment`
+    + (options.length ? ` with ${options.length} options to pick from` : ''))
   touch()
 }
 
@@ -1209,6 +1261,8 @@ function payload () {
     base: BASE,
     startPath: state.start || '/',
     currentVersion: state.version,
+    // What the agent said about the round that just landed, if it said anything.
+    summary: state.summary || null,
     // A live review has no single document to hand over — the app serves it.
     html: LIVE ? '' : fs.readFileSync(FILE, 'utf8'),
     versions,

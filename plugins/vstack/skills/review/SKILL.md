@@ -134,12 +134,12 @@ The page opens in **its own browser window** on the canvas — own viewport, own
 | **Attached to an element** | a comment belongs to the thing it was made on, not to a coordinate. The mark rides it when the layout moves, and **goes off the page with it** — a comment made inside a modal, tab or step is not drawn while that thing is closed. It stays in the list tagged *not on screen*, and it still reaches you |
 | Captions | stay hidden — a mark shows its note when it's open, or on hover in Annotate |
 | **Screen size** | ultrawide · desktop · tablet · phone. A comment belongs to the size it was made at and only shows there |
-| **Thread** | your replies appear on the comment itself and in the comment list, where they can be answered without going back to the mark. A question opens its thread on sight |
+| **Thread** | your replies appear on the comment itself and in the comment list, where they can be answered without going back to the mark. A question opens its thread on sight. A question that came with options shows them as buttons, one marked *Recommended*; pressing one answers with those words, and the box below still takes anything else |
 | **Save** (⏎) | on the comment — Enter commits it, Shift+Enter is a new line |
 | **Timeline** (bottom) | drag the handle to scrub through published versions; history is read-only |
 | **EN / 中文** | workspace chrome only — comments stay in whatever words they were written in |
 | **Delete** | on the comment, once it has words in it. It takes the comment off the user's list whatever state it is in, including one you are working on right now — you are not told, and you finish and close what you were given as normal |
-| **Clear all** | in the comment list footer, behind a confirm. It takes every comment on the list off at once, addressed ones included — the same act as the per-card delete |
+| **Clear all** | in the comment list footer, behind a confirm. It takes the addressed comments off the list — the same act as the per-card delete. Comments still open stay unless the reviewer ticks the box on the confirm, which is off every time it is asked |
 | **Link status** | a dot beside Send — linked to your session, or link lost. Nothing is said until the connection has actually answered |
 | **Send to {agent}** (⌘⏎) | sends straight through — no preview step — and wakes you up. Label uses the Host profile name. Greys out until something actually changes |
 | **In flight** | every comment you were sent keeps an indeterminate progress bar until you publish or reply. No banner covers the page any more — the progress is on the comments it belongs to |
@@ -233,14 +233,34 @@ On a delivery:
    ```
    The comment stays open and comes back with their answer attached. On disk the reply uses
    `by: "agent"` (legacy files may say `"claude"`; treat them the same).
+
+   **When the answers are a short list, offer them.** `--option`, repeated, puts them on the
+   comment as buttons, and `--recommend <n>` marks the one you would take. Pressing one answers
+   with those words; the box to type something else stays, so an answer you did not think of is
+   still one sentence away.
+   ```bash
+   node "$SKILL/assets/review-server.mjs" reply --file "$FILE" --comment c7f2a1 \
+     --text "Every overdue row, or only the ones assigned to you?" \
+     --option "Every overdue row" --option "Only mine" --recommend 2
+   ```
+   Two to four options, each a complete answer rather than a keyword. Ask an open question with
+   `--text` alone when the answer is a sentence you cannot predict.
 4. If a comment is genuinely wrong for the design, reply saying why rather than silently skipping it.
 5. **Close what you did, and snapshot the version:**
    ```bash
    node "$SKILL/assets/review-server.mjs" publish --file "$FILE" \
-     --close c1f3k2,c9dk1 --label "Filters collapsed, overdue sorts first"
+     --close c1f3k2,c9dk1 --label "Filters collapsed, overdue sorts first" \
+     --summary "Filters are collapsed behind a single control, and overdue rows sort first.
+   I left the date column alone — say if you want it narrower too."
    ```
    Anything you do not name stays open and comes back. Publish tells you what it left open — close
    those or reply asking about them, because the delivery will not raise them again on its own.
+
+   **`--label` names the version in one line. `--summary` is the account you would give in
+   chat** — what you changed, what you decided, what you left. The workspace shows it on the
+   banner when the round lands, so a reviewer who is not reading your terminal still gets it.
+   Send the same words to both places rather than writing a thinner version for the page. One
+   summary is kept, and it is the latest one: a publish without `--summary` clears it.
 6. **Check you left nothing hanging**, before you finish your turn:
    ```bash
    node "$SKILL/assets/review-server.mjs" unanswered --all
@@ -262,7 +282,9 @@ Either way, **say when the review is closed** — the user should never have to 
 a socket is still open.
 
 The workspace never swaps the page out from under the reviewer: while you work, each comment you were
-handed carries its own progress bar, and on publish the page offers **"vN is ready — Review changes"**.
+handed carries its own progress bar, and on publish the page offers a green line saying the round is
+done, with **Refresh** beside it and your `--summary` under it, behind a chevron that opens and
+closes and stays however the reviewer last left it.
 
 ## 6 · Publish the wireframe as a shareable link
 
