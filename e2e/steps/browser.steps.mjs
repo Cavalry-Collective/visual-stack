@@ -271,19 +271,30 @@ async function framedBox (world, selector) {
   return box
 }
 
+/* Both scrolls are re-applied on every attempt rather than done once and then
+   waited on. Until the page under review has laid out there is nothing to
+   scroll, and a scroll made at that moment is dropped rather than queued — so
+   an attempt that observes without repeating the scroll can never recover. */
+
 When('the reviewer scrolls the framed page to the bottom', async function () {
   const framed = await framedWindow(this)
-  await framed.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
   await eventually(async () => {
-    assert.ok(await framed.evaluate(() => window.scrollY) > 0, 'the page did not scroll')
+    const y = await framed.evaluate(() => {
+      window.scrollTo(0, document.body.scrollHeight)
+      return window.scrollY
+    })
+    assert.ok(y > 0, 'the page did not scroll')
   }, 'the page under review scrolls in its own window')
 })
 
 When('the reviewer scrolls the canvas to the bottom', async function () {
   const port = this.browserPage.locator('#viewportBox')
-  await port.evaluate(element => { element.scrollTop = element.scrollHeight })
   await eventually(async () => {
-    assert.ok(await port.evaluate(element => element.scrollTop) > 0, 'the canvas did not scroll')
+    const top = await port.evaluate(element => {
+      element.scrollTop = element.scrollHeight
+      return element.scrollTop
+    })
+    assert.ok(top > 0, 'the canvas did not scroll')
   }, 'the canvas scrolls')
 })
 
