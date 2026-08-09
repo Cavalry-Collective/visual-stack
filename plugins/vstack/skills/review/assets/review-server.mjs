@@ -311,11 +311,6 @@ function saveComments (comments, subject = here()) {
  *  still holds, and none of these ever. */
 const OWNED = ['state', 'sentAt', 'deliveredAt', 'deliveredTo', 'dismissedAt']
 
-/** Keys that reach the prototype rather than the object. `JSON.parse` keeps
- *  them as ordinary own properties, so a save can carry one in, and assigning
- *  it would change every object in the process rather than this comment. */
-const RESERVED = ['__proto__', 'constructor', 'prototype']
-
 const normaliseComment = c => ({
   ...c,
   state: c.state === 'closed' ? 'closed' : 'open',
@@ -1328,28 +1323,31 @@ function mergeReplies (stored = [], incoming = []) {
  */
 function acceptFromReviewer (incoming) {
   const comments = loadComments()
-  const byId = new Map(comments.map(comment => [comment.id, comment]))
+  const indexById = new Map(comments.map((comment, i) => [comment.id, i]))
   const at = new Date().toISOString()
   for (const raw of incoming) {
     if (!raw?.id) continue
-    const stored = byId.get(raw.id)
-    if (!stored) {
+    const index = indexById.get(raw.id)
+    if (index === undefined) {
       const { state, deliveredAt, deliveredTo, ...rest } = raw
       const fresh = normaliseComment({ ...rest, state: 'open', deliveredAt: null, sentAt: raw.sentAt ? at : null })
-      comments.push(fresh)
-      byId.set(fresh.id, fresh)
+      indexById.set(fresh.id, comments.push(fresh) - 1)
       continue
     }
+    let stored = comments[index]
     const replies = mergeReplies(stored.replies, raw.replies)
     const answered = replies.length > (stored.replies || []).length &&
       replies.at(-1)?.by === REVIEWER_ROLE
     // The words are frozen once they are sent; before that the comment is still
     // a draft and the reviewer may rewrite it however they like.
     if (!stored.sentAt) {
-      for (const [key, value] of Object.entries(raw)) {
-        if (OWNED.includes(key) || RESERVED.includes(key) || key === 'replies') continue
-        stored[key] = value
-      }
+      // Spread rather than assign field by field. A payload can carry a key
+      // like `__proto__`, which `JSON.parse` keeps as an ordinary property but
+      // assignment would follow to the prototype, changing every object here.
+      const { replies: _thread, ...draft } = raw
+      for (const owned of OWNED) delete draft[owned]
+      stored = { ...stored, ...draft }
+      comments[index] = stored
     }
     stored.replies = replies
     if (!stored.sentAt && raw.sentAt) stored.sentAt = at

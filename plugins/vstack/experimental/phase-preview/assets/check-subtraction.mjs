@@ -65,19 +65,20 @@ const stripComments = (html) => {
   return out
 }
 
-/* A closing tag may carry whitespace before its `>`. `</style >` ends a style
-   block just as `</style>` does, so the patterns below allow it — one that does
-   not would read the rest of the document as stylesheet. */
+/* A closing tag ends at its `>`, not at the tag name: `</style foo >` closes a
+   style block just as `</style>` does, because a parser reads and discards
+   whatever sits between. A pattern that stops at the name misses those and
+   reads the rest of the document as stylesheet. */
 
 /** Concatenated contents of every <style> block, in document order. */
 const styles = (html) =>
-  [...html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style\s*>/gi)].map((m) => m[1]).join('\n/*—*/\n')
+  [...html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style\b[^>]*>/gi)].map((m) => m[1]).join('\n/*—*/\n')
 
 /** Blank out <script> and <style> bodies so their contents aren't read as markup. */
 const stripRawText = (html) =>
   html
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, '<script></script>')
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, '<style></style>')
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script\b[^>]*>/gi, '<script></script>')
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style\b[^>]*>/gi, '<style></style>')
 
 const OPEN_TAG = /<([a-zA-Z][a-zA-Z0-9-]*)((?:"[^"]*"|'[^']*'|[^>"'])*)>/g
 
