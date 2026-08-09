@@ -9,11 +9,20 @@
  * dismissable line under the bar.
  *
  * WHAT COUNTS AS NEWER
- * This asks the question Claude Code itself would ask, so the banner never
- * disagrees with what `/plugin update` would do. Claude Code keys its update
- * decision on the plugin's `version` when plugin.json declares one, and on the
- * git commit the plugin was installed from when it does not, recording either
- * in ~/.claude/plugins/installed_plugins.json.
+ * This asks the question the Host itself would ask, so the banner never
+ * disagrees with what that Host's own update command would do. Each Host says
+ * which question that is in `capabilities.updateDetect`, and each records an
+ * install somewhere different:
+ *
+ *   claude-install  Claude Code keys its update decision on the plugin's
+ *                   `version` when plugin.json declares one, and on the git
+ *                   commit the plugin was installed from when it does not,
+ *                   recording either in ~/.claude/plugins/installed_plugins.json.
+ *   codex-install   Codex keeps no such record. It unpacks each release into
+ *                   ~/.codex/plugins/cache/<marketplace>/<plugin>/<version>/,
+ *                   so the directory the running copy sits in is the version
+ *                   Codex resolved, and its presence is what proves an install.
+ *   none            The Host has no install to compare. No banner.
  *
  * plugin.json declares a version, so the comparison is normally version against
  * version. A copy installed before that version existed has no version on
@@ -21,7 +30,7 @@
  * branch.
  *
  * A working copy is not an install. Running from a clone (developing the plugin
- * itself) finds no entry, and the check returns nothing rather than telling you
+ * itself) matches nothing, and the check returns nothing rather than telling you
  * your own uncommitted branch is out of date.
  *
  * What it does, exactly, so nothing here is a surprise:
@@ -40,13 +49,20 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { injectHead } from './live-link.mjs'
 
-const HERE = path.dirname(fileURLToPath(import.meta.url))
+/* Deciding whether one directory contains another is a string compare, and a
+   symlinked prefix — /var and /tmp on macOS, a home directory someone moved —
+   gives the same directory two names. Node hands a module its real path, so
+   every path compared against that one is put through the filesystem too. */
+const realPath = p => { try { return fs.realpathSync(p) } catch { return path.resolve(p) } }
+
+const HERE = realPath(path.dirname(fileURLToPath(import.meta.url)))
 const MANIFEST = path.join(HERE, '..', '.claude-plugin', 'plugin.json')
 const REPO = 'Cavalry-Collective/visual-stack'
 const BRANCH = 'main'
 const MARKET = 'cavalry-collective'   // .claude-plugin/marketplace.json → name
 const PLUGIN = 'vstack'               // the marketplace entry's name
 const INSTALLS = path.join(os.homedir(), '.claude', 'plugins', 'installed_plugins.json')
+const CODEX_CACHE = path.join(os.homedir(), '.codex', 'plugins', 'cache', MARKET, PLUGIN)
 const CACHE = path.join(os.tmpdir(), 'vstack-update-check.json')
 const TTL_MS = 6 * 60 * 60 * 1000
 const TIMEOUT_MS = 2500
@@ -66,13 +82,26 @@ function installedCopy () {
   if (!all) return null
   for (const [id, entries] of Object.entries(all)) {
     for (const e of entries || []) {
-      const root = e.installPath && path.resolve(e.installPath)
+      const root = e.installPath && realPath(e.installPath)
       if (root && (HERE === root || HERE.startsWith(root + path.sep))) {
         return { id, sha: e.gitCommitSha || null, version: e.version || null }
       }
     }
   }
   return null
+}
+
+/**
+ * The Codex install this file belongs to, read from where it is sitting. Codex
+ * writes no install record, so the path is the record: a copy under
+ * <cache>/<marketplace>/<plugin>/<version>/ was put there by `codex plugin add`
+ * at that version, and a copy anywhere else is a clone.
+ */
+function codexCopy () {
+  const root = realPath(CODEX_CACHE)
+  if (!HERE.startsWith(root + path.sep)) return null
+  const version = path.relative(root, HERE).split(path.sep)[0]
+  return version ? { id: `${PLUGIN}@${MARKET}`, sha: null, version } : null
 }
 
 /** 4.10.0 is newer than 4.9.3 — compare numbers, not strings. */
@@ -167,15 +196,18 @@ export function dismissUpdate (key) {
  * `{ pill, key, title, install, howLead, auto }` when there is something newer,
  * otherwise null. Never throws, never blocks longer than the timeout.
  *
- * @param {object} [hostProfile] Host profile (contracts/host.md). When
- *   capabilities.updateDetect is "none", returns null. install/howLead/auto
- *   come from the profile when present so banners stay host-agnostic.
+ * @param {object} [hostProfile] Host profile (contracts/host.md).
+ *   capabilities.updateDetect picks where an installed copy is looked for, and
+ *   "none" returns null without looking. install/howLead/auto come from the
+ *   profile when present so banners stay host-agnostic.
  */
 export async function checkForUpdate (hostProfile = null) {
   if (process.env.VSTACK_NO_UPDATE_CHECK) return null
-  if (hostProfile?.capabilities?.updateDetect === 'none') return null
+  const detect = hostProfile?.capabilities?.updateDetect || 'claude-install'
+  const find = { 'claude-install': installedCopy, 'codex-install': codexCopy }[detect]
+  if (!find) return null                 // "none", or a Host this copy predates
 
-  const installed = installedCopy()
+  const installed = find()
   if (!installed) return null            // a clone is not an install
 
   let words = null

@@ -8,6 +8,28 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.3.0 — 2026-08-09
+
+**Fixed**
+
+- **Codex never told you a new version was out.** The update banner only knew
+  how to recognise a Claude Code install, and the Codex profile had the check
+  switched off, so a Codex copy stayed on whatever release it was installed at
+  with nothing to say so. Codex installs are now recognised by the version
+  directory Codex unpacks them into, and the banner shows the two commands that
+  take the update:
+
+  ```text
+  codex plugin marketplace upgrade cavalry-collective
+  codex plugin add vstack@cavalry-collective
+  ```
+
+  A running Codex thread keeps the copy it started with, so start a new thread
+  after updating.
+- An install sitting behind a symlinked path — `/var` and `/tmp` on macOS, or a
+  home directory that has moved — was not recognised as an install, and got no
+  banner.
+
 ## 6.2.0 — 2026-08-09
 
 **Changed**

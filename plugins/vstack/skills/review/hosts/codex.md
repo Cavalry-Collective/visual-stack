@@ -86,6 +86,14 @@ codex plugin add vstack@cavalry-collective
 Start a new Codex thread and invoke **`$vstack:review`**, or describe a wireframe or
 UI-review task and let the skill trigger implicitly.
 
-Update detection is disabled for Codex (`updateDetect: none`); use
-`codex plugin marketplace upgrade cavalry-collective` and reinstall the plugin
-when testing a newer marketplace revision.
+Update detection uses the version directory Codex unpacked this copy into
+(`capabilities.updateDetect: codex-install`), so the workspace says when a newer
+release exists. Update with the two commands the banner shows:
+
+```text
+codex plugin marketplace upgrade cavalry-collective
+codex plugin add vstack@cavalry-collective
+```
+
+A running Codex thread keeps the copy it started with. Start a new thread after
+updating.

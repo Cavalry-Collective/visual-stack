@@ -18,7 +18,7 @@ assert.deepEqual(codex.capabilities, {
   share: 'copy',
   watch: 'stream',
   browser: true,
-  updateDetect: 'none',
+  updateDetect: 'codex-install',
 })
 assert.equal(resolveHostId({ host: ' CODEX ' }), 'codex')
 
@@ -29,8 +29,8 @@ assert.match(html, /"name":"Codex"/)
 
 /* Every profile conforms to contracts/host.schema.json. loadHost checks only
    the top-level keys, so the schema's shape is enforced here — nowhere else
-   validates it, and an off-enum value would otherwise fail silently at
-   runtime (update-check gates on "none" alone). */
+   validates it, and an off-enum updateDetect would otherwise silently show no
+   banner, which reads exactly like having nothing to report. */
 for (const id of listHosts()) {
   const p = loadHost(id)
   const where = `host-profiles/${id}.json`
@@ -45,11 +45,17 @@ for (const id of listHosts()) {
   assert.ok(['artifact', 'copy', 'none'].includes(c.share), `${where}: share enum`)
   assert.ok(['stream', 'oneshot'].includes(c.watch), `${where}: watch enum`)
   assert.equal(typeof c.browser, 'boolean', `${where}: browser`)
-  assert.ok(['claude-install', 'none'].includes(c.updateDetect), `${where}: updateDetect enum`)
+  assert.ok(['claude-install', 'codex-install', 'none'].includes(c.updateDetect), `${where}: updateDetect enum`)
   if (p.install) {
     assert.deepEqual(Object.keys(p.install).filter(k => !['howLead', 'commands', 'auto'].includes(k)), [],
       `${where}: unknown install keys`)
     assert.ok((p.install.commands || []).every(x => typeof x === 'string'), `${where}: install.commands`)
+  }
+  /* A Host that detects an update has to be able to say how to take it. The
+     fallback wording in update-check.mjs is Claude Code's slash commands, and
+     printing those to anyone else is worse than saying nothing. */
+  if (c.updateDetect !== 'none') {
+    assert.ok(p.install?.commands?.length, `${where}: updateDetect without install.commands`)
   }
 }
 

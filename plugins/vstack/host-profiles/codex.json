@@ -5,6 +5,14 @@
     "share": "copy",
     "watch": "stream",
     "browser": true,
-    "updateDetect": "none"
+    "updateDetect": "codex-install"
+  },
+  "install": {
+    "howLead": "Run these in your shell, then start a new Codex thread:",
+    "commands": [
+      "codex plugin marketplace upgrade cavalry-collective",
+      "codex plugin add vstack@cavalry-collective"
+    ],
+    "auto": null
   }
 }

@@ -31,6 +31,8 @@ jobs:
         run: node plugins/vstack/skills/review/tests/workdir.mjs
       - name: Round gate
         run: node plugins/vstack/skills/review/tests/round-gate.mjs
+      - name: Update check
+        run: node plugins/vstack/skills/review/tests/update-check.mjs
 
   e2e:
     name: E2E (${{ matrix.host }})

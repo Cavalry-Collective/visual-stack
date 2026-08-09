@@ -35,6 +35,7 @@ node plugins/vstack/skills/review/tests/review-lifecycle.mjs   # end-to-end revi
 node plugins/vstack/skills/review/tests/host-profiles.mjs      # host profiles conform to host.schema.json
 node plugins/vstack/skills/review/tests/workdir.mjs            # .vstack/local working-dir resolution
 node plugins/vstack/skills/review/tests/round-gate.mjs         # `unanswered` and the Stop hook that runs it
+node plugins/vstack/skills/review/tests/update-check.mjs       # per-host update detection and the banner it produces
 ```
 
 The Gherkin end-to-end suite lives in `e2e/` — the one directory with a
@@ -100,12 +101,42 @@ CLAUDE_CONFIG_DIR=$SANDBOX/.claude claude plugin details vstack   # what a user 
 rm -rf $SANDBOX
 ```
 
+The same rehearsal under Codex. `CODEX_HOME` is what keeps it out of the real
+config, and the directory has to exist before Codex will use it:
+
+```bash
+export CODEX_HOME=$(mktemp -d)/codex && mkdir -p "$CODEX_HOME"
+codex plugin marketplace add "$PWD"
+codex plugin add vstack@cavalry-collective
+codex plugin list                                 # what a user sees
+```
+
 Nothing above runs a review end to end. For that, load the plugin from disk and
 drive the skill in a real project:
 
 ```bash
 claude --plugin-dir ./plugins/vstack
 ```
+
+Codex has no equivalent flag, and no way to read a working copy live. Adding the
+clone as a local marketplace **copies** it into
+`$CODEX_HOME/plugins/cache/cavalry-collective/vstack/<version>/`, and Codex runs
+that copy. So a change made in the clone reaches Codex only when you re-run:
+
+```bash
+codex plugin add vstack@cavalry-collective   # re-copies, even at the same version
+```
+
+Then start a new Codex thread, because a running one keeps the copy it started
+with. `codex plugin marketplace upgrade` does not do this — it refuses on
+anything but a Git source.
+
+A marketplace is keyed by the `name` in `.claude-plugin/marketplace.json`, so
+the clone and the published repository are both `cavalry-collective` and cannot
+be configured at once. Codex refuses the second one until the first is removed
+with `codex plugin marketplace remove cavalry-collective`. Working on the plugin
+in your real `~/.codex` therefore means giving up the published install until
+you add it back.
 
 ## Architecture
 
