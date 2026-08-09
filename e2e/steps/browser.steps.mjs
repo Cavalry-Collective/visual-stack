@@ -274,28 +274,50 @@ async function framedBox (world, selector) {
 /* Both scrolls are re-applied on every attempt rather than done once and then
    waited on. Until the page under review has laid out there is nothing to
    scroll, and a scroll made at that moment is dropped rather than queued — so
-   an attempt that observes without repeating the scroll can never recover. */
+   an attempt that observes without repeating the scroll can never recover.
+
+   Each one waits to be at the bottom and to have stayed there, not merely to
+   have moved. The bottom keeps moving while the page lays out, and a step that
+   stops at the first sign of movement leaves what it scrolled to off screen,
+   where the click that follows cannot reach it. */
+
+/** The workspace sizes the frame to the page once that page has loaded, so the
+    canvas has no final extent before then. Waiting for the size it set is what
+    tells a step the layout it is about to scroll or measure has arrived. */
+async function framedPageIsFitted (world) {
+  await eventually(async () => {
+    const height = await world.browserPage.locator('#frame').evaluate(frame =>
+      frame.contentDocument?.readyState === 'complete' ? parseFloat(frame.style.height) || 0 : 0)
+    assert.ok(height > 0, 'the workspace has not sized the frame to the page')
+  }, 'the workspace sizes the frame to the page')
+}
+
+/** Scroll to the bottom and confirm it got there. `reach` scrolls and reports
+    where it landed and where the bottom is, in the same evaluation. */
+async function scrolledToTheBottom (reach, what) {
+  await eventually(async () => {
+    const { at, end } = await reach()
+    assert.ok(end > 0, `${what} did not scroll`)
+    assert.ok(Math.abs(at - end) <= 1, `${what} is not at the bottom`)
+  }, `${what} scrolls to the bottom`)
+}
 
 When('the reviewer scrolls the framed page to the bottom', async function () {
+  await framedPageIsFitted(this)
   const framed = await framedWindow(this)
-  await eventually(async () => {
-    const y = await framed.evaluate(() => {
-      window.scrollTo(0, document.body.scrollHeight)
-      return window.scrollY
-    })
-    assert.ok(y > 0, 'the page did not scroll')
-  }, 'the page under review scrolls in its own window')
+  await scrolledToTheBottom(() => framed.evaluate(() => {
+    window.scrollTo(0, document.body.scrollHeight)
+    return { at: window.scrollY, end: document.documentElement.scrollHeight - window.innerHeight }
+  }), 'the page under review')
 })
 
 When('the reviewer scrolls the canvas to the bottom', async function () {
+  await framedPageIsFitted(this)
   const port = this.browserPage.locator('#viewportBox')
-  await eventually(async () => {
-    const top = await port.evaluate(element => {
-      element.scrollTop = element.scrollHeight
-      return element.scrollTop
-    })
-    assert.ok(top > 0, 'the canvas did not scroll')
-  }, 'the canvas scrolls')
+  await scrolledToTheBottom(() => port.evaluate(element => {
+    element.scrollTop = element.scrollHeight
+    return { at: element.scrollTop, end: element.scrollHeight - element.clientHeight }
+  }), 'the canvas')
 })
 
 When('the reviewer clicks {string} in the framed page and writes {string}',
