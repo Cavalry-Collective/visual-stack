@@ -1,0 +1,248 @@
+/*
+  KEYSTONE — design tokens, the single token source.
+  (see apps/frontend/CLAUDE.md → "Design guide")
+
+  Three tiers:
+    1. PRIMITIVE  — raw scales. Rebrand HERE; everything re-derives.
+    2. SEMANTIC   — role-named aliases. Components use THESE, nothing deeper.
+       Colour roles follow shadcn/ui's theme vocabulary (--background,
+       --primary, --muted-foreground …) so copy-in components consume the
+       project's tokens without renaming. Roles shadcn doesn't define
+       (intent ramps, scrim, link, disabled/inverse text) extend the set
+       in the same naming style.
+    3. COMPONENT  — per-component overrides, only where genuinely needed.
+
+  Default palette: the Cavalry brand (cavalry.sg) — Cavalry red primary,
+  purple-cast neutrals, violet/green/amber support; Space Grotesk display
+  over Inter body. Swap the primitive tier for another brand's ramps.
+
+  Deliberately small: 4–6 steps per colour family, 6 type sizes, 6 space steps.
+  If a screen needs a value that isn't here, extend the scale — never the screen.
+
+  One light theme. Dark is a later remap of the SEMANTIC tier only, if a
+  project needs it. Intent formula: subtle bg = 50 · border = 200 ·
+  interactive/content = 400 (holds ≥ 4.5:1 on white — verified) ·
+  text-on-tint = 600. The interactive red adds hover = 500 · pressed = 600;
+  support hues carry no hover duty, so four steps is their whole ramp.
+  Brand-vivid values that can't hold 4.5:1 (pure Cavalry red, amber) sit at
+  300/400 for graphics and large accents only, never body-size text on white.
+
+  Note: --primary and --destructive share the brand-red family in this
+  palette — destructive actions are disambiguated by wording and
+  confirmation, not hue. And --accent is shadcn's accent: the quiet
+  hover/selected surface, never the CTA colour — the CTA is --primary.
+
+  Breakpoints can't be custom properties in media queries — keep in sync by
+  convention: sm 640 · lg 1024. Author from the smallest width up.
+*/
+
+:root {
+  color-scheme: light;
+
+  /* ════════════════ 1 · PRIMITIVE ════════════════ */
+
+  /* Colour — purple-cast neutral, Cavalry red, violet / green / amber */
+  --white: #ffffff;
+
+  --gray-50:  #f6f4f8;
+  --gray-200: #e6e2ec;
+  --gray-300: #cfc9d8;
+  --gray-400: #aaa2b3;
+  --gray-600: #665e72;
+  --gray-900: #171320;
+
+  --red-50:  #fff1f0;
+  --red-200: #ffb3ad;
+  --red-300: #ff3b30;  /* the brand red — graphics & large accents (3.5:1 on white) */
+  --red-400: #e02b20;  /* interactive Cavalry red — 4.6:1 on white */
+  --red-500: #b8231a;
+  --red-600: #8f1b14;
+
+  --violet-50:  #f4effe;
+  --violet-200: #c9b0f8;
+  --violet-400: #7c3aed;  /* brand-exact */
+  --violet-600: #4f1fa3;
+
+  --green-50:  #e9f9f2;
+  --green-200: #7fe0bd;
+  --green-400: #0b8157;
+  --green-600: #085c41;
+
+  --amber-50:  #fef5e6;
+  --amber-200: #fbd38d;
+  --amber-400: #f59e0b;  /* brand-exact — graphics only (2.2:1 on white) */
+  --amber-600: #8a5c06;
+
+  /* Type — Space Grotesk for titles/headings, Inter for everything else;
+     both fall back to the system stack when not loaded */
+  --font-family-base: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+  --font-family-display: "Space Grotesk", var(--font-family-base);
+  --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --font-size-100: 0.75rem;   /* 12 — caption, overline          */
+  --font-size-200: 0.875rem;  /* 14 — labels, tables, dense UI   */
+  --font-size-300: 1rem;      /* 16 — body (the default)         */
+  --font-size-400: 1.25rem;   /* 20 — headings                   */
+  --font-size-500: 1.75rem;   /* 28 — page title                 */
+  --font-size-600: 2.5rem;    /* 40 — display: covers, heroes    */
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.25;  /* headings, controls */
+  --line-height-base: 1.5;    /* body copy          */
+  --tracking-tight: -0.02em;  /* titles             */
+  --tracking-caps: 0.06em;    /* uppercase overlines */
+  /* Tabular digits in tables/metrics: font-variant-numeric: tabular-nums */
+
+  /* Space — 6 steps. Every margin, padding, and gap is one of these. */
+  --space-1: 0.25rem;  /*  4 — inside controls          */
+  --space-2: 0.5rem;   /*  8 — icon↔label, tight groups */
+  --space-3: 1rem;     /* 16 — component padding, gaps  */
+  --space-4: 1.5rem;   /* 24 — between components       */
+  --space-5: 2rem;     /* 32 — between sections         */
+  --space-6: 4rem;     /* 64 — page-level rhythm        */
+
+  /* Shape — concentric nesting: outer radius = inner radius + padding */
+  --radius-1: 0.25rem;   /*  4 — badges, chips, checkboxes */
+  --radius-2: 0.5rem;    /*  8 — buttons, inputs, cards    */
+  --radius-3: 0.75rem;   /* 12 — modals, sheets, panels    */
+  --radius-round: 9999px;
+
+  --border-1: 1px;   /* default          */
+  --border-2: 2px;   /* selected, focus  */
+
+  /* Elevation — shadow and z-band travel together */
+  --shadow-1: 0 1px 2px rgba(23, 19, 32, 0.08);    /* raised: cards            */
+  --shadow-2: 0 4px 16px rgba(23, 19, 32, 0.12);   /* overlay: menus, popovers */
+  --shadow-3: 0 16px 48px rgba(23, 19, 32, 0.22);  /* modal: dialogs, sheets   */
+
+  --z-chrome: 100;   /* sticky header / bottom nav */
+  --z-popover: 200;  /* menus, dropdowns           */
+  --z-overlay: 300;  /* scrims, sheets             */
+  --z-modal: 400;    /* dialogs                    */
+  --z-toast: 500;    /* toasts                     */
+  --z-tooltip: 600;  /* above everything           */
+
+  /* Motion — reduced motion collapses all to 0 */
+  --duration-fast: 150ms;  /* state feedback: press, toggle */
+  --duration-base: 250ms;  /* reveals: menu, tooltip, fade  */
+  --duration-slow: 500ms;  /* large surfaces: sheet, modal  */
+  --duration-pulse: 2000ms; /* skeleton pulse cycle          */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);    /* default (exits too) */
+  --ease-decelerate: cubic-bezier(0, 0, 0.2, 1);  /* entrances           */
+
+  /* Focus — one visible ring everywhere */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+
+  /* Sizing */
+  --icon-size-xs: 0.75rem;     /* 12 — dense meta, table chips */
+  --icon-size-sm: 1rem;        /* 16 — inline with text        */
+  --icon-size-md: 1.25rem;     /* 20 — buttons, controls       */
+  --icon-size-lg: 1.5rem;      /* 24 — navigation, features    */
+  --touch-target-min: 2.75rem; /* 44 — touch form factors      */
+
+  /* Layout */
+  --breakpoint-sm: 40rem;      /*  640 — informational copy  */
+  --breakpoint-lg: 64rem;      /* 1024 — informational copy  */
+  --container-content: 72rem;  /* standard pages             */
+  --container-narrow: 42rem;   /* reading, focused flows     */
+  --measure: 65ch;             /* body copy cap              */
+
+  /* ════════════════ 2 · SEMANTIC ════════════════ */
+
+  --background: var(--white);
+  --foreground: var(--gray-900);
+  --card: var(--white);
+  --card-foreground: var(--gray-900);
+  --popover: var(--white);
+  --popover-foreground: var(--gray-900);
+  --scrim: rgba(23, 19, 32, 0.4);
+
+  --muted: var(--gray-50);            /* quiet surface: subtle bg, chrome     */
+  --muted-foreground: var(--gray-600);
+  --foreground-disabled: var(--gray-400);
+  --foreground-inverse: var(--white); /* text on a dark (foreground) surface  */
+
+  --border: var(--gray-200);
+  --border-strong: var(--gray-300);
+  --input: var(--gray-300);           /* form-control border                  */
+  --ring: var(--red-400);
+
+  /* Primary — the single primary action per view; links share the hue */
+  --primary: var(--red-400);
+  --primary-hover: var(--red-500);
+  --primary-active: var(--red-600);
+  --primary-subtle: var(--red-50);
+  --primary-foreground: var(--white);
+  --link: var(--red-400);
+
+  /* Secondary & accent — quiet interactive surfaces (accent = the
+     hover/selected surface in shadcn's vocabulary, never the CTA) */
+  --secondary: var(--gray-50);
+  --secondary-foreground: var(--gray-900);
+  --accent: var(--gray-50);
+  --accent-foreground: var(--gray-900);
+
+  /* Intent — never colour alone; pair with text or an icon */
+  --success: var(--green-400);
+  --success-strong: var(--green-600);   /* text on the subtle tint — formula step 600 */
+  --success-subtle: var(--green-50);
+  --success-border: var(--green-200);
+  --warning: var(--amber-600);
+  --warning-subtle: var(--amber-50);
+  --warning-border: var(--amber-200);
+  --destructive: var(--red-400);
+  --destructive-strong: var(--red-600); /* text on the subtle tint — formula step 600 */
+  --destructive-subtle: var(--red-50);
+  --destructive-border: var(--red-200);
+  --destructive-foreground: var(--white);
+  --info: var(--violet-400);
+  --info-subtle: var(--violet-50);
+  --info-border: var(--violet-200);
+
+  --radius: var(--radius-2);          /* shadcn's base radius alias */
+
+  --text-body: var(--font-size-300);
+  --text-caption: var(--font-size-100);
+
+  /* The shared layout applies these; pages never re-derive them */
+  --gutter-screen: var(--space-3);
+  --side-nav-width: 9rem;      /* fixed nav rail from sm up; collapses below */
+  --header-height: 3.5rem;
+  --header-clearance: calc(var(--header-height) + env(safe-area-inset-top, 0px));
+  --bottom-nav-height: 3.5rem; /* mobile-first form factors */
+  --bottom-nav-clearance: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+
+  /* Page rhythm — fixed by the screen archetype (design-guide.html →
+     Screen archetypes); pages never re-decide these gaps */
+  --page-title-gap: var(--space-4);   /* page-header block → first content */
+  --page-section-gap: var(--space-5); /* between content sections in a page */
+
+  /* ════════════════ 3 · COMPONENT ════════════════ */
+
+  --control-height: 2.25rem;    /* 36 — shadcn's default control size (h-9)     */
+  --control-height-sm: 2rem;    /* 32 — dense contexts: table toolbars (h-8)    */
+  --control-radius: var(--radius-2);
+  --control-padding-x: var(--space-3);
+  --control-padding-x-sm: var(--space-2); /* pairs with --control-height-sm */
+
+  /* Box model — a container's inner padding; one size per column.
+     The spacing scale governs space BETWEEN siblings, boxes the space WITHIN. */
+  --box-padding-sm: var(--space-2);  /* dense tables, chips           */
+  --box-padding: var(--space-3);     /* cards, dialogs, widgets (default) */
+  --box-padding-lg: var(--space-4);  /* spacious panels, sheets       */
+}
+
+/* Reduced motion — essential feedback never rides on motion alone */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+    --duration-slow: 0ms;
+    --duration-pulse: 0ms;
+  }
+}

@@ -534,3 +534,10 @@ These are load-bearing and easy to undo by accident:
   character is in no text node, no caret resolves there, and the strike silently
   takes nothing.
 
+## UI tweaks and composition reuse
+
+- **Existing screens are the baseline for tweak work.** Before changing an existing screen, inspect the current implementation in the affected state and viewport, using the running app or the review context already supplied with the request. Treat the request as a delta, not permission to redesign: preserve its layout, hierarchy, spacing, typography, component variants, copy, states, and responsive behaviour unless the request explicitly changes them. A tweak never re-derives the screen from the design guide or its original mockup; the existing app is the reference.
+- **Reuse components and compositions.** Before adding or changing a UI action, search the same feature and then the app for the most comparable existing instance of that action or composition. Reusing the same atom is not sufficient: in comparable contexts, also match placement, density, label shape, loading/disabled behaviour, and responsive treatment. If the new instance deliberately differs, record the contextual reason.
+- **One owner at the second comparable instance.** When the same semantic composition appears twice in comparable contexts, give it one implementation in the same change: reuse or extend the owning molecule/organism, or extract one at the appropriate tier. Share a coherent interaction, not merely a bundle of matching classes. If the contexts require meaningfully different behaviour, keep them separate and document the distinction.
+- **Verify without duplicating the visual workflow.** For a tweak to an existing screen, reuse the running screen or supplied review capture as the baseline; no separate before/after capture is required. Confirm the requested delta is present and unrelated visual structure is unchanged.
+- **Self-review the baseline.** For every UI composition added or changed, name the comparable existing instance or documented pattern used as its baseline — or say why none fits — and confirm that unrelated visual structure was preserved.
