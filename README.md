@@ -52,7 +52,7 @@ Then run:
 /vstack:review Wireframe a desktop personal task manager with minimal aesthetics.
 ```
 
-### Codex
+### Codex<sup>1</sup>
 
 Install, in your terminal:
 
@@ -66,6 +66,8 @@ Then run:
 ```text
 $vstack:review Wireframe a desktop personal task manager with minimal aesthetics.
 ```
+
+<sup>1</sup> Codex support is experimental. Codex does not come with a background monitor tool that allows two-way communication with Visual Stack. A deterministic polling workaround is used, but occasionally the agent stops polling prematurely. If that happens, prompt the agent to resume watching.
 
 ## What you can do
 
