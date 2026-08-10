@@ -88,13 +88,14 @@ code{font:12.5px var(--mono);background:#f0f0ea;padding:1px 5px;border-radius:4p
   </div>
 
   <div class="scenario" id="s3">
-    <div class="head"><span class="num">S3</span><h3>Whatever is not closed comes back</h3><span class="tag r1">@round1</span></div>
-    <div class="gherkin"><b>Scenario:</b> an unclosed comment returns on the next delivery
-  <b>Given</b> the agent was handed comments A and B in one delivery
-  <b>When</b> the agent publishes closing only A
-  <b>Then</b> B stays open
-  <b>When</b> the reviewer sends a new comment C
-  <b>Then</b> the delivery hands over B and C — B marked not new, C marked new</div>
+    <div class="head"><span class="num">S3</span><h3>Ready comments arrive FIFO, one at a time</h3><span class="tag r1">@round1</span></div>
+    <div class="gherkin"><b>Scenario:</b> each delivery contains the oldest ready comment
+  <b>Given</b> comments A and B were sent in that order
+  <b>When</b> the agent takes delivery
+  <b>Then</b> only A is delivered and B stays queued
+  <b>When</b> the agent closes A and the reviewer sends C
+  <b>Then</b> the next delivery contains only B
+  <b>And</b> the delivery after B closes contains only C</div>
   </div>
 </section>
 
@@ -119,6 +120,7 @@ code{font:12.5px var(--mono);background:#f0f0ea;padding:1px 5px;border-radius:4p
   <b>When</b> the agent replies "Every row, or only overdue ones?"
   <b>Then</b> the reply is appended to A's thread with by: "agent"
   <b>And</b> A stays open
+  <b>And</b> A releases the active slot while it waits on the reviewer
   <b>And</b> `unanswered` no longer names A — a reply answers the round</div>
   </div>
 

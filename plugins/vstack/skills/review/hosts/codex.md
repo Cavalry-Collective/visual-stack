@@ -16,9 +16,9 @@ node "$SKILL/assets/review-server.mjs" serve --file "$FILE" --port 7788 --host c
 | Host op | Codex tool | How |
 | --- | --- | --- |
 | `background(cmd)` | persistent shell execution (`exec_command`) | Start with a short yield and retain the returned session id. The review server must stay alive. |
-| `watch_stream(cmd)` | a second persistent `exec_command`, then `write_stdin` | Run `watch --all --stream`; poll the session with an empty write, normally for 30 seconds at a time, until it emits an event. Keep polling while reviews remain open. |
-| `stop(handle)` | `write_stdin` | Send Ctrl-C (`\u0003`) to the retained server or watcher session. |
-| `run(cmd)` | foreground `exec_command` | Use for `publish`, `reply`, `ack`, `share`, `status`, and `unanswered`. |
+| `watch_next(cmd)` | foreground `exec_command` | Run `watch --all --next --timeout 25` with a 30-second tool yield. It completes inside the call with one event or `IDLE`; call it again while reviews remain open. |
+| `stop(handle)` | `write_stdin` | Send Ctrl-C (`\u0003`) to the retained review-server session. The bounded watcher leaves no process to stop. |
+| `run(cmd)` | foreground `exec_command` | Use for `claim`, `publish`, `reply`, `share`, `status`, and `unanswered`. |
 | `edit` | `apply_patch` | Change the wireframe or application source without overwriting unrelated work. |
 | `share(file)` | no generic public Artifact publisher | Profile uses `capabilities.share: copy`; offer the HTML file or an offline bundle instead of inventing a URL. |
 | `browser_capture` | Codex Browser controls, when installed | Navigate, resize, screenshot, and run `harvest-reference.js`. If Browser is unavailable, use screenshots supplied by the user. |
@@ -34,36 +34,38 @@ node "$SKILL/assets/review-server.mjs" publish --file "$FILE" --label "Initial v
 # persistent exec session; retain its session id
 node "$SKILL/assets/review-server.mjs" serve --file "$FILE" --port 7788 --host codex
 
-# second persistent exec session; retain and poll this session id
-node "$SKILL/assets/review-server.mjs" watch --all --stream
+# foreground exec_command, yield 30s; it returns within 25s
+node "$SKILL/assets/review-server.mjs" watch --all --next --timeout 25
 
-# then answer the HANDSHAKE line it prints, in the foreground
-node "$SKILL/assets/review-server.mjs" ack --all --token <token from that line>
+# REVIEW prints this exact command; run it before reading brief.md
+node "$SKILL/assets/review-server.mjs" claim --file <page.html> --token <token>
 ```
 
 Tell the user **http://localhost:7788/** (or `/__review/` for live `--app`).
 
 ## Events and turn lifetime
 
-Codex does not need a product-specific Monitor tool. The streaming watcher is a
-normal persistent command session:
+Codex uses bounded pull delivery because output written by a background terminal
+is not proof that the current agent turn read it:
 
-1. Start it with `exec_command` and keep the returned session id.
-2. Poll it with an empty `write_stdin`, using a bounded wait so the user keeps
-   receiving progress updates.
-3. Answer the `HANDSHAKE` line the stream opens with, using `run`: `ack --all --token <token>`. The watcher goes live once you do; answer within two minutes.
-4. On `REVIEW`, `REPLIED`, `SHARE`, `APPROVED`, or `CLOSED`, follow
-   the core skill and review-loop contract.
+1. Run `watch --all --next --timeout 25` as a foreground `exec_command` with a
+   30-second yield. Do not retain a watcher session id.
+2. `IDLE` means call the same command again. The pull lease keeps the workspace
+   Linked between prompt re-arms and expires if this turn stops calling.
+3. `REVIEW` is an offer, not a delivery. Run the exact `CLAIM` command printed
+   immediately. Only a successful claim marks the comment delivered and writes
+   `brief.md`; then read the brief and follow the core loop.
+4. On `SHARE`, `APPROVED`, or `CLOSED`, follow the core skill and review-loop contract.
 5. Run `unanswered --all` before you end a turn, and settle whatever it names.
    Codex cannot gate the end of a turn, so rule 14 of
    [review-loop.md](../../../contracts/review-loop.md) is yours to keep.
-6. Resume polling after each publish. Do not send the final response
+6. Resume bounded waits after each publish. Do not send the final response
    while the review is still active; keep the Codex turn open until approval,
    closure, or an explicit request from the user to stop.
 
-Use a 30-second poll in normal operation. If nothing arrives, send a brief
-commentary update before continuing so the user is never left without visible
-activity for more than a minute.
+Two Codex sessions may wait at once. They receive the same durable offer and
+`claim` serialises delivery; the loser is told to wait again. A Claude/Grok push
+watcher still has exclusive ownership, so a Codex pull does not steal its review.
 
 ## Share
 

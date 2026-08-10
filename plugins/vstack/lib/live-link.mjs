@@ -1,11 +1,10 @@
 /*
  * live-link.mjs — the plumbing every live-link server shares.
  *
- * The review server and the JSON bridge speak the same file protocol: a
- * `watching` heartbeat that says an agent session is listening, a presence
- * event that repeats it to the page, and atomic writes so a reader never sees
- * half a file. The protocol lives here so its invariants — the heartbeat
- * cadence, what counts as stale — cannot drift between engines.
+ * The review server and the JSON bridge speak the same file protocol: live
+ * push heartbeats, bounded pull leases, presence events that repeat them to the
+ * page, and atomic writes so a reader never sees half a file. The protocol
+ * lives here so its timing and write invariants cannot drift between engines.
  */
 
 import fs from 'node:fs'
@@ -65,10 +64,28 @@ export function injectHead (html, tag) {
    number: a writer beating every BEAT_MS is comfortably inside STALE_MS. */
 export const WATCH_BEAT_MS = 2000
 export const WATCH_STALE_MS = 15000
+/* Pull hosts prove attention one bounded wait at a time. Their lease is longer
+   than a normal wait (25s), so a prompt re-arm never flickers the workspace to
+   Unlinked; if the agent stops calling back, it expires without a process
+   pretending the session is still there. */
+export const PULL_LEASE_MS = 45000
 
 /** Is a watcher alive behind this heartbeat file right now? */
 export function watchingRecently (file) {
   try { return Date.now() - fs.statSync(file).mtimeMs < WATCH_STALE_MS } catch { return false }
+}
+
+/** Is a bounded pull consumer still inside the lease its last wait proved? */
+export function leasedRecently (file) {
+  try { return Date.now() - fs.statSync(file).mtimeMs < PULL_LEASE_MS } catch { return false }
+}
+
+/** Renew one pull lease without starting a timer (claim and other quick ops). */
+export function renewLease (file) {
+  try {
+    fs.mkdirSync(path.dirname(file), { recursive: true })
+    fs.writeFileSync(file, String(Date.now()))
+  } catch {}
 }
 
 /**
@@ -94,6 +111,24 @@ export function startHeartbeat (getFiles) {
       clearInterval(timer)
       for (const file of getFiles()) fs.rmSync(file, { force: true })
     },
+  }
+}
+
+/**
+ * Renew a pull consumer's lease while its bounded wait is active. Stopping the
+ * timer deliberately leaves the marker behind: its age, not process cleanup,
+ * is what lets the next wait bridge the small gap between tool calls and what
+ * makes an abandoned Codex turn become Unlinked by itself.
+ */
+export function startLease (getFiles) {
+  const renew = () => {
+    for (const file of getFiles()) renewLease(file)
+  }
+  const timer = setInterval(renew, WATCH_BEAT_MS)
+  renew()
+  return {
+    renew,
+    stop () { clearInterval(timer) },
   }
 }
 

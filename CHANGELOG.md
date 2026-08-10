@@ -8,10 +8,45 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.6.0 — 2026-08-10
+
+**Changed**
+
+- **Review comments now reach the agent one at a time, in FIFO order.** New
+  comments wait without interrupting the comment in progress. Asking a question
+  releases the queue so the next ready comment can proceed; when the reviewer
+  answers, that thread rejoins the queue at the time of the reply.
+- The workspace shows exactly one comment as in progress. Later comments and
+  answered threads say Queued, while questions still say that the agent is
+  waiting on the reviewer.
+
+## 6.5.0 — 2026-08-10
+
+**Changed**
+
+- **Codex now receives review rounds through bounded foreground waits.** Its
+  terminal does not push a background process's output into an idle agent turn,
+  so keeping a second persistent shell and polling its buffer could leave a
+  comment marked as delivered before Codex had read it. Codex now runs a
+  25-second `watch --next` call, repeats it on `IDLE`, and explicitly `claim`s a
+  `REVIEW` offer. Until that claim succeeds, the comments remain queued.
+- **Linked means a Codex consumer is still calling back.** Each bounded wait
+  renews a short lease which bridges normal re-arms and expires when the turn
+  stops. A leftover Node process can no longer keep the workspace falsely
+  Linked. Claude Code and Grok keep their pushed stream watcher unchanged.
+- Two Codex pulls may wait on the same review safely: both see one durable
+  offer, and only the first claim records delivery. A push watcher remains
+  exclusive and cannot be taken over by a project-wide pull.
+
 ## 6.4.1 — 2026-08-09
 
 **Fixed**
 
+- **A reply written with paragraph breaks arrives with them.** A shell leaves
+  `\n` inside a quoted argument as two characters, so an agent's multi-paragraph
+  answer reached the comment thread with `\n` showing as text. `reply --text`,
+  `reply --option` and `publish --summary` now read `\n` as a line break. Write
+  `\\n` when you mean the two characters.
 - **A comment containing a double quote could break the page it was drawn on.**
   The workspace escaped `&`, `<` and `>` but not quotes, and most of what it
   builds is an HTML attribute — so a quote in your own words ended the attribute

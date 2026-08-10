@@ -75,6 +75,15 @@ try {
   assert.equal(cli('publish', '--label', 'Initial').status, 0)
   await startServer()
 
+  /* ── a bounded pull completes inside one foreground call ── */
+
+  const idlePull = cli('watch', '--next', '--timeout', '1')
+  assert.equal(idlePull.status, 0, idlePull.stderr)
+  assert.match(idlePull.stdout, /IDLE/, 'a quiet pull returns instead of leaving a terminal session behind')
+  const idleLease = path.join(store, 'listening')
+  assert.ok(fs.existsSync(idleLease), 'the wait leaves a lease across the prompt re-arm gap')
+  fs.rmSync(idleLease, { force: true })
+
   /* ── a comment is the reviewer's until they let go of it ── */
 
   await write([comment('c1', 'First draft')])
@@ -97,15 +106,21 @@ try {
   assert.equal(byId('c1').note, 'First, reworded',
     'a comment already sent cannot be reworded, whatever a stale tab saves')
 
-  /* ── the tick hands over everything open ── */
+  /* ── the tick hands over one comment at a time, FIFO ── */
 
   let out = tick()
   assert.match(out, /REVIEW/)
-  assert.match(out, /2 open, 2 new/)
+  assert.match(out, /1 open, 1 new/)
   assert.match(briefText(), /### c1 · NEW/)
   assert.match(briefText(), /First, reworded/)
-  assert.match(briefText(), /--close <ids>/)
+  assert.doesNotMatch(briefText(), /Second/, 'the next comment does not distract from the active one')
+  assert.match(briefText(), /--close <id>/)
   assert.ok(byId('c1').deliveredAt, 'delivery is recorded on the comment')
+  assert.ok(byId('c1').activeAt, 'the delivered comment owns the single active slot')
+  assert.equal(byId('c2').deliveredAt, null, 'the second comment remains queued')
+  const uninterrupted = cli('watch', '--next', '--timeout', '1')
+  assert.match(uninterrupted.stdout, /IDLE/, 'a waiting comment cannot raise another delivery mid-turn')
+  fs.rmSync(path.join(store, 'listening'), { force: true })
 
   /* ── closing is the agent's alone, and partial by design ── */
 
@@ -113,10 +128,9 @@ try {
   assert.equal(published.status, 0)
   assert.equal(byId('c1').state, 'closed')
   assert.equal(byId('c2').state, 'open', 'a comment nobody named is still open')
+  assert.equal(byId('c1').activeAt, null, 'closing releases the active slot')
   assert.equal(JSON.parse(fs.readFileSync(path.join(store, 'state.json'))).version, 2)
-  // The tick wakes for what the reviewer says, so a comment left open has to be
-  // named where the agent believes it has finished.
-  assert.match(published.stdout, /1 comment\(s\) you were given are still open: c2/)
+  assert.doesNotMatch(published.stdout, /still open/, 'queued work is not work the agent silently left behind')
 
   assert.equal(cli('publish', '--close', 'c1').status, 0, 'closing what is closed is a no-op')
   assert.equal(JSON.parse(fs.readFileSync(path.join(store, 'state.json'))).version, 2,
@@ -127,10 +141,20 @@ try {
   await write([{ ...byId('c1'), replies: [{ by: 'reviewer', text: 'Not like that', at: new Date().toISOString() }] }])
   assert.equal(byId('c1').state, 'open', 'answering something called done says it is not done')
   out = tick()
-  assert.match(out, /2 open/, 'everything open goes, not only what was just said')
-  assert.doesNotMatch(out, /new/, 'a comment coming round again is not new')
+  assert.match(out, /1 open, 1 new/, 'the older queued comment keeps its place ahead of the reopened one')
+  assert.match(briefText(), /### c2 · NEW/)
+  assert.doesNotMatch(briefText(), /Not like that/)
+
+  /* ── a question releases the slot; its answer rejoins the FIFO ── */
+
+  assert.equal(cli('reply', '--comment', 'c2', '--text', 'Which card?').status, 0)
+  assert.equal(byId('c2').activeAt, null, 'asking releases the active slot')
+  assert.equal(byId('c2').state, 'open', 'asking is not a state — the comment stays open')
+  out = tick()
+  assert.match(out, /1 open/, 'the next ready comment proceeds while c2 waits on the reviewer')
+  assert.doesNotMatch(out, /new/, 'a reopened comment is not new')
   assert.match(briefText(), /They replied:\*\* Not like that/)
-  assert.match(briefText(), /### c2/)
+  assert.doesNotMatch(briefText(), /### c2/)
 
   /* ── a stranded round goes back to the queue ── */
 
@@ -140,27 +164,24 @@ try {
   assert.equal(held.response.status, 409, 'nothing is taken off an agent that is listening')
   assert.ok(byId('c1').deliveredAt, 'and the handover stands')
 
-  /* Nothing listening: both comments are delivered and neither is unseen, so no
-     watcher started after this point would ever be handed them. */
+  /* Nothing listening: only the active comment is stranded. The question on c2
+     is still where it belongs, waiting on the reviewer. */
   const note = byId('c1').note
   fs.rmSync(watching, { force: true })
   const requeued = await post('/api/comments/requeue', {})
   assert.equal(requeued.response.status, 200)
-  assert.deepEqual(requeued.body.requeued.sort(), ['c1', 'c2'])
+  assert.deepEqual(requeued.body.requeued, ['c1'])
   assert.equal(byId('c1').deliveredAt, null, 'only the record of the handover goes')
+  assert.ok(byId('c2').deliveredAt, 'a question waiting on the reviewer is not requeued')
   assert.equal(byId('c1').state, 'open', 'the comment itself is untouched')
   assert.equal(byId('c1').note, note, 'and it still says what it said')
 
   out = tick()
   assert.match(out, /REVIEW/, 'the next session to pick up is handed the stranded round')
-  // New to the session receiving them, which is the whole point of putting them
-  // back: the one that was given them first is gone.
-  assert.match(out, /2 open, 2 new/)
+  assert.match(out, /1 open, 1 new/, 'the recovered comment is new to the session receiving it')
 
   /* ── the thread is append-only, from either side ── */
 
-  assert.equal(cli('reply', '--comment', 'c2', '--text', 'Which card?').status, 0)
-  assert.equal(byId('c2').state, 'open', 'asking is not a state — the comment stays open')
   // A tab that never saw the agent's question saves its own copy of the thread.
   await write([{
     ...comment('c2', 'Second', { sentAt: byId('c2').sentAt }),
@@ -169,9 +190,23 @@ try {
   assert.deepEqual(byId('c2').replies.map(reply => reply.by), ['agent', 'reviewer'],
     'neither side can lose a line of the thread by being stale')
 
+  assert.equal(cli('publish', '--close', 'c1', '--label', 'First done').status, 0)
+  out = tick()
+  assert.match(out, /1 open/, 'the answered thread returns after the active comment finishes')
+  assert.match(briefText(), /They replied:\*\* The second one/)
+
+  /* ── prose flags carry paragraph breaks a shell would not resolve ── */
+
+  assert.equal(cli('reply', '--comment', 'c2',
+    '--text', 'One.\\n\\nTwo.',
+    '--option', 'Split on \\\\n', '--option', 'Keep\\nboth').status, 0)
+  const escaped = byId('c2').replies.at(-1)
+  assert.equal(escaped.text, 'One.\n\nTwo.', 'an escaped break reaches the reviewer as a break')
+  assert.deepEqual(escaped.options.map(option => option.text), ['Split on \\n', 'Keep\nboth'],
+    'a doubled backslash is how an option says the two characters')
+
   /* ── liveness: whatever the reviewer did meanwhile, the agent can finish ── */
 
-  tick()
   assert.equal(cli('publish', '--close', 'c1,c2', '--label', 'Both done').status, 0,
     'nothing the reviewer does can stop the agent closing what it was given')
   assert.deepEqual(stored().map(item => item.state), ['closed', 'closed'])
@@ -196,8 +231,11 @@ try {
   const gone = await request('/api/project')
   assert.equal(gone.body.comments.find(item => item.id === 'c5'), undefined,
     'the workspace never shows it again')
+  assert.equal(gone.body.activeCount, 1,
+    'the workspace can still recover a hidden active comment if its session dies')
   assert.equal(cli('publish', '--close', 'c5').status, 0,
     'the agent holding it can still close what it was given')
+  assert.equal((await request('/api/project')).body.activeCount, 0, 'closing releases the hidden slot')
 
   /* ── the agent cannot close what it was never given ── */
 
@@ -210,6 +248,48 @@ try {
   assert.equal(unknown.status, 2)
   assert.match(unknown.stderr, /c404 is not a comment on this review/)
   assert.equal(byId('c7').state, 'open', 'a rejected close changes nothing at all')
+
+  /* ── pull delivery is offered, then explicitly claimed ── */
+
+  const firstOffer = cli('watch', '--next', '--timeout', '1')
+  assert.equal(firstOffer.status, 0, firstOffer.stderr)
+  const token = firstOffer.stdout.match(/token ([0-9a-f]+)/)?.[1]
+  assert.ok(token, `the pull names its durable offer:\n${firstOffer.stdout}`)
+  assert.equal(byId('c7').deliveredAt, null,
+    'writing REVIEW output is not delivery until the agent reads and claims it')
+  assert.equal(cli('unanswered', '--all').status, 0,
+    'an unread offer cannot make the agent owe a round')
+
+  const competingOffer = cli('watch', '--next', '--timeout', '1')
+  assert.match(competingOffer.stdout, new RegExp(`token ${token}`),
+    'overlapping pull consumers see one shared offer')
+  assert.equal(byId('c7').deliveredAt, null, 'neither consumer wins merely by waiting')
+
+  const claimed = cli('claim', '--token', token, '--session', 'pull-a')
+  assert.equal(claimed.status, 0, claimed.stderr)
+  assert.match(claimed.stdout, /CLAIMED/)
+  assert.ok(byId('c7').deliveredAt, 'claim is the delivery point')
+  assert.equal(byId('c7').deliveredTo, 'pull-a', 'claim binds delivery to its session')
+  assert.equal(cli('claim', '--token', token, '--session', 'pull-b').status, 2,
+    'a competing claim cannot deliver the same offer twice')
+
+  const listening = path.join(store, 'listening')
+  assert.ok(fs.existsSync(listening), 'the bounded pull leaves a short consumer lease')
+  const heldByPull = await post('/api/comments/requeue', {})
+  assert.equal(heldByPull.response.status, 409, 'a fresh pull lease protects a claimed round')
+
+  const expired = new Date(Date.now() - 60_000)
+  fs.utimesSync(listening, expired, expired)
+  const pullRequeued = await post('/api/comments/requeue', {})
+  assert.equal(pullRequeued.response.status, 200, 'an abandoned pull lease ages out')
+  assert.deepEqual(pullRequeued.body.requeued, ['c7'])
+  assert.equal(byId('c7').deliveredAt, null, 'the abandoned round becomes available again')
+
+  const nextOffer = cli('watch', '--next', '--timeout', '1')
+  const nextToken = nextOffer.stdout.match(/token ([0-9a-f]+)/)?.[1]
+  assert.ok(nextToken && nextToken !== token, 'a requeued round receives a fresh offer')
+  assert.equal(cli('claim', '--token', nextToken).status, 0)
+  assert.equal(cli('publish', '--close', 'c7', '--label', 'Seventh done').status, 0)
 
   /* ── a store written by an older version is read where it lies ── */
 

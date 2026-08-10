@@ -18,7 +18,9 @@
  *
  *   node review-server.mjs serve   --file <page.html> [--port 7788] [--idle-timeout 90] [--no-open]
  *   node review-server.mjs serve   --app <url> [--name <slug>] [--start /path] [--port 7788]
- *   node review-server.mjs watch   --file <page.html>   (blocks; hands over the open comments)
+ *   node review-server.mjs watch   --file <page.html>   (blocks; hands over the next comment)
+ *   node review-server.mjs watch   --all --next --timeout 25   (offers one pull event or IDLE)
+ *   node review-server.mjs claim   --file <page.html> --token <token>
  *   node review-server.mjs publish --file <page.html> [--close c1,c3] [--label "…"] [--summary "…"]
  *   node review-server.mjs reply   --file <page.html> --comment <id> --text "…"
  *                                  [--option "…" --option "…" [--recommend <n>]]
@@ -30,25 +32,28 @@
  * the review is of a running app.
  *
  * One list of comments, each open or closed, and the agent is the only one who
- * closes. `watch` hands over every open comment and records that it went;
- * whatever the agent does not close comes back on the next one. Nothing can
- * refuse a close: an agent that took delivery can always finish.
+ * closes. A watch hands over the oldest ready comment and nothing else. Closing
+ * it releases the FIFO; asking a question also releases it while that thread
+ * waits for the reviewer. Nothing can refuse a close: an agent that took
+ * delivery can always finish.
  *
  * State lives in a sibling directory, out of the way of the page:
  *   <dir>/.vstack/local/review/<name>/   (live: <cwd>/.vstack/local/review/<name>/)
  *     state.json            { name, version, file? | app?, start? }
  *     comments.json         every comment for this review — the whole truth
- *     brief.md              the open comments, rewritten on every delivery
+ *     brief.md              the active comment, rewritten on every delivery
  *     versions/v<n>.html    frozen copy of each published version
  *                           (live: the DOM as it stood when a review was sent)
  *     versions/v<n>.meta.json  label and date — a snapshot to look at, nothing more
  *     reviews/v<n>/         only ever read: where a store filled by an older
  *                           version keeps its comments
  *     handshake             a stream watcher waiting to be told its events land
+ *     delivery-offer.json   a pull event waiting for an explicit claim
  *     approved              sentinel written on sign-off — the review is over
  *     share                 sentinel — they want a shareable public link
  *     url                   the live URL — present only while the server runs
  *     watching              heartbeat — an agent session is waiting on this review
+ *     listening             short pull-consumer lease — expires when bounded waits stop
  *
  * A serve also leaves a pointer to that store under the directory it was run
  * from — `<cwd>/.vstack/local/review/.serving/<key>` — so `watch --all`, run
@@ -77,7 +82,10 @@ import { fileURLToPath } from 'node:url'
 import { checkForUpdate, currentVersion, dismissUpdate, withUpdate, withVersion } from '../../../lib/update-check.mjs'
 import { resolveHostId, loadHost, withHost, AGENT_ROLE, REVIEWER_ROLE } from '../../../lib/host.mjs'
 import { workDir, subjectDir, toolNames, LOCAL, TOOL } from '../../../lib/workdir.mjs'
-import { writeAtomic, watchingRecently, startHeartbeat, startPresence, openInBrowser } from '../../../lib/live-link.mjs'
+import {
+  writeAtomic, watchingRecently, leasedRecently, renewLease,
+  startHeartbeat, startLease, startPresence, openInBrowser,
+} from '../../../lib/live-link.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
@@ -109,6 +117,13 @@ function repeatedArg (flag) {
   }
   return out
 }
+
+/** A flag whose value is prose the reviewer reads — `--text`, `--summary`,
+    `--option`. A shell leaves `\n` inside a quoted argument as the two
+    characters, so a reply written with paragraph breaks arrives with them
+    unresolved and the workspace shows them as text. Resolve them here.
+    `\\n` is how you say the two characters instead. */
+const prose = value => String(value).replace(/\\(\\|n)/g, (_, c) => (c === 'n' ? '\n' : '\\'))
 
 /* The agent session this process acts for — `--session <id>`, supplied by the
    Host adapter. The engine never knows how a host names its sessions; it only
@@ -191,14 +206,19 @@ const P = {
   brief: () => path.join(STORE, 'brief.md'),
   lock: () => path.join(STORE, 'transition.lock'),
   handshake: () => path.join(STORE, 'handshake'),
+  offer: () => path.join(STORE, 'delivery-offer.json'),
   approved: () => path.join(STORE, 'approved'),
   share: () => path.join(STORE, 'share'),
   url: () => path.join(STORE, 'url'),
   /* Touched by `watch` while it runs, deleted when it stops — the heartbeat
      protocol in lib/live-link.mjs. */
   watching: () => path.join(STORE, 'watching'),
+  /* A pull Host renews this only while a bounded wait is actually reaching the
+     agent. It ages out after the agent stops calling, unlike a background
+     process heartbeat that can outlive the turn consuming it. */
+  listening: () => path.join(STORE, 'listening'),
 }
-const someoneWatching = () => watchingRecently(P.watching())
+const someoneWatching = () => watchingRecently(P.watching()) || leasedRecently(P.listening())
 
 const readJSON = (f, d = null) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')) } catch { return d } }
 const writeJSON = (f, v) => {
@@ -269,13 +289,14 @@ const saveState = s => writeJSON(P.state(), s)
 
 /* ──────────────────────── the comment list ───────────────────────
    One list per review, and the only place a comment's state lives. A comment
-   is open or closed. Two timestamps say where it is between the reviewer and
+   is open or closed. Delivery fields say where it is between the reviewer and
    the agent: `sentAt` is the reviewer letting go of it, which also freezes its
-   words; `deliveredAt` is the agent taking it, after which withdrawing it
+   words; `deliveredAt` is the agent taking it, and `activeAt` says it owns the
+   single active slot. After delivery, withdrawing it
    leaves the record behind. `deliveredTo` names the session that took it —
    whichever identity the last deliverer was started with — so what a session
    owes is a recorded fact, not an inference from standing in the same
-   directory. Everything the workspace shows is derived from those. */
+   directory. Everything the workspace shows is derived from those fields. */
 
 /**
  * What a review is, read from its own store rather than from this process's
@@ -309,7 +330,7 @@ function saveComments (comments, subject = here()) {
 
 /** Fields the protocol owns. A client may write everything else on a comment it
  *  still holds, and none of these ever. */
-const OWNED = ['state', 'sentAt', 'deliveredAt', 'deliveredTo', 'dismissedAt']
+const OWNED = ['state', 'sentAt', 'deliveredAt', 'deliveredTo', 'activeAt', 'dismissedAt']
 
 const normaliseComment = c => ({
   ...c,
@@ -318,6 +339,7 @@ const normaliseComment = c => ({
   sentAt: c.sentAt || null,
   deliveredAt: c.deliveredAt || null,
   deliveredTo: c.deliveredTo || null,
+  activeAt: c.activeAt || null,
 })
 
 /**
@@ -356,18 +378,40 @@ function adoptOlderStore (store = STORE) {
 /** Open, and released by the reviewer — what a tick hands over. */
 const deliverable = comments => comments.filter(c => c.state === 'open' && c.sentAt)
 
-/** Has the reviewer said anything the agent has not been given yet? A comment
- *  it has never seen, or an answer written since it last took delivery. */
-const unseen = comment => !comment.deliveredAt ||
-  (comment.replies || []).some(reply => reply.by === REVIEWER_ROLE &&
-    Date.parse(reply.at || '') > Date.parse(comment.deliveredAt))
-const anythingWaiting = (subject = here()) =>
-  deliverable(loadComments(subject)).some(unseen)
+/** When a comment became ready for another turn. A thread answer rejoins the
+ *  same FIFO at the moment the reviewer wrote it; it does not jump ahead using
+ *  the comment's original send time. */
+function readyAt (comment) {
+  if (!comment.deliveredAt) return Date.parse(comment.sentAt || '') || 0
+  const delivered = Date.parse(comment.deliveredAt) || 0
+  return Math.min(...(comment.replies || [])
+    .filter(reply => reply.by === REVIEWER_ROLE && (Date.parse(reply.at || '') || 0) > delivered)
+    .map(reply => Date.parse(reply.at)), Infinity)
+}
+
+/** The next ready comment in arrival order. Array order settles comments saved
+ *  in one browser request, which deliberately receive the same timestamp. */
+function nextReady (comments) {
+  return comments
+    .map((comment, order) => ({ comment, order, at: readyAt(comment) }))
+    .filter(item => Number.isFinite(item.at))
+    .sort((a, b) => a.at - b.at || a.order - b.order)[0]?.comment || null
+}
+
+/** One delivery owns the agent at a time. A question releases that ownership,
+ *  but a silent delivered comment still blocks even when it came from a store
+ *  written before `activeAt` existed. */
+const anythingWaiting = (subject = here()) => {
+  const comments = deliverable(loadComments(subject))
+  if (comments.some(comment => comment.activeAt ||
+    (comment.activeAt === undefined && unanswered(comment)))) return false
+  return !!nextReady(comments)
+}
 
 /* ───────────────────────────── the brief ─────────────────────────
-   The open comments, written for the agent. It is rendered here rather than in
-   the workspace because the workspace does not know what a delivery is: a tick
-   hands over everything open, whenever each of them was written. */
+   The active comment, written for the agent. It is rendered here rather than
+   in the workspace because only a delivery decides which ready comment owns
+   the next turn. */
 
 const SCREENS = [
   { id: 'ultrawide', label: 'Ultrawide', width: 2560, height: 1440 },
@@ -417,7 +461,7 @@ const coversLine = comment => comment.covers.map(c => `\`<${c.tag}>\` “${c.tex
 function renderBrief (subject, going, fresh) {
   const L = []
   L.push(`# ${subject.live ? 'Live UI review' : 'Wireframe review'} — ${subject.name} · v${subject.state.version || 1}`)
-  L.push(`${going.length} open comment(s) — every one is a must` +
+  L.push(`${going.length} active comment — finish it or ask before taking the next` +
     (fresh.size ? ` · ${fresh.size} new since you last looked` : ''))
   L.push('')
   if (subject.live) {
@@ -468,42 +512,88 @@ function renderBrief (subject, going, fresh) {
     }
   }
   L.push('---')
-  L.push('Close what you have done. Anything you do not name stays open and comes back next time,')
-  L.push('so ask about whatever is unclear instead of guessing:')
+  L.push('Close this comment when it is done, or ask about what is unclear. A question releases')
+  L.push('the queue for the next comment; the answer rejoins it in arrival order:')
   L.push('```bash')
-  L.push(`node review-server.mjs publish ${subject.flags} --close <ids> --label "<what changed>" \\`)
+  L.push(`node review-server.mjs publish ${subject.flags} --close <id> --label "<what changed>" \\`)
   L.push(`  --summary "<the rest of what you would tell them>"   # optional, shown in the workspace`)
   L.push(`node review-server.mjs reply ${subject.flags} --comment <id> --text "<your question>"`)
   L.push('```')
   return L.join('\n') + '\n'
 }
 
-/**
- * Hand every open comment to the agent, and record that it went.
- *
- * All of them, every time — not only the new ones. A comment the agent skipped
- * comes back on the next tick, so the only way to be rid of one is to close it,
- * and nothing can be forgotten by being missed. What is new since the last
- * delivery is marked as such, which is a hint for where to look rather than a
- * filter on what arrives.
- */
-function deliver (subject = here()) {
+/** Hand the oldest ready comment to the agent and record that it went. New
+ *  comments and answered threads share one FIFO, and none can interrupt the
+ *  comment already active. */
+function deliver (subject = here(), session = SESSION) {
   const comments = loadComments(subject)
-  const going = deliverable(comments)
+  const open = deliverable(comments)
+  const blocked = open.some(comment => comment.activeAt ||
+    (comment.activeAt === undefined && unanswered(comment)))
+  const next = blocked ? null : nextReady(open)
+  const going = next ? [next] : []
   const fresh = new Set(going.filter(comment => !comment.deliveredAt).map(comment => comment.id))
   const at = new Date().toISOString()
-  /* The latest delivery owns the round: a comment handed over again binds to
-     whoever took it this time, which is also how a review adopted after its
-     session died changes hands. A watcher given no identity records none. */
-  for (const comment of going) { comment.deliveredAt = at; comment.deliveredTo = SESSION }
+  /* A returned thread binds to whoever takes it this time, which is also how a
+     review adopted after its session died changes hands. */
+  for (const comment of going) {
+    comment.deliveredAt = at
+    comment.deliveredTo = session
+    comment.activeAt = at
+  }
   saveComments(comments, subject)
   fs.mkdirSync(subject.store, { recursive: true })
   writeAtomic(subject.brief, renderBrief(subject, going, fresh))
   return { going, fresh }
 }
 
-/* Presence is the watcher: it is the loop that takes delivery, so a live
-   heartbeat is a session that will be handed the next comment written. */
+/**
+ * A pull watcher reports that a delivery is available without claiming the
+ * comments on the agent's behalf. Reuse one durable token until somebody
+ * claims it, so a watcher restart and two simultaneous waits observe the same
+ * event instead of manufacturing competing deliveries.
+ */
+function offerDelivery (subject = here()) {
+  const file = path.join(subject.store, 'delivery-offer.json')
+  const current = readJSON(file)
+  if (current?.token) return current
+  const offer = {
+    token: randomBytes(8).toString('hex'),
+    at: new Date().toISOString(),
+  }
+  writeJSON(file, offer)
+  return offer
+}
+
+/**
+ * Complete the second half of pull delivery. Only this command records
+ * `deliveredAt`, which means a REVIEW line left unread in a terminal buffer can
+ * never strand a comment in the agent's hands.
+ */
+function cmdClaim () {
+  const token = args.token && args.token !== true ? String(args.token) : null
+  if (!token) {
+    console.error('Need --token <token> from a REVIEW offer')
+    process.exit(1)
+  }
+  const offer = readJSON(P.offer())
+  if (!offer || offer.token !== token) {
+    console.error('That delivery offer is no longer available — run watch --next again.')
+    process.exit(2)
+  }
+  renewLease(P.listening())
+  if (!anythingWaiting()) {
+    fs.rmSync(P.offer(), { force: true })
+    console.log('Nothing to claim — that round was already taken or withdrawn.')
+    return
+  }
+  const { going, fresh } = deliver(here(), SESSION)
+  fs.rmSync(P.offer(), { force: true })
+  console.log(`CLAIMED   ${going.length} open${fresh.size ? `, ${fresh.size} new` : ''} · ${P.brief()}`)
+}
+
+/* Presence is the delivery consumer: an answered push watcher, or a bounded
+   pull whose lease says the foreground call is still reaching the agent. */
 const agentListening = () => someoneWatching()
 
 const openComments = () => loadComments()
@@ -548,7 +638,7 @@ function cmdPublish (quiet) {
      would say in chat about the round it just finished. The workspace shows it
      where the news lands, so a reviewer who is not reading the terminal still
      gets the account of what changed. */
-  const summary = args.summary && args.summary !== true ? String(args.summary).trim() : null
+  const summary = args.summary && args.summary !== true ? prose(args.summary).trim() : null
   /* A version is a frozen copy of the page under review, and a running app has
      no such thing: what a capture of one produces is a likeness with its scripts
      stripped and half its styling missing, which is worse than not offering it.
@@ -574,6 +664,9 @@ function cmdPublish (quiet) {
     const at = new Date().toISOString()
     for (const id of ids) {
       const comment = byId.get(id)
+      // Naming the active comment hands its slot back even when the reviewer
+      // withdrew it first and closing is consequently a no-op.
+      comment.activeAt = null
       if (comment.state === 'closed') continue
       comment.state = 'closed'
       // What was just closed is what the reviewer wants to look at; what was
@@ -622,10 +715,9 @@ function cmdPublish (quiet) {
       snapshot ? `Published v${n}` : null,
       ids.length ? `closed ${ids.length} comment(s)` : null,
     ].filter(Boolean).join(' — ') || 'Nothing to do')
-    /* Said here because here is where the agent believes it has finished. The
-       tick will not raise these again on its own — it wakes for what the
-       reviewer says, and they have said it already. */
-    const left = loadComments().filter(comment => comment.state === 'open' && comment.deliveredAt)
+    /* Said here because an active comment left unnamed still owns the FIFO and
+       prevents the next delivery. */
+    const left = loadComments().filter(comment => comment.state === 'open' && comment.activeAt)
     if (left.length) {
       console.log(`${left.length} comment(s) you were given are still open: ${left.map(c => c.id).join(', ')}`)
       console.log('Close them, or reply asking about them — leaving one silently leaves it on the reviewer.')
@@ -673,16 +765,16 @@ function cmdReset (quiet) {
  */
 function cmdReply () {
   const id = args.comment
-  const text = args.text
-  if (!id || !text) {
+  if (!id || !args.text || args.text === true) {
     console.error('Need --comment <id> --text "…"')
     process.exit(1)
   }
+  const text = prose(args.text)
   /* A question the reviewer answers by picking rather than by typing. The
      options are offered on the comment, one of them can be marked as the one
      you would take, and the box to type something else is still there — a
      choice you did not think of is the whole reason the question was asked. */
-  const options = repeatedArg('option')
+  const options = repeatedArg('option').map(prose)
   const recommend = args.recommend === undefined ? 0 : Number(args.recommend)
   if (options.length === 1) {
     console.error('A choice needs at least two --option values')
@@ -705,6 +797,9 @@ function cmdReply () {
       ? { options: options.map((option, i) => ({ text: option, recommended: i + 1 === recommend })) }
       : {}),
   })
+  // A question is a completed turn on this comment. Its answer will rejoin the
+  // FIFO when the reviewer writes it, while the next ready comment can proceed.
+  target.activeAt = null
   saveComments(comments)
   console.log(`Replied to ${id} — the reviewer will see it on the comment`
     + (options.length ? ` with ${options.length} options to pick from` : ''))
@@ -985,6 +1080,7 @@ async function cmdStream (stores, label, all, subjectFlags) {
       const subject = subjectOf(store)
       if (anythingWaiting(subject)) {
         const { going, fresh } = withStoreLock(() => deliver(subject), store)
+        if (!going.length) continue
         say(`REVIEW    ${label(store)} · ${going.length} open` +
           (fresh.size ? `, ${fresh.size} new` : '') + ` · ${subject.brief}`)
       }
@@ -999,7 +1095,7 @@ async function cmdStream (stores, label, all, subjectFlags) {
         if (seen.has(store)) continue
         /* Not covered here and heartbeating anyway: another session's watcher
            has it, and it joins this one only once that heartbeat is gone. */
-        if (watchingRecently(inStore(store, 'watching'))) continue
+        if (watchingRecently(inStore(store, 'watching')) || leasedRecently(inStore(store, 'listening'))) continue
         stores.push(store)
         seen.set(store, { flags: new Set() })
         say(`OPENED    ${label(store)} · now watching ${stores.length} review(s)`)
@@ -1019,6 +1115,72 @@ async function cmdStream (stores, label, all, subjectFlags) {
   }
 }
 
+/**
+ * `watch --next` — a bounded pull for Hosts whose terminal sessions do not
+ * push background stdout into an idle agent turn.
+ *
+ * The command returns inside the caller's foreground tool invocation, either
+ * with one event or with IDLE. A REVIEW is only an offer: `claim` is the point
+ * at which the agent proves it received the event and delivery is recorded.
+ */
+async function cmdNext (stores, label, all) {
+  const timeout = Math.max(1, Number(args.timeout) || 25) * 1000
+  const until = Date.now() + timeout
+  const lease = startLease(() => stores.map(store => inStore(store, 'listening')))
+  const finish = (line, code = 0) => {
+    lease.stop()
+    console.log(line)
+    process.exit(code)
+  }
+  const stop = code => { lease.stop(); process.exit(code) }
+  process.on('SIGINT', () => stop(130))
+  process.on('SIGTERM', () => stop(143))
+
+  while (Date.now() < until) {
+    for (const store of [...stores]) {
+      const at = name => inStore(store, name)
+      if (!fs.existsSync(at('url'))) {
+        fs.rmSync(at('listening'), { force: true })
+        stores = stores.filter(item => item !== store)
+        return finish(`CLOSED    ${label(store)} · the tab went away`)
+      }
+      if (fs.existsSync(at('approved'))) return finish(`APPROVED  ${label(store)} · read ${at('approved')}`)
+      if (fs.existsSync(at('share'))) return finish(`SHARE     ${label(store)} · read ${at('share')}`)
+
+      const subject = subjectOf(store)
+      if (anythingWaiting(subject)) {
+        const offered = withStoreLock(() => {
+          // Another pull consumer may have claimed between the outer check and
+          // this lock. In that case there is no event for this call after all.
+          if (!anythingWaiting(subject)) return null
+          return offerDelivery(subject)
+        }, store)
+        if (!offered) continue
+        lease.renew()
+        lease.stop()
+        console.log(`REVIEW    ${label(store)} · delivery offered, not yet claimed · token ${offered.token}`)
+        console.log(`CLAIM     node "${process.argv[1]}" claim ${subject.flags} --token ${offered.token}`)
+        return
+      }
+    }
+
+    if (all) {
+      for (const store of liveStores()) {
+        if (stores.includes(store)) continue
+        /* A push watcher really owns delivery. Pull consumers may overlap:
+           they see one shared offer and `claim` serialises the winner. */
+        if (watchingRecently(inStore(store, 'watching'))) continue
+        stores.push(store)
+        lease.renew()
+      }
+    }
+    await new Promise(resolve => setTimeout(resolve, 250))
+  }
+  finish(stores.length
+    ? `IDLE      no review event in ${Math.round(timeout / 1000)}s`
+    : 'CLOSED    no live reviews remain')
+}
+
 async function cmdWatch () {
   // `--file` may be given more than once; parseArgs keeps only the last, so
   // read them off the raw argv.
@@ -1032,7 +1194,9 @@ async function cmdWatch () {
      claimed store alone — it is found again the moment its watcher stops. A
      store named with `--file` is covered regardless: naming it is a deliberate
      takeover, which is how a review is adopted from a watcher that is stuck. */
-  const unclaimed = store => !watchingRecently(inStore(store, 'watching'))
+  const next = args.next === true || args.next === 'true'
+  const unclaimed = store => !watchingRecently(inStore(store, 'watching')) &&
+    (next || !leasedRecently(inStore(store, 'listening')))
   let stores = [...(all ? liveStores().filter(unclaimed) : []), ...many.map(storeFor)]
   // Named subjects only. Never fall back to the placeholder STORE from
   // `watch --all` (cwd/.vstack/local/review) — that path is not a review store, and
@@ -1049,6 +1213,8 @@ async function cmdWatch () {
   process.on('SIGINT', () => { stopBeating(); process.exit(130) })
   process.on('SIGTERM', () => { stopBeating(); process.exit(143) })
   touch()   // the page hears about it straight away
+
+  if (next) return cmdNext(stores, label, all)
 
   if (args.stream === true || args.stream === 'true') {
     // Stream mode with --all and nothing live yet: wait for a serve to appear
@@ -1091,6 +1257,7 @@ async function cmdWatch () {
       const subject = subjectOf(store)
       if (anythingWaiting(subject)) {
         const { going, fresh } = withStoreLock(() => deliver(subject), store)
+        if (!going.length) continue
         return done('REVIEW', store, subject.brief,
           ` · ${going.length} open${fresh.size ? `, ${fresh.size} new` : ''}`)
       }
@@ -1125,7 +1292,11 @@ function cmdStatus () {
     comments: loadComments().map(comment => ({
       id: comment.id,
       state: comment.state,
-      where: comment.sentAt ? (comment.deliveredAt ? 'with the agent' : 'queued') : 'still being written',
+      where: comment.state === 'closed' ? 'closed'
+        : !comment.sentAt ? 'still being written'
+        : comment.activeAt ? 'with the agent'
+          : (comment.replies || []).at(-1)?.by &&
+            (comment.replies || []).at(-1).by !== REVIEWER_ROLE ? 'waiting for the reviewer' : 'queued',
       note: comment.note,
     })),
     approved: fs.existsSync(P.approved()) ? readJSON(P.approved(), {}) : null,
@@ -1139,17 +1310,14 @@ function cmdStatus () {
 /**
  * A comment the agent was handed and has said nothing about since.
  *
- * A delivered comment is answered by closing it or by replying to it. One that
- * has neither is a round that stopped halfway, and nothing else in the protocol
- * notices: the next tick only fires when the reviewer writes again, so an
- * unanswered comment sits there for as long as they stay quiet.
+ * An active comment is answered by closing it or by replying to it. One that
+ * has neither is a turn that stopped halfway and keeps the FIFO blocked.
  *
  * It is settled by comparing what the agent has said against what it was given,
- * not against the delivery itself: every tick re-stamps `deliveredAt` on every
- * open comment, so a comment the agent asked a question about would fall behind
- * its own delivery as soon as the reviewer wrote anything at all.
+ * not against the latest thread line. A reviewer answer written after delivery
+ * is queued for a later turn rather than owed by the current one.
  */
-const unanswered = comment => {
+function unanswered (comment) {
   if (comment.state !== 'open' || !comment.deliveredAt) return false
   const when = reply => Date.parse(reply.at || '') || 0
   const delivered = Date.parse(comment.deliveredAt)
@@ -1255,6 +1423,7 @@ function readBody (req) {
 function payload () {
   const state = loadState()
   const versions = listVersions()
+  const comments = loadComments()
   return {
     mode: LIVE ? 'live' : 'local',
     // What this server is on now. A tab opened before an update still holds the
@@ -1276,7 +1445,8 @@ function payload () {
        review as the tab that wrote it, with nothing to reconstruct. What the
        reviewer took off the list is the one thing left out: the record stays on
        disk so the agent holding it can still close it. */
-    comments: loadComments().filter(comment => !comment.dismissedAt),
+    comments: comments.filter(comment => !comment.dismissedAt),
+    activeCount: comments.filter(comment => comment.activeAt).length,
     shareUrl: state.shareUrl || null,
     shareVersion: state.shareVersion || null,
     sharePending: fs.existsSync(P.share()),
@@ -1329,7 +1499,7 @@ function acceptFromReviewer (incoming) {
     if (!raw?.id) continue
     const index = indexById.get(raw.id)
     if (index === undefined) {
-      const { state, deliveredAt, deliveredTo, ...rest } = raw
+      const { state, deliveredAt, deliveredTo, activeAt, ...rest } = raw
       const fresh = normaliseComment({ ...rest, state: 'open', deliveredAt: null, sentAt: raw.sentAt ? at : null })
       indexById.set(fresh.id, comments.push(fresh) - 1)
       continue
@@ -1658,12 +1828,10 @@ font:14px/1.6 ui-sans-serif,system-ui,-apple-system,sans-serif;color:#667;backgr
       return sendJSON(res, 200, { ok: true })
     })
   }
-  /* Give a stranded round back to the queue.
-     A delivered comment is not `unseen`, so a watcher armed after the session
-     behind it died blocks and hands over nothing: the round sits where no agent
-     can reach it and no tick will raise it. Clearing `deliveredAt` puts those
-     comments back where the state table says a sent, undelivered comment
-     belongs, and the next tick takes them.
+  /* Give a stranded active comment back to the queue. A question waiting on
+     the reviewer is not stranded agent work and keeps its delivery record.
+     Clearing the active comment's delivery returns it to the FIFO for the next
+     session to take.
      Refused while a heartbeat says someone is listening, because then the round
      is not stranded — an agent holds it and owes an answer on it, and handing
      the same comment to a second session is the race. */
@@ -1671,12 +1839,20 @@ font:14px/1.6 ui-sans-serif,system-ui,-apple-system,sans-serif;color:#667;backgr
     return withStoreLock(() => {
       if (agentListening()) {
         return sendJSON(res, 409, {
-          error: 'The agent is listening — it still has these. Reply on one to ask for it back.',
+          error: 'The agent is listening — it still has this comment.',
         })
       }
       const comments = loadComments()
-      const stranded = comments.filter(comment => comment.state === 'open' && comment.deliveredAt)
-      for (const comment of stranded) { comment.deliveredAt = null; comment.deliveredTo = null }
+      const stranded = comments.filter(comment => comment.state === 'open' &&
+        (comment.activeAt || (comment.activeAt === undefined && unanswered(comment))))
+      for (const comment of comments) {
+        if (!comment.activeAt && !stranded.includes(comment)) continue
+        comment.activeAt = null
+        if (comment.state === 'open') {
+          comment.deliveredAt = null
+          comment.deliveredTo = null
+        }
+      }
       saveComments(comments)
       touch()
       return sendJSON(res, 200, { ok: true, requeued: stranded.map(comment => comment.id) })
@@ -1914,6 +2090,7 @@ switch (args._) {
   case 'publish': withStoreLock(() => cmdPublish()); break
   case 'reply': withStoreLock(cmdReply); break
   case 'ack': withStoreLock(cmdAck); break
+  case 'claim': withStoreLock(cmdClaim); break
   case 'share': withStoreLock(cmdShare); break
   case 'status': cmdStatus(); break
   case 'unanswered': cmdUnanswered(); break
@@ -1921,6 +2098,6 @@ switch (args._) {
   case 'watch': cmdWatch(); break
   case 'serve': cmdServe(); break
   default:
-    console.error(`Unknown command "${args._}". Use: serve | watch | publish | reply | ack | share | status | unanswered | reset`)
+    console.error(`Unknown command "${args._}". Use: serve | watch | claim | publish | reply | ack | share | status | unanswered | reset`)
     process.exit(1)
 }

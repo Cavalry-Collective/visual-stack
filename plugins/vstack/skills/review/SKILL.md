@@ -20,7 +20,7 @@ Adapters live in the `hosts/` directory beside this SKILL.md. Do not read
 `plugins/vstack/host-profiles/<id>.json` instead: that JSON is UI data with no
 tool mapping.
 
-**Read the adapter before §3.** Every `background`, `watch_stream`, `stop`,
+**Read the adapter before §3.** Every `background`, `watch_stream` / `watch_next`, `stop`,
 `share`, and `browser_capture` step is fulfilled exactly as that file says.
 
 A two-way review loop. The user comments on the screen; you apply the comments, ask about anything ambiguous, and publish the next version. Two things can go under it:
@@ -142,8 +142,8 @@ The page opens in **its own browser window** on the canvas — own viewport, own
 | **Clear all** | in the comment list footer, behind a confirm. It takes the addressed comments off the list — the same act as the per-card delete. Comments still open stay unless the reviewer ticks the box on the confirm, which is off every time it is asked |
 | **Link status** | a dot beside Send — linked to your session, or link lost. Nothing is said until the connection has actually answered |
 | **Send to {agent}** (⌘⏎) | sends straight through — no preview step — and wakes you up. Label uses the Host profile name. Greys out until something actually changes |
-| **In flight** | every comment you were sent keeps an indeterminate progress bar until you publish or reply. No banner covers the page any more — the progress is on the comments it belongs to |
-| **Stalled** | after a minute with nothing listening, the strip stops claiming progress and says you have stalled. **Send again** puts those comments back in the queue, and the next session to pick up is handed them. Refused while your watcher is alive, because then you still have them |
+| **In flight** | one comment keeps an indeterminate progress bar until you publish or reply. Later comments remain queued, and a question waits on the reviewer without blocking the next ready comment |
+| **Stalled** | after a minute with nothing listening, the strip stops claiming progress and says you have stalled. **Send again** puts the active comment back in the queue for the next session. Refused while your watcher is alive, because then you still have it |
 | **Addressed** | comments you closed stay in the list in their own section, each offering **Revert** or **Refine** |
 | **Publish a link to this wireframe** (the ▾ beside Send) | only when Host `capabilities.share` is `artifact`. Asks you to publish **the wireframe** (Host op `share`) and hand the URL back. Hidden on hosts without public share, and in a live review |
 | **Approve & finish** (the ▾ beside Send) | sign-off. Ends the review, closes the server, and tells you the design is settled — behind a confirm that warns how many comments are being left unapplied |
@@ -166,32 +166,34 @@ accepts a status going backwards when the reviewer deliberately sent it back.
 
 ## 5 · Catch the review, and hold up your end of the conversation
 
-After starting the server, start the watcher with Host op **`watch_stream`**. Look up the tool for
-that op in your adapter — `watch_stream` delivers each line of output to you as it arrives, and it
-is a different op from the `background` you used in §3.
+After starting the server, start the watch operation your Host adapter names. A profile with
+`capabilities.watch: stream` uses **`watch_stream`**; `pull` uses **`watch_next`**. Either is a
+different op from the `background` you used in §3.
 
 ```bash
-node "$SKILL/assets/review-server.mjs" watch --all --stream    # or --file <page.html>
+node "$SKILL/assets/review-server.mjs" watch --all --stream              # push Host
+node "$SKILL/assets/review-server.mjs" watch --all --next --timeout 25   # pull Host
 ```
 
-Use the exact command your adapter's `watch_stream` entry gives, not the bare form above: it adds
-`--session <your session id>` when your host has one, and that is what binds each delivery to you —
-without it, the round you take cannot be told apart from another session's.
+Use the exact command your adapter gives, not the bare forms above. It adds `--session <your
+session id>` when your Host has one, and that is what binds each delivery to you — without it, the
+round you take cannot be told apart from another session's.
 
-Each line of its output is one event, delivered to you as it happens, and the process keeps running,
-so one watcher covers the whole session — `--all` takes in every review open in the project,
-including ones opened later, and any you started from this directory whose page lives elsewhere.
-It never takes over a review another session's watcher is already covering.
-Run it from the same directory you started the server from; that is what ties the two together.
+`--all` takes in every review open in the project, including ones opened later, and any you started
+from this directory whose page lives elsewhere. It never takes over a push watcher another session
+already has. Run it from the same directory you started the server from; that ties the two together.
 
-**It opens with a `HANDSHAKE` line naming a command. Run that command straight away.** The watcher
-goes live once you answer, the workspace says **Linked**, and the round events start reaching you.
-Answering proves the op was fulfilled, since only a session that can run commands can answer.
-Answer within two minutes; after that the watcher prints `UNWIRED` and exits, and you start it again
-with the tool your adapter names for `watch_stream`.
+**Push:** it opens with a `HANDSHAKE` line naming a command. Run that command straight away. The
+watcher goes live once you answer. Answer within two minutes; after that it prints `UNWIRED` and
+exits, and you start it again via `watch_stream`.
 
-The page says **Linked** for as long as the watcher is answered,
-and **Unlinked** in amber the rest of the time, so the reviewer always knows which one they have.
+**Pull:** one foreground call returns within the adapter's timeout. On `IDLE`, call `watch_next`
+again. On `REVIEW`, run the exact `CLAIM` command it prints immediately; only that command hands the
+comment to you and writes `brief.md`. An unread REVIEW offer leaves the comment queued, so another
+call or session can still receive it.
+
+The page says **Linked** while a push watcher is answered or a pull call's short consumer lease is
+fresh, and **Unlinked** in amber the rest of the time.
 
 Each event is one line (full table: `contracts/review-loop.md`):
 
@@ -201,7 +203,8 @@ Each event is one line (full table: `contracts/review-loop.md`):
 | **`LINKED`** | the handshake is answered and a review is under the watcher; the workspace says Linked | carry on — the loop is live |
 | **`UNLINKED`** | the handshake is answered, but the watcher found no review to cover, so no workspace says Linked | start it again with `--file <page.html>` if a review is already running for a page outside this directory. A serve started here after it needs nothing |
 | **`UNWIRED`** | the handshake went unanswered and the watcher exited | start it again with the tool your adapter names for `watch_stream` |
-| **`REVIEW`** | comments have been handed to you; the line names how many are open and where the brief is | read the brief, then the steps below |
+| **`IDLE`** | a bounded pull ended without an event | call `watch_next` again while the review is open |
+| **`REVIEW`** | push: one comment was delivered; pull: a token was offered | pull Hosts run the printed `CLAIM` command first, then read the brief and continue below |
 | **`SHARE`** | they want a link to send someone | Host op `share` if capable, then §6; if the Host cannot share publicly, say so and offer a file/bundle instead |
 | **`APPROVED`** | the design is signed off; the server has closed itself | say it's approved, note any `openComments` deliberately left, and carry on with whatever comes next |
 | **`CLOSED`** | that review's tab went away | the watcher drops it and keeps watching the rest; it only stops when none are left |
@@ -211,19 +214,19 @@ closing a comment is `publish --close`.
 
 ### What a delivery is
 
-The watcher blocks until the reviewer has said something you have not been given, then hands you
-**every open comment** — not only the new ones — marking which are new since last time. A comment you
-do not close comes back on the next delivery, so nothing is lost by being missed.
+The watch operation waits until a comment is ready and none is active. A push watcher hands it over
+immediately; a pull watcher offers it and `claim` hands it over. Delivery contains **one comment**:
+the oldest first send or thread answer in the FIFO. A new comment or thread answer never interrupts
+the active one.
 
 While you work, **nothing will interrupt you.** New comments accumulate on the server and arrive with
 the next delivery; a review in flight cannot be called off.
 
 On a delivery:
 
-1. **Read the brief** the `REVIEW` line names (`<store>/brief.md`). It carries every open comment with
+1. **Read the brief** the `REVIEW` line names (`<store>/brief.md`). It carries the active comment with
    its element, place, screen size and thread.
-2. **Apply every comment.** There are no priorities to sort by — if the reviewer wrote it down, it
-   needs doing. Locate each from its **anchor** — the element and the region it sits in — at the screen
+2. **Apply that comment.** Locate it from its **anchor** — the element and the region it sits in — at the screen
    size it was made at, using the coordinates only to break a tie.
 3. **Ask instead of guessing.** If a comment is ambiguous, reply to it — the question appears on the
    mark and in the comment list, where the user answers it:
@@ -231,8 +234,11 @@ On a delivery:
    node "$SKILL/assets/review-server.mjs" reply --file "$FILE" \
      --comment c7f2a1 --text "Every overdue row, or only the ones assigned to you?"
    ```
-   The comment stays open and comes back with their answer attached. On disk the reply uses
-   `by: "agent"` (legacy files may say `"claude"`; treat them the same).
+   The comment stays open and releases the queue. Its answer comes back in FIFO order after whatever
+   was already ready. On disk the reply uses `by: "agent"` (legacy files may say `"claude"`; treat them the same).
+
+   **Write a paragraph break as `\n`, or as a real line break inside the quotes.** Both reach the
+   reviewer as a break, in `--text`, `--option` and `--summary`. Write `\\n` for the two characters.
 
    **When the answers are a short list, offer them.** `--option`, repeated, puts them on the
    comment as buttons, and `--recommend <n>` marks the one you would take. Pressing one answers
@@ -249,12 +255,10 @@ On a delivery:
 5. **Close what you did, and snapshot the version:**
    ```bash
    node "$SKILL/assets/review-server.mjs" publish --file "$FILE" \
-     --close c1f3k2,c9dk1 --label "Filters collapsed, overdue sorts first" \
-     --summary "Filters are collapsed behind a single control, and overdue rows sort first.
-   I left the date column alone — say if you want it narrower too."
+     --close c1f3k2 --label "Filters collapsed" \
+     --summary "Filters are collapsed behind a single control."
    ```
-   Anything you do not name stays open and comes back. Publish tells you what it left open — close
-   those or reply asking about them, because the delivery will not raise them again on its own.
+   Closing or replying releases the active slot. The watcher then hands over the next ready comment.
 
    **`--label` names the version in one line. `--summary` is the account you would give in
    chat** — what you changed, what you decided, what you left. The workspace shows it on the
@@ -265,13 +269,14 @@ On a delivery:
    ```bash
    node "$SKILL/assets/review-server.mjs" unanswered --all
    ```
-   It exits 1 and names every comment you were handed and then said nothing about — neither closed
-   nor replied to. Those are the ones nothing will remind you of again, because the next delivery
-   only comes when the reviewer writes. Add `--session <your session id>` if your adapter names one,
+   It exits 1 and names the active comment when you were handed it and then said nothing about it —
+   neither closed nor replied. Until it is answered, the FIFO cannot move. Add
+   `--session <your session id>` if your adapter names one,
    so the answer covers your deliveries and not another session's. On Claude Code a Stop hook runs
    this for you, with your session id, and holds your turn open until it is clean.
-7. Leave **`watch_stream` running** and say what changed in a few lines. Then wait — don't ask "shall I
-   continue?", the loop is the point. (Only re-arm if you used one-shot `watch` without `--stream`.)
+7. Keep the adapter's **watch operation active** and say what changed in a few lines. Then wait —
+   don't ask "shall I continue?", the loop is the point. A pull Host immediately starts its next
+   bounded wait; a push Host leaves `watch_stream` running.
 
 **Closing the browser tab closes the review.** The workspace holds an SSE
 connection; when the last one goes and none returns within the grace period
@@ -353,7 +358,7 @@ The server reverse-proxies the app, so the workspace and the app share an origin
 coordinate. The workspace moves to **http://localhost:7788/__review/**; every
 other path belongs to the app. Sockets are proxied too, so hot reload keeps
 working. Start it with Host op **`background`**, tell the user the
-`/__review/` URL, and arm **`watch_stream`** (§5) against `.vstack/local/review/<name>/` in the
+`/__review/` URL, and arm the adapter's **watch operation** (§5) against `.vstack/local/review/<name>/` in the
 directory you ran it from — **run every later command from that same directory**,
 or pass `--store`. Pass `--host` / `VSTACK_HOST` the same as a file review.
 
