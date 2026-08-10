@@ -42,3 +42,28 @@ Then('the workspace cannot requeue the round while the watcher lives', async fun
   assert.equal(requeued.response.status, 409,
     'nothing is taken off an agent that is listening')
 })
+
+When('the agent runs a bounded pull', function () {
+  this.pull = this.cli('watch', '--all', '--next', '--timeout', '1')
+  assert.equal(this.pull.status, 0, this.pull.stderr)
+  this.pullToken = this.pull.stdout.match(/token ([0-9a-f]+)/)?.[1]
+  assert.ok(this.pullToken, `pull did not offer a token:\n${this.pull.stdout}`)
+})
+
+Then('the pull offers the round without delivering it', function () {
+  assert.match(this.pull.stdout, /REVIEW/)
+  assert.equal(this.byNote('A').deliveredAt, null,
+    'terminal output nobody claimed is not a delivery')
+})
+
+When('the agent claims the pull offer', function () {
+  this.claim = this.cli('claim', ...this.subjectArgs(), '--token', this.pullToken,
+    '--session', 'codex-test')
+  assert.equal(this.claim.status, 0, this.claim.stderr)
+})
+
+Then('the pull claim delivers the round to session {string}', function (session) {
+  assert.match(this.claim.stdout, /CLAIMED/)
+  assert.ok(this.byNote('A').deliveredAt)
+  assert.equal(this.byNote('A').deliveredTo, session)
+})

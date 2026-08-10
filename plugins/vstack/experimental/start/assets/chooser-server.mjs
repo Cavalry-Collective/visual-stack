@@ -288,9 +288,12 @@ const server = http.createServer((req, res) => {
       fs.writeFileSync(OUT, JSON.stringify(record, null, 2))
       send(res, 200, 'application/json', '{"ok":true}')
 
+      // Names come from the page, and a line break in one would read as a
+      // second line of output that nothing here wrote.
+      const oneLine = s => String(s).replace(/[\r\n]+/g, ' ')
       const what = record.skipDev ? 'specs & design only — development skipped'
         : MODE === 'existing' ? 'existing project recorded'
-        : `${record.pack}` + (record.addons.length ? ` + ${record.addons.join(', ')}` : ' (no add-ons)')
+        : oneLine(record.pack) + (record.addons.length ? ` + ${record.addons.map(oneLine).join(', ')}` : ' (no add-ons)')
       console.log(`\n✓ ${what}` +
         (record.deleting.packs.length + record.deleting.addons.length
           ? `\n  deleting ${record.deleting.packs.length} pack(s) and ${record.deleting.addons.length} add-on(s)` +

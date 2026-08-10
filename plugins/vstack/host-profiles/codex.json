@@ -3,7 +3,8 @@
   "name": "Codex",
   "capabilities": {
     "share": "copy",
-    "watch": "stream",
+    "watch": "pull",
+    "turnGate": false,
     "browser": true,
     "updateDetect": "codex-install"
   },

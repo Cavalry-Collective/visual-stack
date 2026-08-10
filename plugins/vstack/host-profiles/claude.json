@@ -4,6 +4,7 @@
   "capabilities": {
     "share": "artifact",
     "watch": "stream",
+    "turnGate": true,
     "browser": true,
     "updateDetect": "claude-install"
   },

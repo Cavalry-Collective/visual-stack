@@ -8,6 +8,85 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.7.0 — 2026-08-10
+
+**Fixed**
+
+- **Comments no longer pile up undelivered when Codex stops polling.** Codex
+  receives comments through a bounded wait that returns every 25 seconds, and
+  the review continues only while the agent keeps calling it. Each wait now ends
+  by printing the exact command that resumes it, so a loop that was about to be
+  dropped names its own next step. Taking a comment prints the same line, since
+  answering one comment is not the end of the review.
+- **`unanswered` no longer reports all-clear over a review nobody is watching.**
+  It now names a live review that has comments waiting with no watcher behind
+  it, and gives the command that starts watching again. Codex runs this check
+  before ending a turn, and it previously said nothing while a queue sat
+  undelivered. Comments that were never delivered still do not block the end of
+  a turn in Claude Code — they are reported, not gated.
+
+## 6.6.0 — 2026-08-10
+
+**Changed**
+
+- **Review comments now reach the agent one at a time, in FIFO order.** New
+  comments wait without interrupting the comment in progress. Asking a question
+  releases the queue so the next ready comment can proceed; when the reviewer
+  answers, that thread rejoins the queue at the time of the reply.
+- The workspace shows exactly one comment as in progress. Later comments and
+  answered threads say Queued, while questions still say that the agent is
+  waiting on the reviewer.
+
+## 6.5.0 — 2026-08-10
+
+**Changed**
+
+- **Codex now receives review rounds through bounded foreground waits.** Its
+  terminal does not push a background process's output into an idle agent turn,
+  so keeping a second persistent shell and polling its buffer could leave a
+  comment marked as delivered before Codex had read it. Codex now runs a
+  25-second `watch --next` call, repeats it on `IDLE`, and explicitly `claim`s a
+  `REVIEW` offer. Until that claim succeeds, the comments remain queued.
+- **Linked means a Codex consumer is still calling back.** Each bounded wait
+  renews a short lease which bridges normal re-arms and expires when the turn
+  stops. A leftover Node process can no longer keep the workspace falsely
+  Linked. Claude Code and Grok keep their pushed stream watcher unchanged.
+- Two Codex pulls may wait on the same review safely: both see one durable
+  offer, and only the first claim records delivery. A push watcher remains
+  exclusive and cannot be taken over by a project-wide pull.
+
+## 6.4.1 — 2026-08-09
+
+**Fixed**
+
+- **A reply written with paragraph breaks arrives with them.** A shell leaves
+  `\n` inside a quoted argument as two characters, so an agent's multi-paragraph
+  answer reached the comment thread with `\n` showing as text. `reply --text`,
+  `reply --option` and `publish --summary` now read `\n` as a line break. Write
+  `\\n` when you mean the two characters.
+- **A comment containing a double quote could break the page it was drawn on.**
+  The workspace escaped `&`, `<` and `>` but not quotes, and most of what it
+  builds is an HTML attribute — so a quote in your own words ended the attribute
+  early and the rest of the note was read as markup. Quotes are now escaped
+  everywhere the workspace writes them. The story map and the build board escape
+  the ids they put in attributes for the same reason.
+- **A save could change every object in the review server, not just its own
+  comment.** A saved comment's fields were copied across by name, and a name
+  like `__proto__` reaches the prototype rather than the object. Those names are
+  now skipped.
+- **The update check no longer keeps its cache in the shared temp directory.**
+  On a machine with more than one account, anyone could create that file first
+  and own what the check then wrote to it. It now lives in `~/.vstack/`, owned
+  by the reader and readable only by them. The move resets what the old cache
+  held, so a release you had already dismissed can ask once more.
+- **A failed action shows what went wrong without the stack behind it.** The
+  message is the part a reader can act on and is still shown in full.
+- **A second session starting at the same moment cannot reset the other's
+  counter.** The bridge's sequence file is now created in one step rather than
+  checked and then written.
+- The phase-preview comparison reads `</script >` and `</style >` as the closing
+  tags they are, and strips nested comment markers until none are left.
+
 ## 6.4.0 — 2026-08-09
 
 **Changed**

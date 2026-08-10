@@ -88,9 +88,11 @@ export class ReviewWorld {
     this.live = true
     this.name = 'testapp'
     const appPort = this.port + 1
+    const escapeHtml = s => String(s).replace(/[&<>"']/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
     this.app = http.createServer((req, res) => {
       res.writeHead(200, { 'content-type': 'text/html' })
-      res.end(`<!doctype html><title>Fixture</title><h1>${req.url}</h1><a href="/settings">Settings</a>`)
+      res.end(`<!doctype html><title>Fixture</title><h1>${escapeHtml(req.url)}</h1><a href="/settings">Settings</a>`)
     })
     await new Promise(resolve => this.app.listen(appPort, '127.0.0.1', resolve))
     this.appOrigin = `http://127.0.0.1:${appPort}`

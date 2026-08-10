@@ -1513,7 +1513,7 @@ window.VSShell = (function () {
        stacks in the order things entered it: one promoted before a dialog
        would sit under it. Older browsers have no popover and lose nothing but
        the stacking. */
-    try { el.showPopover() } catch {}
+    try { el.showPopover(); } catch {}
     el.classList.add('on');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => {
@@ -1647,7 +1647,7 @@ window.VSShell = (function () {
     // `defaultLang` is what the artifact was authored in — it opens that way
     // once, and after that the reader's own choice is the one that sticks.
     if (opts.defaultLang && !storedLang) lang = opts.defaultLang === 'zh' ? 'zh' : 'en';
-    if (opts.lang) { lang = opts.lang === 'zh' ? 'zh' : 'en'; store.set(KEY.lang, lang) }
+    if (opts.lang) { lang = opts.lang === 'zh' ? 'zh' : 'en'; store.set(KEY.lang, lang); }
     // Not every page sends something back — the form doesn't — so the primary
     // action stays out of the bar unless a page asks for it.
     const send = $('#send');
@@ -1803,7 +1803,9 @@ const API = BASE + '/api';
 const $  = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+// Quotes are escaped as well as angle brackets. Most of what this builds is an
+// attribute value, and a reviewer's own words end up inside one.
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const uid = () => 'c' + Math.random().toString(36).slice(2, 8);
 
 /* One severity: everything the reviewer writes is something to do. The mark
@@ -2125,7 +2127,7 @@ const SIZES = [
 const S = {
   runtime: 'local',
   name: 'Review', fileName: 'page.html',
-  html: '', versions: [], comments: [],
+  html: '', versions: [], comments: [], activeCount: 0,
   version: 1, viewing: 1,
   historyClearedAt: null, clearingHistory: false, resetting: false,
   /* `mode` is what the pointer does right now — View, or one of the annotate
@@ -2182,6 +2184,7 @@ async function boot () {
   S.html = data.html || '';
   S.versions = data.versions || [];
   S.comments = data.comments || [];
+  S.activeCount = data.activeCount || 0;
   S.version = S.viewing = data.currentVersion || 1;
   /* Whatever the agent last said is already said by the time the page opens —
      the banner is for a round landing while the reviewer watches, not for one
@@ -2219,21 +2222,25 @@ async function boot () {
 }
 
 /* Everything the panel says about a comment is read off the comment. A comment
-   is open or closed; two timestamps say where it has got to between the
-   reviewer and Claude. Nothing here is remembered separately, so a reload and a
-   second tab see the same review as the tab that wrote it. */
+   is open or closed; its delivery fields and thread say where it has got to
+   between the reviewer and the agent. Nothing here is remembered separately,
+   so a reload and a second tab see the same review as the tab that wrote it. */
 const isClosed = a => a.state === 'closed';
 const isOpen = a => !isClosed(a);
 /** Let go of by the reviewer: it is Claude's to answer, and its words are set. */
 const sent = a => !!a.sentAt;
-/** Written and released, but Claude has not been handed it yet. */
-const isQueued = a => !!a.sentAt && !a.deliveredAt;
 /** Claude spoke last and nobody has answered — the one state that waits on you. */
 const awaitsReply = a => isOpen(a) && isAgent((a.replies || []).at(-1)?.by);
-/** In Claude's hands: it went out with a delivery and has not come back closed.
-    A question is the exception — the comment is open and delivered, but the move
-    is the reviewer's, so progress on it would say the opposite of what is true. */
-const isWorking = a => !!a.deliveredAt && isOpen(a) && !awaitsReply(a);
+/** A reviewer answer is a new place in the FIFO, dated when they wrote it. */
+const hasUnseenReply = a => (a.replies || []).some(reply => !isAgent(reply.by) &&
+  Date.parse(reply.at || '') > Date.parse(a.deliveredAt || ''));
+/** Written and ready, but not the one comment currently in the agent's hands. */
+const isQueued = a => !!a.sentAt && isOpen(a) && !awaitsReply(a) && !a.activeAt &&
+  (!a.deliveredAt || hasUnseenReply(a));
+/** In the agent's hands. The fallback keeps a round written by an older server
+    truthful until that already-delivered work is answered. */
+const isWorking = a => isOpen(a) && !awaitsReply(a) &&
+  (!!a.activeAt || (a.activeAt === undefined && !!a.deliveredAt && !hasUnseenReply(a)));
 
 function loadAnnotations () {
   const local = S.runtime === 'artifact' ? lsGet() : null;
@@ -2294,6 +2301,7 @@ async function onReloadEvent () {
   try { data = await (await fetch(API + '/project')).json() } catch { return }
   // The link can land on its own, without the page or the review moving.
   adoptShare(data, true);
+  S.activeCount = data.activeCount || 0;
   VSShell.setWatching(data.watching);
   noteWatching(data.watching);
   VSShell.setServerVersion(data.version);
@@ -2323,7 +2331,7 @@ async function onReloadEvent () {
     return;
   }
   S.pendingUpdate = data;
-  // Mid-edit saves are not news — the comments being worked on already say so.
+  // Mid-edit saves are not news — the active comment already says so.
   // Only a version that has actually landed is worth interrupting for.
   if (bumped) {
     /* What Claude closed is news whether or not the reviewer brings the new
@@ -2385,7 +2393,7 @@ function setLink (up) {
    being worked on. A reload, a second tab and the tab that pressed Send all see
    the same thing. */
 
-/* How long nothing may be listening before a round in hand is called stalled.
+/* How long nothing may be listening before the active comment is called stalled.
    A stream watcher keeps its heartbeat up for the whole time the agent works,
    so a heartbeat that stopped is a session that went away rather than a slow
    one. The wait is what keeps a session restarting mid-round from reading as a
@@ -2402,12 +2410,12 @@ function noteWatching (value) {
 
 /** How long nothing has been listening. Zero while something is. */
 const quietFor = () => S.watching === false && S.unwatchedAt ? Date.now() - S.unwatchedAt : 0;
-/** A round in hand, quiet long enough to call the session behind it gone.
+/** An active comment, quiet long enough to call the session behind it gone.
     Everything that would animate progress asks this before claiming any. */
-const isStalled = () => quietFor() >= STALL_MS && S.ann.some(isWorking);
+const isStalled = () => quietFor() >= STALL_MS && S.activeCount > 0;
 
 function renderWork () {
-  const working = S.ann.filter(isWorking).length;
+  const working = Math.max(S.ann.filter(isWorking).length, S.activeCount);
   const queued = S.ann.filter(a => isQueued(a) && isOpen(a)).length;
   const quiet = working > 0 ? quietFor() : 0;
   const stalled = isStalled();
@@ -2433,13 +2441,12 @@ function renderWork () {
 }
 
 /**
- * Give a stalled round back to the queue.
+ * Give a stalled active comment back to the queue.
  *
  * A comment already handed over is not something a new watcher will ever be
  * given, so a session that died holding one strands it where nobody can reach
- * it. This drops only the record of the handover: the comments stay open and
- * still say what they said, and the next session to pick up is given them like
- * any other delivery.
+ * it. This drops only the record of the handover: the comment stays open and
+ * still says what it said, and the next session can take it from the FIFO.
  */
 async function sendAgain () {
   const again = $('#btnAgain');
@@ -2451,7 +2458,8 @@ async function sendAgain () {
     if (response.status === 409) { toast(T('sendAgainRefused')); return }
     if (!response.ok) throw new Error(`requeue failed (${response.status})`);
     const back = new Set((await response.json()).requeued || []);
-    for (const a of S.ann) if (back.has(a.id)) a.deliveredAt = null;
+    for (const a of S.ann) if (back.has(a.id)) { a.deliveredAt = null; a.activeAt = null }
+    S.activeCount = 0;
     toast(T('sentAgain'));
     render();
   } catch { toast(T('sendFail')) }
@@ -2498,6 +2506,7 @@ function mergeComments (serverComments) {
     // reads as one closed long ago, and drops straight into the Earlier fold
     // instead of standing where the reviewer can check it.
     if (incoming.deliveredAt !== local.deliveredAt) { local.deliveredAt = incoming.deliveredAt; changed = true }
+    if (incoming.activeAt !== local.activeAt) { local.activeAt = incoming.activeAt; changed = true }
     if (incoming.sentAt !== local.sentAt) { local.sentAt = incoming.sentAt; changed = true }
     if (incoming.closedAt !== local.closedAt) { local.closedAt = incoming.closedAt; changed = true }
   }
@@ -4761,9 +4770,9 @@ function wirePanelResize () {
   });
 }
 
-/* Send stays Send, even with a round out. Noticing something else while Claude
-   works is the normal case, not an interruption to be blocked — the comment
-   goes out and joins the round. */
+/* Send stays Send while one comment is active. Noticing something else is the
+   normal case; the new comment takes its place in the FIFO without interrupting
+   what the agent is doing. */
 function renderSendButton (open) {
   const btn = $('#btnSend');
   // Both labels, and the bar's width picks one — the long form while there is

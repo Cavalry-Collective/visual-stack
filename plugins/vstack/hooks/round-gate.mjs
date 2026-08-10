@@ -23,7 +23,7 @@ try { input = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}') } catch
 /* One block per turn. The gate names what is missing once; a session that means
    to stop with a round open — because the reviewer asked it to — must still be
    able to. Nothing is lost either way: an unanswered comment stays open and
-   comes back on the next delivery. */
+   can be returned to the FIFO once that session is gone. */
 if (input.stop_hook_active) process.exit(0)
 
 /* The payload names the session this Stop belongs to, and `unanswered` answers

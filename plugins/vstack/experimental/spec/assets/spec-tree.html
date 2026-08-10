@@ -951,7 +951,7 @@ window.VSShell = (function () {
        stacks in the order things entered it: one promoted before a dialog
        would sit under it. Older browsers have no popover and lose nothing but
        the stacking. */
-    try { el.showPopover() } catch {}
+    try { el.showPopover(); } catch {}
     el.classList.add('on');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => {
@@ -1085,7 +1085,7 @@ window.VSShell = (function () {
     // `defaultLang` is what the artifact was authored in — it opens that way
     // once, and after that the reader's own choice is the one that sticks.
     if (opts.defaultLang && !storedLang) lang = opts.defaultLang === 'zh' ? 'zh' : 'en';
-    if (opts.lang) { lang = opts.lang === 'zh' ? 'zh' : 'en'; store.set(KEY.lang, lang) }
+    if (opts.lang) { lang = opts.lang === 'zh' ? 'zh' : 'en'; store.set(KEY.lang, lang); }
     // Not every page sends something back — the form doesn't — so the primary
     // action stays out of the bar unless a page asks for it.
     const send = $('#send');
@@ -1684,7 +1684,7 @@ async function gotoVersion (n) {
       try {
         v.json = JSON.stringify(await (await fetch(`${BRIDGE.history}/${n}?t=${BRIDGE.token}`)).json());
         v.fetched = true;
-      } catch { syncTimeline(); return }
+      } catch { syncTimeline(); return; }
     }
     if (my !== navSeq || !v.json) return;          // scrubbed past while it loaded
     doc = migrate(JSON.parse(v.json));

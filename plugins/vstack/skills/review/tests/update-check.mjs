@@ -37,7 +37,8 @@ for (const part of ['lib', 'host-profiles', '.claude-plugin']) {
   fs.cpSync(path.join(PLUGIN, part), path.join(installed, part), { recursive: true })
 }
 
-const cache = path.join(process.env.TMPDIR, 'vstack-update-check.json')
+const cache = path.join(process.env.HOME, '.vstack', 'update-check.json')
+fs.mkdirSync(path.dirname(cache), { recursive: true })
 const seed = extra => fs.writeFileSync(cache, JSON.stringify({ at: Date.now(), kind: 'version', value: LATEST, ...extra }))
 seed({})
 

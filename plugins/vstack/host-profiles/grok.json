@@ -4,6 +4,7 @@
   "capabilities": {
     "share": "copy",
     "watch": "stream",
+    "turnGate": false,
     "browser": true,
     "updateDetect": "none"
   }

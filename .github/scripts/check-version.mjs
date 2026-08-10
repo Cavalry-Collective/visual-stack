@@ -16,6 +16,7 @@
  */
 import { execFileSync } from "node:child_process"
 import { readFileSync } from "node:fs"
+import { headingIndex } from "./changelog.mjs"
 
 const MANIFEST = "plugins/vstack/.claude-plugin/plugin.json"
 const CHANGELOG = "CHANGELOG.md"
@@ -80,8 +81,7 @@ if (previous !== null && !isHigher(parse(declared, MANIFEST), parse(previous, `$
   )
 }
 
-const heading = new RegExp(`^## ${declared.replace(/\./g, "\\.")}\\b`, "m")
-if (!heading.test(readFileSync(CHANGELOG, "utf8"))) {
+if (headingIndex(readFileSync(CHANGELOG, "utf8").split("\n"), declared) === -1) {
   fail(
     `${CHANGELOG} has no entry for ${declared}, and that entry is published as the release notes.`,
     "",
