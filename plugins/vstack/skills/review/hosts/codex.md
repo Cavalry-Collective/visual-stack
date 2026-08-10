@@ -51,13 +51,18 @@ is not proof that the current agent turn read it:
 1. Run `watch --all --next --timeout 25` as a foreground `exec_command` with a
    30-second yield. Do not retain a watcher session id.
 2. `IDLE` means call the same command again. The pull lease keeps the workspace
-   Linked between prompt re-arms and expires if this turn stops calling.
+   Linked between prompt re-arms and expires if this turn stops calling. Every
+   bounded wait that ends prints a `WAIT` line carrying the exact command that
+   resumes it; nothing delivers a comment while no call is in flight.
 3. `REVIEW` is an offer, not a delivery. Run the exact `CLAIM` command printed
    immediately. Only a successful claim marks the comment delivered and writes
    `brief.md`; then read the brief and follow the core loop.
 4. On `SHARE`, `APPROVED`, or `CLOSED`, follow the core skill and review-loop contract.
 5. Run `unanswered --all` before you end a turn, and settle whatever it names.
-   Codex cannot gate the end of a turn, so rule 14 of
+   It names two things: a round you were handed and left unanswered, which you
+   finish with `publish` or `reply`; and a live review with comments waiting and
+   nothing watching, which you settle by starting the bounded wait again. Codex
+   cannot gate the end of a turn, so rule 14 of
    [review-loop.md](../../../contracts/review-loop.md) is yours to keep.
 6. Resume bounded waits after each publish. Do not send the final response
    while the review is still active; keep the Codex turn open until approval,

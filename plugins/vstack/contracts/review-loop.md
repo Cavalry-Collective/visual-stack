@@ -155,7 +155,7 @@ Host selection: `--host <id>` or `VSTACK_HOST=<id>` (affects UI injection only).
 | `reply --file/name … --comment <id> --text "…" [--option "…" … --recommend <n>]` | Append `{ by: "agent", text, at }`, with `options: [{ text, recommended }]` when options are given. The reviewer answers by pressing one, which posts those words as their reply |
 | `share --file/name … --url <url>` | Record public URL; clear the `share` sentinel |
 | `status --file/name …` | Human/debug snapshot |
-| `unanswered [--all] [--file/name …] [--session <id>]` | Comments the agent was handed and has not answered. Exits 1 while any remain. With `--session`, only deliveries recorded for that id count |
+| `unanswered [--all] [--file/name …] [--session <id>]` | Comments the agent was handed and has not answered. Exits 1 while any remain. With `--session`, only deliveries recorded for that id count. Also names a live review that has comments waiting and no watcher behind it, at exit 0 — that queue is nobody's round yet, so it reports rather than blocks |
 | `reset --file/name …` | Delete every comment and version for the review, and start again at v1 |
 
 ---
@@ -172,6 +172,7 @@ One line of stdout per event. Streams stay open; bounded pulls return one:
 | `UNLINKED` | The handshake was answered and no review turned up to cover | Start it again with `--file` if a review is running elsewhere |
 | `UNWIRED` | The handshake went unanswered; the watcher exits `3` | Start it again via `watch_stream` |
 | `IDLE` | Bounded pull timed out without an event | Run `watch_next` again while the review remains open |
+| `WAIT` | Follows `IDLE` and `CLAIMED`; carries the command that resumes the bounded wait | Run it — after answering the round, in the `CLAIMED` case |
 | `REVIEW` | Stream: one comment delivered. Pull: token offered, nothing delivered yet | Pull runs printed `claim`; then read `brief.md`, apply it, `publish --close` / `reply` |
 | `SHARE` | Link requested | Host `share` if capable; then `share --url` |
 | `APPROVED` | Sign-off; server exiting | Confirm; next pipeline stage as skill says |

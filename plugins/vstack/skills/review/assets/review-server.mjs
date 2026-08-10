@@ -587,9 +587,15 @@ function cmdClaim () {
     console.log('Nothing to claim — that round was already taken or withdrawn.')
     return
   }
-  const { going, fresh } = deliver(here(), SESSION)
+  const subject = here()
+  const { going, fresh } = deliver(subject, SESSION)
   fs.rmSync(P.offer(), { force: true })
   console.log(`CLAIMED   ${going.length} open${fresh.size ? `, ${fresh.size} new` : ''} · ${P.brief()}`)
+  /* Claiming is the only way out of the bounded wait that leads somewhere else,
+     and answering one comment is not the end of the review. Whatever the
+     reviewer sends next waits until this loop is running again. */
+  console.log(`WAIT      answer it, then wait for the next comment:`)
+  console.log(`          node "${process.argv[1]}" watch --all ${subject.flags} --next --timeout 25`)
 }
 
 /* Presence is the delivery consumer: an answered push watcher, or a bounded
@@ -847,6 +853,14 @@ const storeFor = f => {
   return subjectDir(path.dirname(abs), TOOL.review, path.basename(abs).replace(/\.html?$/i, ''))
 }
 const inStore = (store, name) => path.join(store, name)
+
+/* This exact invocation, for an agent to run again. A watch that ends is put
+   back only by being copied out of its own output, so an argument holding a
+   space has to survive the trip — a page under "My Projects" is otherwise a
+   command that silently watches the wrong thing. */
+const thisCommand = () => `node "${process.argv[1]}" ` + process.argv.slice(2)
+  .map(arg => /[\s"]/.test(arg) ? `"${arg.replace(/(["\\])/g, '\\$1')}"` : arg)
+  .join(' ')
 
 /* Where a server records the store it is serving, for the benefit of a watcher
    that cannot walk to it.
@@ -1126,6 +1140,12 @@ async function cmdStream (stores, label, all, subjectFlags) {
 async function cmdNext (stores, label, all) {
   const timeout = Math.max(1, Number(args.timeout) || 25) * 1000
   const until = Date.now() + timeout
+  /* A bounded wait ends every few seconds, and the loop only continues because
+     the agent calls again. Nothing else is left running to notice that it
+     stopped: the lease ages out, the workspace goes Unlinked, and the comments
+     the reviewer keeps sending sit undelivered. So the wait ends by printing
+     the command that resumes it, as the one-shot form does. */
+  const rearm = thisCommand()
   const lease = startLease(() => stores.map(store => inStore(store, 'listening')))
   const finish = (line, code = 0) => {
     lease.stop()
@@ -1176,9 +1196,10 @@ async function cmdNext (stores, label, all) {
     }
     await new Promise(resolve => setTimeout(resolve, 250))
   }
-  finish(stores.length
-    ? `IDLE      no review event in ${Math.round(timeout / 1000)}s`
-    : 'CLOSED    no live reviews remain')
+  if (!stores.length) return finish('CLOSED    no live reviews remain')
+  finish(`IDLE      no review event in ${Math.round(timeout / 1000)}s\n` +
+    `WAIT      the review is still open and nothing is reading it until you call again:\n` +
+    `          ${rearm}`)
 }
 
 async function cmdWatch () {
@@ -1236,7 +1257,7 @@ async function cmdWatch () {
      the easiest thing in the world to forget, and a forgotten waiter is a
      review nobody is reading. So the last thing printed is the command that
      puts it back. Prefer `watch --stream` via Host op watch_stream. */
-  const rearm = `node "${process.argv[1]}" ${process.argv.slice(2).join(' ')}`
+  const rearm = thisCommand()
   const done = (what, store, file, detail = '') => {
     stopBeating()
     console.log(`${what}  ${label(store)}${detail}`)
@@ -1355,10 +1376,18 @@ function cmdUnanswered () {
   const stores = args.all === true || args.all === 'true' ? liveStores() : [STORE]
   const bin = process.argv[1]
   let owing = 0
+  const stranded = []
   for (const store of stores) {
     const subject = subjectOf(store)
     const owed = loadComments(subject).filter(comment =>
       unanswered(comment) && (!SESSION || comment.deliveredTo === SESSION))
+    /* A live review with comments ready and no watcher behind it. They are not
+       owed by this session — nothing ever delivered them — but this is the
+       question an agent asks before ending its turn, and answering "nothing
+       outstanding" is how a dropped watch loop stays dropped. */
+    if (!watchingRecently(inStore(store, 'watching')) &&
+        !leasedRecently(inStore(store, 'listening')) &&
+        anythingWaiting(subject)) stranded.push(subject)
     if (!owed.length) continue
     owing += owed.length
     const them = owed.length > 1 ? 'them' : 'it'
@@ -1368,7 +1397,18 @@ function cmdUnanswered () {
     console.log(`  node "${bin}" publish ${subject.flags} --close ${owed.map(comment => comment.id).join(',')} --label "what changed"`)
     console.log(`  node "${bin}" reply ${subject.flags} --comment ${owed[0].id} --text "your question"`)
   }
-  if (!owing) console.log('Nothing outstanding — every comment you were handed is closed or answered.')
+  for (const subject of stranded) {
+    console.log(`Review "${subject.name}" — comments are waiting and nothing is watching for them.`)
+    console.log(`Start the watch operation your Host adapter names, and keep it running:`)
+    console.log(`  node "${bin}" watch --all ${subject.flags} --stream        # push Host`)
+    console.log(`  node "${bin}" watch --all ${subject.flags} --next --timeout 25   # pull Host, called again each time it returns`)
+  }
+  if (!owing && !stranded.length) {
+    console.log('Nothing outstanding — every comment you were handed is closed or answered.')
+  }
+  /* Only a round this session was handed and left unanswered blocks a turn:
+     rule 14 of contracts/review-loop.md, which the Claude Stop hook enforces by
+     reading this exit code. A stranded review is reported, not blocked on. */
   process.exit(owing ? 1 : 0)
 }
 

@@ -9,7 +9,9 @@ import { fileURLToPath } from 'node:url'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const SERVER = path.resolve(HERE, '../assets/review-server.mjs')
-const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'vstack-review-test-'))
+/* A space in the path, because a project under "My Projects" is ordinary and
+   every command this suite prints for an agent to copy has to survive it. */
+const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'vstack review test '))
 const page = path.join(temp, 'page.html')
 const store = path.join(temp, '.vstack', 'local', 'review', 'page')
 const port = 18000 + (process.pid % 1000)
@@ -80,6 +82,10 @@ try {
   const idlePull = cli('watch', '--next', '--timeout', '1')
   assert.equal(idlePull.status, 0, idlePull.stderr)
   assert.match(idlePull.stdout, /IDLE/, 'a quiet pull returns instead of leaving a terminal session behind')
+  assert.match(idlePull.stdout, /watch --next --timeout 1/,
+    'a bounded wait ends by naming the command that resumes it — nothing else will')
+  assert.match(idlePull.stdout, new RegExp(`--file "${page.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`),
+    'and quotes its arguments, so the command survives being copied')
   const idleLease = path.join(store, 'listening')
   assert.ok(fs.existsSync(idleLease), 'the wait leaves a lease across the prompt re-arm gap')
   fs.rmSync(idleLease, { force: true })
@@ -268,6 +274,8 @@ try {
   const claimed = cli('claim', '--token', token, '--session', 'pull-a')
   assert.equal(claimed.status, 0, claimed.stderr)
   assert.match(claimed.stdout, /CLAIMED/)
+  assert.match(claimed.stdout, /watch --all .* --next/,
+    'taking a round names the wait to come back to once it is answered')
   assert.ok(byId('c7').deliveredAt, 'claim is the delivery point')
   assert.equal(byId('c7').deliveredTo, 'pull-a', 'claim binds delivery to its session')
   assert.equal(cli('claim', '--token', token, '--session', 'pull-b').status, 2,
@@ -290,6 +298,29 @@ try {
   assert.ok(nextToken && nextToken !== token, 'a requeued round receives a fresh offer')
   assert.equal(cli('claim', '--token', nextToken).status, 0)
   assert.equal(cli('publish', '--close', 'c7', '--label', 'Seventh done').status, 0)
+
+  /* ── a live review nobody is watching is named, not called all-clear ── */
+
+  await send([comment('c8', 'Eighth')])
+  const covered = cli('unanswered', '--all')
+  assert.equal(covered.status, 0)
+  assert.match(covered.stdout, /Nothing outstanding/,
+    'a fresh pull lease means the loop is still running; the wait between calls is not a fault')
+
+  fs.rmSync(path.join(store, 'listening'), { force: true })
+  const dropped = cli('unanswered', '--all')
+  assert.match(dropped.stdout, /comments are waiting and nothing is watching/,
+    'the end-of-turn check names a review whose watch loop stopped with a queue behind it')
+  assert.match(dropped.stdout, /--next --timeout 25/, 'and says how to start watching again')
+  assert.equal(dropped.status, 0,
+    'a comment this session never took delivery of does not block the end of its turn')
+
+  const strandedOffer = cli('watch', '--next', '--timeout', '1')
+  const strandedToken = strandedOffer.stdout.match(/token ([0-9a-f]+)/)?.[1]
+  assert.equal(cli('claim', '--token', strandedToken).status, 0)
+  assert.match(cli('unanswered', '--all').stdout, /have not answered it/,
+    'once delivered, the same comment is owed by the session that took it')
+  assert.equal(cli('publish', '--close', 'c8', '--label', 'Eighth done').status, 0)
 
   /* ── a store written by an older version is read where it lies ── */
 

@@ -8,6 +8,23 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.7.0 — 2026-08-10
+
+**Fixed**
+
+- **Comments no longer pile up undelivered when Codex stops polling.** Codex
+  receives comments through a bounded wait that returns every 25 seconds, and
+  the review continues only while the agent keeps calling it. Each wait now ends
+  by printing the exact command that resumes it, so a loop that was about to be
+  dropped names its own next step. Taking a comment prints the same line, since
+  answering one comment is not the end of the review.
+- **`unanswered` no longer reports all-clear over a review nobody is watching.**
+  It now names a live review that has comments waiting with no watcher behind
+  it, and gives the command that starts watching again. Codex runs this check
+  before ending a turn, and it previously said nothing while a queue sat
+  undelivered. Comments that were never delivered still do not block the end of
+  a turn in Claude Code — they are reported, not gated.
+
 ## 6.6.0 — 2026-08-10
 
 **Changed**

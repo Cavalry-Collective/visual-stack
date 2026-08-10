@@ -192,6 +192,11 @@ again. On `REVIEW`, run the exact `CLAIM` command it prints immediately; only th
 comment to you and writes `brief.md`. An unread REVIEW offer leaves the comment queued, so another
 call or session can still receive it.
 
+A bounded call delivers nothing once it has returned, and no process is left behind to notice that
+you stopped calling. Comments the reviewer sends then sit undelivered. Every call that ends prints
+the command that resumes it on a `WAIT` line, including the one you claim from — answer the round,
+then start the next wait.
+
 The page says **Linked** while a push watcher is answered or a pull call's short consumer lease is
 fresh, and **Unlinked** in amber the rest of the time.
 
@@ -204,6 +209,7 @@ Each event is one line (full table: `contracts/review-loop.md`):
 | **`UNLINKED`** | the handshake is answered, but the watcher found no review to cover, so no workspace says Linked | start it again with `--file <page.html>` if a review is already running for a page outside this directory. A serve started here after it needs nothing |
 | **`UNWIRED`** | the handshake went unanswered and the watcher exited | start it again with the tool your adapter names for `watch_stream` |
 | **`IDLE`** | a bounded pull ended without an event | call `watch_next` again while the review is open |
+| **`WAIT`** | follows `IDLE` and `CLAIMED`, carrying the command that resumes the bounded wait | run it — after you have answered the round, in the `CLAIMED` case |
 | **`REVIEW`** | push: one comment was delivered; pull: a token was offered | pull Hosts run the printed `CLAIM` command first, then read the brief and continue below |
 | **`SHARE`** | they want a link to send someone | Host op `share` if capable, then §6; if the Host cannot share publicly, say so and offer a file/bundle instead |
 | **`APPROVED`** | the design is signed off; the server has closed itself | say it's approved, note any `openComments` deliberately left, and carry on with whatever comes next |
