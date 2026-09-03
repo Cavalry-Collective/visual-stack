@@ -21,7 +21,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Initialise CodeQL
-        uses: github/codeql-action/init@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
+        uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
         with:
           # HTML is scanned too: every page carries inline script.
           languages: javascript-typescript
