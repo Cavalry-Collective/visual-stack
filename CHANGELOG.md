@@ -8,6 +8,36 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.8.0 — 2026-08-11
+
+**Added**
+
+- **Hand a queued comment out to a subagent instead of waiting your turn.** Send
+  three comments and the agent takes them one at a time, so the third waits for
+  the first two. Each queued comment now carries a hand-out icon beside its ×,
+  with a tooltip saying what it does. Press it and that comment is delivered
+  straight away, beside the one the agent is already on, and a subagent applies
+  it while the main round carries on. The comment is still closed and answered by
+  the session you are talking to, so the review still speaks with one voice.
+- **Parallel mode (Experimental): hand every comment out without clicking each
+  one.** Tick *Parallel mode* in the workspace settings, and every comment
+  already queued, and every comment you send after that, goes to a subagent. The agent reads the comments you sent together, groups related ones
+  (same element, same component, same kind of change), and gives each group to
+  one subagent. The setting is off by default and is remembered in your browser.
+- The icon appears only where the coding agent can start a subagent. Claude Code
+  and Grok can; Codex cannot, and there the control is hidden and every comment
+  waits its turn as before.
+
+**Changed**
+
+- **Reviewing a running app no longer puts a project's whole test suite in front
+  of every comment.** Comments are applied one at a time, so a full run per
+  comment left you watching a progress bar through a suite that has nothing to
+  say about a spacing or wording change. The agent now runs only what its change
+  touches, and runs the full suite once your comments are all answered and
+  nothing is queued. Reviewing a wireframe file is unaffected, since there is no
+  code under it.
+
 ## 6.7.0 — 2026-08-10
 
 **Fixed**

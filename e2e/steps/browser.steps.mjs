@@ -418,3 +418,57 @@ When('the reviewer clears all comments from the workspace', async function () {
     assert.equal(comments.length, 0)
   }, 'the list empties')
 })
+
+/* ── handing a queued comment out to a subagent ── */
+
+/** The card for one comment. The panel is rebuilt on every change, so it is
+    found by the id the review holds rather than by a node kept from earlier. */
+const cardFor = (world, note) =>
+  world.browserPage.locator(`.item[data-id="${world.idFor(note)}"]`)
+
+Then('the hand-out control on {string} is {word}', async function (note, shown) {
+  const control = cardFor(this, note).locator('.idelegate')
+  await cardFor(this, note).waitFor()
+  await eventually(async () => {
+    assert.equal(await control.count(), shown === 'shown' ? 1 : 0,
+      `the control is ${shown === 'shown' ? 'missing' : 'there'}`)
+  }, `the hand-out control on "${note}" is ${shown}`)
+})
+
+When('the reviewer hands {string} out to a subagent', async function (note) {
+  await cardFor(this, note).locator('.idelegate').click()
+  await eventually(() => {
+    assert.ok(this.byNote(note).delegatedAt, 'the server records the hand-out')
+  }, 'the hand-out reaches the server')
+})
+
+Then('the workspace shows {string} as work in flight', async function (note) {
+  await eventually(async () => {
+    const classes = await cardFor(this, note).getAttribute('class')
+    assert.match(classes, /\bworking\b/, `the card reads "${classes}"`)
+  }, `the panel shows "${note}" as work in flight`)
+})
+
+/* ── Parallel mode: every comment handed out as it is sent ── */
+
+Then('the Parallel mode setting is {word}', async function (shown) {
+  await this.browserPage.locator('#settingsBtn').click()
+  const row = this.browserPage.locator('#cogParallelRow')
+  await eventually(async () => {
+    assert.equal(await row.isVisible(), shown === 'shown', `the setting is ${shown === 'shown' ? 'missing' : 'there'}`)
+  }, `the setting is ${shown}`)
+})
+
+When('the reviewer turns on Parallel mode', async function () {
+  await this.browserPage.locator('#settingsBtn').click()
+  const box = this.browserPage.locator('#parallelMode')
+  await box.check()
+  assert.equal(await box.isChecked(), true)
+  await this.browserPage.locator('#settingsBtn').click()
+})
+
+Then('the server records {string} as handed out', async function (note) {
+  await eventually(() => {
+    assert.ok(this.byNote(note).delegatedAt, 'the server records the hand-out')
+  }, `"${note}" is handed out`)
+})

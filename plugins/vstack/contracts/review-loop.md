@@ -50,6 +50,7 @@ calls a comment done. Everything the workspace shows is derived from that list.
 | `deliveredAt` | The agent was last handed it. Null means it has never left the queue |
 | `deliveredTo` | The session the last delivery was recorded for — the `--session` id its watcher was started with. Null when the watcher carried no identity |
 | `activeAt` | The comment currently in the agent's hands. At most one open comment has this set |
+| `delegatedAt` | The reviewer handed it out to be worked on beside the active comment rather than behind it. It never takes the active slot |
 | `dismissedAt` | The reviewer took it off the list after it had been delivered. The record stays; the workspace never shows it again |
 
 The delivery fields and the thread carry the whole of a comment's progress:
@@ -59,6 +60,8 @@ The delivery fields and the thread carry the whole of a comment's progress:
 | Being written | none | any | yes | yes, the record goes |
 | Queued for its first turn | `sentAt` only | any | no | yes, the record goes |
 | With the agent | `sentAt`, `deliveredAt`, `activeAt` | agent has not answered this delivery | no | yes, the record stays behind it |
+| Handed out, still queued | `sentAt`, `delegatedAt` | any | no | yes, the record goes |
+| With a subagent | `sentAt`, `delegatedAt`, `deliveredAt`; no `activeAt` | agent has not answered this delivery | no | yes, the record stays behind it |
 | Waiting on the reviewer | `sentAt`, `deliveredAt`; no `activeAt` | agent spoke last | no | yes, the record stays behind it |
 | Answered and queued again | `sentAt`, `deliveredAt`; no `activeAt` | reviewer replied after delivery | no | yes, the record stays behind it |
 
@@ -66,12 +69,16 @@ The delivery fields and the thread carry the whole of a comment's progress:
 
 ## Who may do what
 
-**Reviewer** — three verbs:
+**Reviewer** — four verbs:
 
 - Add a comment.
 - Reply to a comment. A reply to a closed comment reopens it. Their own reply,
   while it is still the thread's last line, may be taken back (rule 7).
 - Withdraw a comment, at any point.
+- Hand a queued comment out, so it is worked on beside the round in flight
+  rather than behind it (rule 18). Only where the Host has subagents. A
+  workspace setting, off by default, hands out every queued comment when it is
+  turned on, and every comment as it is sent after that.
 
 A reviewer never closes a comment as done. Withdrawing takes it off the list
 they are working from: a comment the agent has not been handed leaves no record
@@ -115,6 +122,7 @@ subject present in both is read from `review/`.
 | `state.json` | `{ name, version, file? \| app?, start? }` |
 | `comments.json` | Every comment for this review |
 | `brief.md` | The one active comment, rewritten on every delivery |
+| `brief-<id>.md` | One delegated comment, written when it is handed over and deleted when it is closed. It is its own file because the active brief is rewritten under it |
 | `versions/v<n>.html` | Frozen file, or the DOM capture for a live app |
 | `versions/v<n>.meta.json` | `{ n, label, date }` |
 | `reviews/v<n>/` | Only ever read: where a store filled by an older version keeps its comments |
@@ -174,6 +182,7 @@ One line of stdout per event. Streams stay open; bounded pulls return one:
 | `IDLE` | Bounded pull timed out without an event | Run `watch_next` again while the review remains open |
 | `WAIT` | Follows `IDLE` and `CLAIMED`; carries the command that resumes the bounded wait | Run it — after answering the round, in the `CLAIMED` case |
 | `REVIEW` | Stream: one comment delivered. Pull: token offered, nothing delivered yet | Pull runs printed `claim`; then read `brief.md`, apply it, `publish --close` / `reply` |
+| `DELEGATE` | Every ready delegated comment delivered at once, beside whatever the active slot is doing. Names each id, then each `brief-<id>.md` | Group related comments, start one Host `subagent` per group; do not stop what you are on |
 | `SHARE` | Link requested | Host `share` if capable; then `share --url` |
 | `APPROVED` | Sign-off; server exiting | Confirm; next pipeline stage as skill says |
 | `OPENED` | Another live store joined `--all` | — |
@@ -207,7 +216,7 @@ reviewer comments ──Send──► comments.json
 Rules:
 
 1. Only `publish --close` says a comment is done. The reviewer has no resolve. Withdrawing (rule 9) takes a comment off their list and says nothing about the work.
-2. A tick hands over exactly one comment: the oldest ready first send or thread answer. One active comment blocks every later delivery.
+2. A tick hands over exactly one comment on the active slot: the oldest ready first send or thread answer. One active comment blocks every later delivery, except a delegated one (rule 18).
 3. Closing the active comment releases the queue. Replying also releases it, so the next ready comment can proceed while that thread waits on the reviewer. The reviewer's answer rejoins the FIFO at its reply time.
 4. **Nothing can refuse a close.** An agent that has taken delivery can always finish, whatever the reviewer did meanwhile.
 5. Closing what is already closed is a no-op, so a retried command is safe.
@@ -223,6 +232,8 @@ Rules:
 15. An active comment goes back to the queue when nothing is listening. That is the way out of a turn whose agent session died. `activeAt`, `deliveredAt` and `deliveredTo` are cleared. Comments waiting on reviewer answers stay where they are. The engine refuses recovery while either push heartbeat or pull lease is fresh, because then an agent still holds the active comment and rule 14 applies instead.
 16. A delivery binds to a session. A watcher started with `--session <id>` records that id on the comment it hands over. A later delivery of the same thread binds it to the latest session. `unanswered --session <id>` answers for that session alone, so a Host that gates the end of a turn never holds one session's turn open for another session's work. A delivery recorded with no identity is reported only by the unfiltered form.
 17. A push or legacy one-shot `watch --all` never covers a store whose push heartbeat or pull lease is fresh. A pull `watch --next` may overlap another pull: both see the same offer and only one claim can record delivery. A store named with `--file` is covered regardless — naming it is a deliberate takeover.
+18. The reviewer may hand a queued comment out to be worked on now instead of waiting its turn. `delegatedAt` records it. A delegated comment is delivered whatever the active slot is doing, takes no slot itself, and is handed over on a `DELEGATE` event with its own `brief-<id>.md`. One event carries every delegated comment ready at that tick, so the agent sees the whole batch. A send made with the workspace's Parallel mode setting records `delegatedAt` in the same write as `sentAt`. Only a comment the agent does not already owe an answer on can be handed out. Everything else about it is unchanged: it is answered by closing or replying (rule 14), and `unanswered` counts it.
+19. Delegation asks for a second worker, not a second voice. The session that took the `DELEGATE` event groups related comments, starts one Host `subagent` per group, keeps `publish` and `reply` to itself, and scopes each subagent to the comments it was given. The engine holds no lock and refuses no overlap: it is the agent that keeps two workers off the same part of the page.
 
 Rule 14 is an obligation on the agent and the engine's queue gate. `publish`
 still closes exactly what it names. A Host that can gate the end of a turn also

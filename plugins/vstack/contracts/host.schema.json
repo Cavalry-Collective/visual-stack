@@ -18,7 +18,7 @@
     },
     "capabilities": {
       "type": "object",
-      "required": ["share", "watch", "turnGate", "browser", "updateDetect"],
+      "required": ["share", "watch", "turnGate", "browser", "subagents", "updateDetect"],
       "additionalProperties": false,
       "properties": {
         "share": {
@@ -38,6 +38,10 @@
         "browser": {
           "type": "boolean",
           "description": "Host can navigate and run harvest scripts."
+        },
+        "subagents": {
+          "type": "boolean",
+          "description": "Host can start a subagent that works beside the session. False hides the workspace's hand-out control."
         },
         "updateDetect": {
           "type": "string",

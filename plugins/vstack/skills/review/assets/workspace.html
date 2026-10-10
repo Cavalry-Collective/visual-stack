@@ -814,6 +814,22 @@ body.phase #hiNew{display:inline-flex}
 .item .isend svg{width:13px;height:13px;display:block}
 .item:hover .isend,.item .isend:focus-visible{opacity:1}
 .item .isend:hover{color:var(--brand);background:var(--brand-soft)}
+/* Hand a queued comment out to a subagent. Quiet like the other row controls
+   until the card is hovered — but once it has been handed out the icon stays
+   lit, because then it is reporting where the comment went rather than offering
+   to send it somewhere. */
+.item .idelegate{flex:none;width:18px;height:18px;margin:-2px 0;border-radius:5px;color:var(--ink-3);
+  display:grid;place-items:center;opacity:0}
+.item .idelegate svg{width:13px;height:13px;display:block}
+.item:hover .idelegate,.item .idelegate:focus-visible{opacity:1}
+.item .idelegate:hover{color:var(--brand);background:var(--brand-soft)}
+.item .idelegate.on{opacity:1;color:var(--brand);background:var(--brand-soft);cursor:default}
+/* Its own bubble, on the body: the card clips its overflow and slides with a
+   transform, so a bubble inside it would be cut off. Placed from the button. */
+#floatTip{position:fixed;z-index:80;width:max-content;max-width:240px;
+  background:var(--ink);color:var(--surface);font:550 11.5px/1.35 var(--font);
+  padding:6px 9px;border-radius:6px;box-shadow:var(--shadow-pop);pointer-events:none}
+#floatTip[hidden]{display:none}
 .item .imore{flex:none;width:18px;height:18px;margin:-2px 0;border-radius:5px;color:var(--ink-3);
   font-size:13px;line-height:1;display:grid;place-items:center;opacity:0}
 .item:hover .imore,.item .imore:focus-visible,.item .imore[aria-expanded=true]{opacity:1}
@@ -995,6 +1011,10 @@ body.viewing #toolbar button[aria-pressed=true]{background:var(--surface-2);colo
 .confirmDialog .modalactions{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;
   border-top:1px solid var(--line);background:var(--surface-2)}
 /* Ours, in the slot the shell offers inside its settings menu. */
+#cogParallelRow{cursor:pointer}
+#cogParallelRow[hidden]{display:none}
+/* The same fill the selected Theme and Language buttons use beside it. */
+#cogParallelRow input{flex:none;width:14px;height:14px;margin:0;accent-color:var(--ink-2);cursor:pointer}
 .cogmenu .row.reset{display:block}
 .cogmenu .row.reset .btn{width:100%;justify-content:center}
 .confirmDialog .danger{background:var(--brand);border-color:var(--brand);color:#fff}
@@ -1089,6 +1109,13 @@ body.viewing #toolbar button[aria-pressed=true]{background:var(--surface-2);colo
           <button data-lang="zh" aria-pressed="false">中文</button>
         </div>
       </div>
+      <!-- A tool's own settings, beside the shell's. -->
+      <!-- vstack:slot cog-settings -->
+      <label class="row opt" id="cogParallelRow" hidden>
+        <span class="lbl" id="cogParallel"></span>
+        <input type="checkbox" id="parallelMode">
+      </label>
+      <!-- /vstack:slot cog-settings -->
       <!-- What is running. The workspace reports the version it loaded with and
            the server the one it is on now, so a tab left open across an update
            says which is which. -->
@@ -1925,6 +1952,15 @@ const STR = {
     refineAsked: 'Reopened — say what still needs doing',
     dismiss: 'Dismiss',
     dismissTitle: 'Take this off the list',
+    delegate: 'Work on this now',
+    delegateTitle: 'Parallel mode — a subagent works on this now, alongside the comment {agent} is on',
+    delegated: 'With a subagent',
+    delegatedTitle: 'Parallel mode — a subagent is working on this alongside {agent}',
+    delegateDone: 'Handed out — a subagent takes this one',
+    delegateFail: 'Could not hand that one out — it is no longer queued',
+    delegateQueuedDone: n => `Handed ${n} queued comment${n > 1 ? 's' : ''} to subagents`,
+    parallelMode: 'Parallel mode (Experimental)',
+    parallelModeTitle: 'Every queued comment, and every comment you send, goes to a subagent. {agent} groups related comments onto one subagent',
     more: 'More', sendOne: 'Send just this one to {agent}',
     dismissed: 'Taken off the list',
     dismissedWorking: 'Taken off your list — {agent} is already working on it.',
@@ -2057,6 +2093,15 @@ const STR = {
     refineAsked: '已重新打开 — 说明还差什么',
     dismiss: '不用管了',
     dismissTitle: '从列表中移除',
+    delegate: '立即处理这一条',
+    delegateTitle: '并行模式 — 子代理现在就处理这一条，与 {agent} 正在处理的批注同时进行',
+    delegated: '已交给子代理',
+    delegatedTitle: '并行模式 — 子代理正在与 {agent} 同时处理这一条',
+    delegateDone: '已交出 — 由子代理处理这一条',
+    delegateFail: '无法交出这一条 — 它已不在队列中',
+    delegateQueuedDone: n => `已把 ${n} 条排队中的批注交给子代理`,
+    parallelMode: '并行模式（实验性）',
+    parallelModeTitle: '排队中的批注和之后发送的每条批注都交给子代理处理。{agent} 会把相关批注合并交给同一个子代理',
     more: '更多', sendOne: '只发送这一条给 {agent}',
     dismissed: '已从列表中移除',
     dismissedWorking: '已从你的列表中移除 — {agent} 仍在处理这条。',
@@ -2098,10 +2143,14 @@ let LANG = 'en';
    / Artifact bundles readable without a serve. */
 const HOST = window.__VSTACK_HOST__ || {
   id: 'claude', name: 'Claude',
-  capabilities: { share: 'artifact', watch: 'stream', browser: true, updateDetect: 'claude-install' },
+  capabilities: { share: 'artifact', watch: 'stream', browser: true, updateDetect: 'claude-install', subagents: true },
 };
 const agentName = () => HOST.name || 'agent';
 const canShareArtifact = () => HOST.capabilities?.share === 'artifact';
+/** The Host can start a subagent, so a queued comment can be handed out to one
+    (`subagent` in contracts/host.md). Where it cannot, the control is not
+    offered — there is nothing on the other end to take the comment. */
+const canSubagent = () => HOST.capabilities?.subagents === true;
 /** Thread role: writers use "agent"; readers accept legacy "claude". */
 const isAgent = by => by === 'agent' || by === 'claude';
 const fillAgent = s => String(s ?? '').replaceAll('{agent}', agentName());
@@ -2234,13 +2283,19 @@ const awaitsReply = a => isOpen(a) && isAgent((a.replies || []).at(-1)?.by);
 /** A reviewer answer is a new place in the FIFO, dated when they wrote it. */
 const hasUnseenReply = a => (a.replies || []).some(reply => !isAgent(reply.by) &&
   Date.parse(reply.at || '') > Date.parse(a.deliveredAt || ''));
+/** Handed out by the reviewer to be worked on beside the round in flight rather
+    than behind it. It takes no active slot, so where it has got to is read off
+    its delivery fields alone. */
+const isDelegated = a => !!a.delegatedAt;
 /** Written and ready, but not the one comment currently in the agent's hands. */
 const isQueued = a => !!a.sentAt && isOpen(a) && !awaitsReply(a) && !a.activeAt &&
   (!a.deliveredAt || hasUnseenReply(a));
-/** In the agent's hands. The fallback keeps a round written by an older server
-    truthful until that already-delivered work is answered. */
+/** In the agent's hands: the active comment, or one a subagent was given. The
+    `undefined` fallback keeps a round written by an older server truthful until
+    that already-delivered work is answered. */
 const isWorking = a => isOpen(a) && !awaitsReply(a) &&
-  (!!a.activeAt || (a.activeAt === undefined && !!a.deliveredAt && !hasUnseenReply(a)));
+  (!!a.activeAt || ((a.activeAt === undefined || isDelegated(a)) &&
+    !!a.deliveredAt && !hasUnseenReply(a)));
 
 function loadAnnotations () {
   const local = S.runtime === 'artifact' ? lsGet() : null;
@@ -2251,7 +2306,7 @@ function loadAnnotations () {
 }
 // state: open (still to be dealt with) · closed (Claude says it is done).
 // Only Claude closes one; answering a closed one puts it back to open.
-const normalise = a => ({ state: 'open', note: '', size: 'desktop', replies: [], sentAt: null, deliveredAt: null, ...a });
+const normalise = a => ({ state: 'open', note: '', size: 'desktop', replies: [], sentAt: null, deliveredAt: null, delegatedAt: null, ...a });
 const lsKey = () => `vstack:review:${S.fileName}:v${S.version}`;
 const lsGet = () => { try { return JSON.parse(localStorage.getItem(lsKey())) } catch { return null } };
 
@@ -2507,6 +2562,7 @@ function mergeComments (serverComments) {
     // instead of standing where the reviewer can check it.
     if (incoming.deliveredAt !== local.deliveredAt) { local.deliveredAt = incoming.deliveredAt; changed = true }
     if (incoming.activeAt !== local.activeAt) { local.activeAt = incoming.activeAt; changed = true }
+    if (incoming.delegatedAt !== local.delegatedAt) { local.delegatedAt = incoming.delegatedAt; changed = true }
     if (incoming.sentAt !== local.sentAt) { local.sentAt = incoming.sentAt; changed = true }
     if (incoming.closedAt !== local.closedAt) { local.closedAt = incoming.closedAt; changed = true }
   }
@@ -2602,7 +2658,7 @@ function applyLang () {
   }
   $('#hiNew .lbl').textContent = T('hiNew');
   $('#hiNew').title = T('hiNewTitle');
-  renderReset();
+  renderReset(); renderParallelMode();
   $('#btnReload').title = T('reloadTitle');
   $('#btnNow').textContent = T('backToCurrent');
   $('#btnRefresh').textContent = T('reviewChanges');
@@ -3930,6 +3986,48 @@ function postReply (a, text) {
  * exception worth saying out loud — it is off your list, and Claude carries on
  * with what it was already given.
  */
+/**
+ * Hand a queued comment out to be worked on now.
+ *
+ * The engine only records the request and stops the round in flight holding this
+ * comment back; the session on the other end is what starts the subagent. The
+ * icon lights straight away and goes dark again if the server says the comment
+ * has stopped being queued — which it does the moment the agent takes it, since
+ * then there is nobody left to hand it to.
+ */
+async function handOut (a) {
+  a.delegatedAt = new Date().toISOString();
+  render();
+  try {
+    const response = await fetch(API + '/comments/delegate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: a.id }),
+    });
+    if (!response.ok) throw new Error(`delegate failed (${response.status})`);
+    a.delegatedAt = (await response.json()).delegatedAt || a.delegatedAt;
+    return true;
+  } catch {
+    a.delegatedAt = null;
+    render();
+    return false;
+  }
+}
+
+async function delegate (a) {
+  if (!delegateShown(a, isQueued(a) && isOpen(a))) return;
+  toast(T(await handOut(a) ? 'delegateDone' : 'delegateFail'));
+}
+
+/* Turning Parallel mode on covers what is already waiting, not only what is
+   sent next. A comment the agent takes in the meantime is refused by the
+   server, and it is in the agent's hands anyway, so it is left out of the count. */
+async function delegateQueued () {
+  const waiting = S.ann.filter(a => !isDelegated(a) && delegateShown(a, isQueued(a) && isOpen(a)));
+  if (!waiting.length) return;
+  const handed = (await Promise.all(waiting.map(handOut))).filter(Boolean).length;
+  if (handed) toast(T('delegateQueuedDone')(handed));
+}
+
 async function takeOff (a) {
   if (isHistory()) return;
   const working = isWorking(a);
@@ -4428,6 +4526,32 @@ function closeItemMenus () {
 document.addEventListener('pointerdown', e => {
   if (!e.target.closest('.imenu, .imore')) closeItemMenus();
 });
+/** The bubble for an icon button that carries `data-tip`. One element on the
+    body, filled from the button under the pointer or the keyboard. */
+const floatTip = Object.assign(document.createElement('div'),
+  { id: 'floatTip', role: 'tooltip', hidden: true });
+document.body.append(floatTip);
+function showTip (b) {
+  floatTip.textContent = b.dataset.tip;
+  floatTip.hidden = false;
+  const r = b.getBoundingClientRect(), w = floatTip.offsetWidth, h = floatTip.offsetHeight;
+  floatTip.style.left = Math.max(8, Math.min(r.right - w, window.innerWidth - w - 8)) + 'px';
+  floatTip.style.top = (r.bottom + 6 + h > window.innerHeight - 8 ? r.top - h - 6 : r.bottom + 6) + 'px';
+}
+const hideTip = () => { floatTip.hidden = true };
+document.addEventListener('pointerover', e => {
+  const b = e.target.closest?.('[data-tip]');
+  if (b) showTip(b); else hideTip();
+});
+document.addEventListener('focusin', e => {
+  if (!e.target.matches?.('[data-tip]')) return;
+  floatTip.textContent = e.target.dataset.tip;
+  if (e.target.matches(':focus-visible')) showTip(e.target);
+});
+document.addEventListener('focusout', hideTip);
+document.addEventListener('pointerdown', hideTip);
+document.addEventListener('scroll', hideTip, true);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') hideTip() });
 
 function group (text) {
   const h = document.createElement('div');
@@ -4442,6 +4566,13 @@ function groupToggle (text, open, onclick) {
   b.onclick = onclick;
   return b;
 }
+/** Where the hand-out control belongs: on a queued comment, because that is one
+    the reviewer can still hand out, and on one already handed out, because there
+    it reports where the comment went. Both need a server to hand it to, and a
+    Host that has subagents to hand it to. */
+const delegateShown = (a, queued) => !isHistory() && served() && canSubagent() &&
+  (isDelegated(a) ? isOpen(a) && !awaitsReply(a) : queued);
+
 function itemNode (a, { otherSize, done, asked } = {}) {
   const working = isWorking(a), queued = isQueued(a) && isOpen(a);
   // Made on another screen of the app. Not gone — one click away, and the
@@ -4469,6 +4600,16 @@ function itemNode (a, { otherSize, done, asked } = {}) {
            </button>` : ''}
       ${done && !isHistory() ? `<button class="imore" aria-haspopup="true" aria-expanded="false"
         title="${esc(T('more'))}" aria-label="${esc(T('more'))}">⋯</button>` : ''}
+      ${delegateShown(a, queued) ? `<button class="idelegate${isDelegated(a) ? ' on' : ''}"
+        data-tip="${esc(T(isDelegated(a) ? 'delegatedTitle' : 'delegateTitle'))}"
+        aria-label="${esc(T(isDelegated(a) ? 'delegated' : 'delegate'))}"
+        aria-describedby="floatTip"
+        aria-pressed="${isDelegated(a)}">
+             <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor"
+                  stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+               <path d="M2.5 8h3M5.5 8c2.6 0 2.6-4 5.2-4H12M5.5 8c2.6 0 2.6 4 5.2 4H12"/>
+               <path d="M11.4 2.4 13 4l-1.6 1.6M11.4 10.4 13 12l-1.6 1.6"/></svg>
+           </button>` : ''}
       ${isHistory() ? '' : `<button class="ikill" title="${esc(T('dismissTitle'))}"
         aria-label="${esc(T('dismiss'))}">×</button>`}
       ${done && !isHistory() ? `<div class="imenu" hidden>
@@ -4540,6 +4681,8 @@ function itemNode (a, { otherSize, done, asked } = {}) {
   if (send1) send1.onclick = e => { e.stopPropagation(); openSend(a.id) };
   const landed = $('.landedtag', el);
   if (landed) landed.onclick = e => { e.stopPropagation(); adoptUpdate() };
+  const hand = $('.idelegate', el);
+  if (hand) hand.onclick = e => { e.stopPropagation(); if (!isDelegated(a)) delegate(a) };
   const kill = $('.ikill', el);
   if (kill) kill.onclick = e => { e.stopPropagation(); takeOff(a) };
   const tog = $('.thread.tog', el);
@@ -4807,6 +4950,26 @@ function renderHistoryButton () {
    a promise — this is the way out when the courtesy is not enough. It is behind
    the cog because it is not part of reviewing, and behind a confirmation
    because nothing it deletes comes back. */
+/* Parallel mode: hand every comment out as it is sent, rather than one click per card. Off
+   unless the reviewer turns it on. It is how this reviewer likes to work, so it
+   lives in the browser; the server only sees it as a flag on each send. */
+const PARALLEL_MODE_KEY = 'vstack:review:parallel-mode';
+const parallelMode = () => canSubagent() && served() &&
+  (() => { try { return localStorage.getItem(PARALLEL_MODE_KEY) === '1' } catch { return false } })();
+
+function renderParallelMode () {
+  const row = $('#cogParallelRow');
+  row.hidden = !canSubagent() || !served();
+  $('#cogParallel').textContent = T('parallelMode');
+  row.title = T('parallelModeTitle');
+  $('#parallelMode').checked = parallelMode();
+}
+$('#parallelMode').onchange = e => {
+  try { localStorage.setItem(PARALLEL_MODE_KEY, e.target.checked ? '1' : '0') } catch {}
+  renderParallelMode();
+  if (parallelMode()) delegateQueued();
+};
+
 function renderReset () {
   const btn = $('#btnReset');
   if (!btn) return;
@@ -5187,7 +5350,7 @@ async function openSend (only) {
     for (const a of going2) a.sentAt = at;
     const response = await fetch(API + '/comments', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ comments: S.ann.filter(hasSubstance) }),
+      body: JSON.stringify({ comments: S.ann.filter(hasSubstance), delegate: parallelMode() }),
     });
     if (!response.ok) throw new Error(`send failed (${response.status})`);
     const receipt = await response.json();

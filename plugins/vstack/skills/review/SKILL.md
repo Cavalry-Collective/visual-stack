@@ -211,6 +211,7 @@ Each event is one line (full table: `contracts/review-loop.md`):
 | **`IDLE`** | a bounded pull ended without an event | call `watch_next` again while the review is open |
 | **`WAIT`** | follows `IDLE` and `CLAIMED`, carrying the command that resumes the bounded wait | run it — after you have answered the round, in the `CLAIMED` case |
 | **`REVIEW`** | push: one comment was delivered; pull: a token was offered | pull Hosts run the printed `CLAIM` command first, then read the brief and continue below |
+| **`DELEGATE`** | the reviewer handed one or more comments out to be worked on now, beside the one you are on | group the related ones, start one Host `subagent` per group on their `brief-<id>.md` files, and carry on with what you were doing. See *A comment handed out* below |
 | **`SHARE`** | they want a link to send someone | Host op `share` if capable, then §6; if the Host cannot share publicly, say so and offer a file/bundle instead |
 | **`APPROVED`** | the design is signed off; the server has closed itself | say it's approved, note any `openComments` deliberately left, and carry on with whatever comes next |
 | **`CLOSED`** | that review's tab went away | the watcher drops it and keeps watching the rest; it only stops when none are left |
@@ -227,6 +228,42 @@ the active one.
 
 While you work, **nothing will interrupt you.** New comments accumulate on the server and arrive with
 the next delivery; a review in flight cannot be called off.
+
+### A comment handed out
+
+The reviewer can hand a queued comment out rather than leave it waiting for you. They do it one
+card at a time, or turn on **Parallel mode (Experimental)** in the workspace settings, which hands out
+every queued comment at once and every comment they send after that. Either way it arrives as a **`DELEGATE`** event, the one delivery that does
+not wait for the active slot. One event carries every handed-out comment that was ready at that
+moment: it names each id, then each `brief-<id>.md`.
+
+Do this with it:
+
+1. **Keep going on the comment you are on**, if there is one. A `DELEGATE` is not a change of subject.
+2. **Read every brief the event names, and group the related comments.** Comments are related when
+   any of these holds:
+   - they are anchored to the same element, or one is inside the other;
+   - they are on the same component, or the same section of one route;
+   - they ask for the same kind of change in one place, such as spacing across one list.
+
+   A comment related to nothing is a group of one. When unsure, keep comments apart.
+3. **Start one `subagent` per group** — the op your Host adapter names — and give it the brief of
+   each comment in its group.
+4. **Scope each subagent to its group.** Tell it to change only what its comments name and to leave
+   the rest of the page alone. Nothing in the engine stops two workers editing the same file, so
+   keeping them apart is yours.
+5. **Hold a comment that touches what a running subagent is changing.** Start its subagent when that
+   one reports back. This applies to a later `DELEGATE` and to the comment in the active slot.
+6. **Keep `publish` and `reply` to yourself.** A subagent reports back to you. You close its comments
+   with one `publish --close <id>,<id>` per group, so the review still speaks with one voice.
+7. Each comment is owed like any other delivery. `unanswered` counts it, and the Stop hook holds
+   your turn open until you have closed it or replied to it.
+
+With **Parallel mode** on, nothing takes the active slot. Your round is then: take the
+`DELEGATE` batch, group it, start the subagents, wait for them to report, and close each group.
+
+Your Host offers this only when its profile says `capabilities.subagents: true`. Where it does not,
+the workspace shows neither the card control nor the setting, and no `DELEGATE` event is ever sent.
 
 On a delivery:
 
@@ -396,6 +433,26 @@ If the app hot-reloads, the reviewer watches your change land. That is an
 argument for landing whole changes rather than halves, not for working slower —
 and the delivery loop (§5) still matters, because a review of a live app can be stopped
 mid-flight just as easily.
+
+### If the project has tests
+
+A live review changes source, so a project with a test suite has one to keep
+green. Comments arrive one at a time and the reviewer watches a progress bar on
+each until you answer it, so a full run per comment puts the suite in front of
+every mark.
+
+- **Per comment, run only what your change touches.** For a spacing, wording,
+  colour or ordering change that is usually nothing, and skipping is the right
+  call. Say you skipped it rather than leaving the user to assume a run.
+- **Run the full suite when the queue drains** — `unanswered` clean and `status`
+  showing no comment `queued`. The reviewer is reading your round then, so the
+  run costs them no waiting.
+- **Fix a failure the full run finds before you take the next comment**, and say
+  in chat which comment caused it. The comment it came from is already closed,
+  and it does not reopen.
+
+A file review (§1–§6) changes one self-contained HTML file, so none of this
+applies to one.
 
 ### A public website works too
 

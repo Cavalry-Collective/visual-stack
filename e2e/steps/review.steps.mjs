@@ -283,3 +283,34 @@ Then('the app is untouched', async function () {
   assert.equal(response.status, 200)
   assert.match(await response.text(), /Fixture/)
 })
+
+/* ── a comment handed out to a subagent ── */
+
+When('the agent takes the delegated delivery', function () {
+  const run = this.cli('watch', ...this.subjectArgs())
+  assert.match(run.stdout, /DELEGATE/, `expected a delegated delivery, got:\n${run.stdout}${run.stderr}`)
+  this.lastDelivery = run.stdout
+})
+
+Then('the comment {string} is handed out and still queued', function (note) {
+  const comment = this.byNote(note)
+  assert.ok(comment.delegatedAt, 'handed out')
+  assert.equal(comment.deliveredAt, null, 'recording it is not delivering it')
+})
+
+Then('the delegated brief for {string} scopes it to that comment alone', function (note) {
+  const brief = fs.readFileSync(path.join(this.store, `brief-${this.idFor(note)}.md`), 'utf8')
+  assert.ok(brief.includes(note), `the brief carries the comment:\n${brief}`)
+  assert.match(brief, /Change only what this comment names/, `the brief scopes the work:\n${brief}`)
+})
+
+Then('the comment {string} still holds the active slot', function (note) {
+  assert.ok(this.byNote(note).activeAt, 'the round in flight keeps its slot')
+})
+
+Then('the delegated delivery names {string} and {string}', function (first, second) {
+  for (const note of [first, second]) {
+    assert.ok(this.lastDelivery.includes(`brief-${this.idFor(note)}.md`),
+      `one event carries "${note}":\n${this.lastDelivery}`)
+  }
+})

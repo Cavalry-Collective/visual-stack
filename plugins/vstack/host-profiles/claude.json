@@ -6,6 +6,7 @@
     "watch": "stream",
     "turnGate": true,
     "browser": true,
+    "subagents": true,
     "updateDetect": "claude-install"
   },
   "install": {

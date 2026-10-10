@@ -322,6 +322,88 @@ try {
     'once delivered, the same comment is owed by the session that took it')
   assert.equal(cli('publish', '--close', 'c8', '--label', 'Eighth done').status, 0)
 
+  /* ── a comment handed out is worked on beside the active one ── */
+
+  await send([comment('c9', 'Ninth'), comment('c10', 'Tenth')])
+  assert.match(tick(), /REVIEW/)
+  assert.ok(byId('c9').activeAt, 'the first comment takes the active slot as usual')
+  assert.equal(byId('c10').deliveredAt, null, 'and the second waits behind it')
+
+  const handedOut = await post('/api/comments/delegate', { id: 'c10' })
+  assert.equal(handedOut.response.status, 200)
+  assert.ok(byId('c10').delegatedAt, 'handing out is recorded on the comment')
+  assert.equal(byId('c10').deliveredAt, null, 'recording it is not delivering it')
+
+  out = tick()
+  assert.match(out, /DELEGATE/, 'a handed-out comment is delivered past the active slot')
+  assert.match(out, /c10/)
+  assert.ok(byId('c10').deliveredAt, 'and delivery is recorded on it')
+  assert.equal(byId('c10').activeAt, null, 'a handed-out comment takes no slot of its own')
+  assert.ok(byId('c9').activeAt, 'so the comment in flight keeps the one it has')
+
+  const handedBrief = fs.readFileSync(path.join(store, 'brief-c10.md'), 'utf8')
+  assert.match(handedBrief, /### c10/)
+  assert.match(handedBrief, /Change only what this comment names/)
+  assert.match(briefText(), /### c9/, 'the active brief is not written over by the one beside it')
+
+  const owed = cli('unanswered', '--all')
+  assert.equal(owed.status, 1)
+  assert.match(owed.stdout, /c9/)
+  assert.match(owed.stdout, /c10/, 'both lanes are owed at the end of a turn')
+
+  const tooLate = await post('/api/comments/delegate', { id: 'c9' })
+  assert.equal(tooLate.response.status, 409,
+    'a comment the agent already owes an answer on cannot be handed to anyone else')
+
+  assert.equal((await request('/api/project')).body.activeCount, 2,
+    'the workspace counts work in both lanes as work in flight')
+
+  assert.equal(cli('publish', '--close', 'c10', '--label', 'Tenth done').status, 0)
+  assert.equal(fs.existsSync(path.join(store, 'brief-c10.md')), false,
+    'a handed-out brief goes when its comment is closed')
+  assert.equal(cli('publish', '--close', 'c9', '--label', 'Ninth done').status, 0)
+
+  /* ── Parallel mode: one send, one batch, beside the active slot ── */
+
+  await send([comment('c11', 'Eleventh')])
+  assert.match(tick(), /REVIEW/)
+  assert.ok(byId('c11').activeAt)
+
+  const stamp = new Date().toISOString()
+  await post('/api/comments', {
+    delegate: true,
+    comments: [comment('c12', 'Twelfth', { sentAt: stamp }), comment('c13', 'Thirteenth', { sentAt: stamp }),
+      comment('c14', 'Fourteenth, still a draft')],
+  })
+  assert.ok(byId('c12').delegatedAt && byId('c13').delegatedAt, 'what the send let go of is handed out')
+  assert.equal(byId('c14').delegatedAt, null, 'a draft in the same save is not')
+  await send([comment('c15', 'Fifteenth', { delegatedAt: stamp })])
+  assert.equal(byId('c15').delegatedAt, null, 'without the flag, a client cannot hand a comment out by writing the field')
+
+  out = tick()
+  assert.match(out, /DELEGATE .*· c12 c13 · /, 'every handed-out comment ready at the tick goes in one event')
+  assert.ok(out.includes(path.join(store, 'brief-c12.md')) && out.includes(path.join(store, 'brief-c13.md')),
+    'the event names each brief')
+  for (const id of ['c12', 'c13']) {
+    assert.ok(byId(id).deliveredAt, `${id} is delivered`)
+    assert.equal(byId(id).activeAt, null, `${id} takes no slot`)
+    assert.match(fs.readFileSync(path.join(store, `brief-${id}.md`), 'utf8'), new RegExp(`### ${id}`))
+  }
+  assert.ok(byId('c11').activeAt, 'the comment in flight keeps its slot')
+  assert.match(briefText(), /### c11/, 'and its brief')
+  assert.equal(byId('c15').deliveredAt, null, 'an ordinary comment still waits behind the active slot')
+
+  const statuses = JSON.parse(cli('status').stdout).comments
+  assert.equal(statuses.find(item => item.id === 'c12').where, 'with a subagent')
+
+  assert.equal(cli('publish', '--close', 'c12', '--label', 'Twelfth done').status, 0)
+  assert.equal(fs.existsSync(path.join(store, 'brief-c12.md')), false, 'closing one removes its brief')
+  assert.equal(fs.existsSync(path.join(store, 'brief-c13.md')), true, 'and leaves the rest of the batch')
+  assert.equal(cli('publish', '--close', 'c13,c11', '--label', 'Rest done').status, 0)
+  assert.match(tick(), /REVIEW/)
+  assert.equal(cli('publish', '--close', 'c15', '--label', 'Fifteenth done').status, 0)
+  await post('/api/comments/dismiss', { id: 'c14' })
+
   /* ── a store written by an older version is read where it lies ── */
 
   const old = path.join(temp, 'old')

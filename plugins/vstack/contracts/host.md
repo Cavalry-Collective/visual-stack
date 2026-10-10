@@ -110,6 +110,22 @@ reviewer can send to someone else. Profile flag:
 When the capability is not `artifact`, the agent must not pretend a link was
 published. Offline bundle mode already degrades to copy (review-loop).
 
+### `subagent(task)` — **optional**
+
+Start a helper agent that works beside the session instead of after it, and
+report back to the session when it is done. Used for a comment the reviewer
+handed out rather than leaving it to wait its turn ([review-loop.md](review-loop.md),
+rule 18). Profile flag:
+
+| `capabilities.subagents` | Meaning |
+| --- | --- |
+| `true` | Host can start one; the workspace offers the hand-out control |
+| `false` | Host cannot; the control is hidden and no comment is ever delegated |
+
+The subagent applies the comments it was given and nothing else. That is one
+comment, or a group of related ones the session put together. The session that started it
+owns `publish` and `reply`, so the review still speaks with one voice.
+
 ### `browser_capture` — **optional**
 
 Navigate, screenshot, and run in-page JS (e.g. `harvest-reference.js`). Profile:

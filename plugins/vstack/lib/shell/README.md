@@ -41,6 +41,8 @@ Page controls go in a **slot**, and survive every stamp:
 ```html
 <!-- vstack:slot tools -->     …before the theme and language switches
 <!-- vstack:slot actions -->   …after them, where the primary action belongs
+<!-- vstack:slot cog-settings -->  …in the settings menu, after language and before the version
+<!-- vstack:slot cog -->        …at the foot of the settings menu, for actions such as a reset
 ```
 
 ## Using it from a page

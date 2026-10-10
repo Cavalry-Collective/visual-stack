@@ -22,6 +22,7 @@ export VSTACK_HOST=grok
 | `stop(handle)` | `kill_command_or_subagent` with the task id | After approve or when ending the review |
 | `run(cmd)` | `run_terminal_command` (foreground) | `publish`, `reply`, `ack`, `status`, `unanswered` |
 | `edit` | file edit tools (`search_replace`, `write`, …) | HTML wireframe or app source |
+| `subagent(task)` | Grok's subagent spawn tool — the one whose task id `kill_command_or_subagent` takes | One per group of related comments in a `DELEGATE` event. Give it the `brief-<id>.md` of each comment in its group, tell it to change only what those comments ask for, and let it run beside the round you are on |
 | `share(file)` | **Not available** as a public Artifact | Profile `capabilities.share: copy` — do not run the share-URL flow; UI hides “Publish a link” |
 | `browser_capture` | Browser MCP / chrome-devtools when connected | Otherwise use user screenshots per skill §2 |
 
@@ -60,6 +61,7 @@ When `monitor` delivers a line:
 | --- | --- |
 | `HANDSHAKE` | Run the `ack` command it prints, immediately — the watcher goes live once you do |
 | `REVIEW` | read the `brief.md` it names, apply it, then `publish --close` / `reply` — never delete protocol files |
+| `DELEGATE` | group related comments, start one subagent per group on their `brief-<id>.md` files, and carry on with the round you are on; close and reply yourself |
 | `SHARE` | Host has no artifact share — tell the user to copy/export the HTML, or use `bundle-artifact.mjs` for a file they can send |
 | `APPROVED` | Confirm; offer next pipeline stage if applicable |
 | `CLOSED` | Note the review ended |

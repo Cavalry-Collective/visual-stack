@@ -6,6 +6,7 @@
     "watch": "stream",
     "turnGate": false,
     "browser": true,
+    "subagents": true,
     "updateDetect": "none"
   }
 }
