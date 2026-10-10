@@ -17,6 +17,13 @@ Every Host is described by a **profile** (`host-profiles/<id>.json`, schema
 | `id` | Stable key: `claude`, `codex`, `grok`, … — used as `VSTACK_HOST` / `--host` |
 | `name` | Human label in UI (“Claude”, “Codex”, “Grok”) |
 
+Two capability fields describe delivery semantics rather than UI:
+
+| Field | Meaning |
+| --- | --- |
+| `capabilities.watch` | `stream` pushes events; `pull` uses bounded waits and explicit claims |
+| `capabilities.turnGate` | Whether the Host can stop a turn from ending with a delivered round unanswered |
+
 ---
 
 ## Operations
@@ -34,11 +41,16 @@ Start a process that **outlives the current agent turn**. Used for
 - Must be stoppable via `stop`.
 - Stdout/stderr should remain available for diagnosis.
 
-### `watch_stream(command)` — **required**
+### Watch delivery — **required**
+
+A Host profile declares `capabilities.watch: stream | pull`, and its adapter
+implements the matching operation.
+
+#### `watch_stream(command)` — `stream`
 
 Run a long-lived process whose **stdout is a line-delimited event stream**.
-Each complete line is delivered to the agent as an event (without the agent
-having to poll or re-arm). Used for:
+Each complete line is pushed to the agent as an event without polling or
+re-arming. Used for:
 
 ```bash
 node review-server.mjs watch --all --stream
@@ -53,13 +65,30 @@ node review-server.mjs watch --all --stream
   proves a session is receiving the stream, which is the only claim the UI's
   **Linked** state is allowed to make.
 
+#### `watch_next(command)` — `pull`
+
+Run a bounded foreground command which returns one event or `IDLE` before the
+Host tool's own yield limit:
+
+```bash
+node review-server.mjs watch --all --next --timeout 25
+```
+
+- `REVIEW` is a durable offer and prints a token-bearing `claim` command.
+- The agent runs `claim` immediately; only a successful claim records delivery.
+- `IDLE` means re-run the bounded wait while the review remains open.
+- A short `listening` lease is renewed while each wait is active and expires if
+  the Host stops calling. This, not a leftover process, proves **Linked**.
+- Multiple pull consumers may see the same offer; `claim` serialises delivery.
+
 ### `stop(handle)` — **required**
 
-Terminate a process started by `background` or `watch_stream`.
+Terminate a process started by `background` or `watch_stream`. A bounded
+`watch_next` has no retained process after it returns.
 
 ### `run(command)` — **required**
 
-Synchronous shell: `publish`, `reply`, `share`, `check`, `status`, file edits’
+Synchronous shell: `claim`, `publish`, `reply`, `share`, `check`, `status`, file edits’
 supporting commands. Blocks until exit; agent reads exit code and stdout.
 
 ### `edit` — **required**
@@ -80,6 +109,22 @@ reviewer can send to someone else. Profile flag:
 
 When the capability is not `artifact`, the agent must not pretend a link was
 published. Offline bundle mode already degrades to copy (review-loop).
+
+### `subagent(task)` — **optional**
+
+Start a helper agent that works beside the session instead of after it, and
+report back to the session when it is done. Used for a comment the reviewer
+handed out rather than leaving it to wait its turn ([review-loop.md](review-loop.md),
+rule 18). Profile flag:
+
+| `capabilities.subagents` | Meaning |
+| --- | --- |
+| `true` | Host can start one; the workspace offers the hand-out control |
+| `false` | Host cannot; the control is hidden and no comment is ever delegated |
+
+The subagent applies the comments it was given and nothing else. That is one
+comment, or a group of related ones the session put together. The session that started it
+owns `publish` and `reply`, so the review still speaks with one voice.
 
 ### `browser_capture` — **optional**
 

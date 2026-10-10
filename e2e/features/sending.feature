@@ -1,7 +1,6 @@
 Feature: Page review — sending comments
-  A sent comment reaches the agent immediately when no round is in flight,
-  and queues behind the round when one is. Whatever the agent does not close
-  comes back on the next delivery.
+  A sent comment reaches the agent immediately when nothing is active. Every
+  delivery contains one comment, and ready comments are handled FIFO.
 
   Background:
     Given a page is under review
@@ -26,12 +25,15 @@ Feature: Page review — sending comments
     And the brief lists "B" as new
 
   @round1
-  Scenario: S3 — whatever is not closed comes back
+  Scenario: S3 — ready comments are delivered FIFO, one at a time
     Given the reviewer has sent comments "A" and "B"
     And the agent has taken delivery
     When the agent closes "A" and publishes "Only A"
     And the reviewer sends a comment "C"
     And the agent takes delivery
-    Then the delivery names 2 open comments, 1 new
-    And the brief lists "B" as not new
+    Then the delivery names 1 open comment, 1 new
+    And the brief lists "B" as new
+    When the agent closes "B" and publishes "Then B"
+    And the agent takes delivery
+    Then the delivery names 1 open comment, 1 new
     And the brief lists "C" as new

@@ -185,7 +185,9 @@ const someoneWatching = () => watchingRecently(WATCH_FILE)
 const HIST_DIR = path.join(BRIDGE_DIR, STEM + '.history')
 const HIST_INDEX = path.join(HIST_DIR, 'index.json')
 fs.mkdirSync(BRIDGE_DIR, { recursive: true })
-if (!fs.existsSync(SEQ_FILE)) fs.writeFileSync(SEQ_FILE, '0')
+// Created only if it is not there, in one step: a second session starting at
+// the same moment must not reset a counter the first one is already using.
+try { fs.writeFileSync(SEQ_FILE, '0', { flag: 'wx' }) } catch {}
 // A verdict belongs to the round that raised it — a new link starts unsigned,
 // or the first waiter it arms fires on last week's approval.
 fs.rmSync(APPROVED_FILE, { force: true })

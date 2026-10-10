@@ -16,7 +16,7 @@ wireframes/
     candidate-pipeline/
       state.json                 { name, version, file? | app? }
       comments.json              every comment for this review — the whole truth
-      brief.md                   the open comments, rewritten on every delivery
+      brief.md                   the active comment, rewritten on every delivery
       versions/v1.html           frozen copy of each published version
       versions/v1.meta.json      label and date
       reviews/v1/                only ever read — where an older version kept its comments
@@ -135,7 +135,7 @@ WATCHING  2 review(s): wireframe, spec-tree
 HANDSHAKE this stream is not live until you answer it. Run now:
           node …/review-server.mjs ack --all --token 7f3a91
 LINKED    handshake answered — the workspace says Linked from here
-REVIEW    wireframe · 3 open, 1 new · …/.vstack/local/review/wireframe/brief.md
+REVIEW    wireframe · 1 open, 1 new · …/.vstack/local/review/wireframe/brief.md
 OPENED    story-map-template · now watching 3 review(s)
 CLOSED    spec-tree · the tab went away
 ```
@@ -153,7 +153,7 @@ its handshake is answered. Nothing is listening to any workspace at that point,
 whatever the handshake proved: start it again with `--file <page.html>`.
 
 First thing after a `REVIEW`: read the `brief.md` it names. Delivery is already
-recorded, so the workspace shows those comments as being worked on. Use `share --url`
+recorded, so the workspace shows that comment as being worked on. Use `share --url`
 after publishing a link.
 
 A one-shot form (`watch` without `--stream`) still exists: it exits on the first
@@ -171,8 +171,8 @@ one leaves loops polling paths that no longer exist.
 
 ## Reading the brief
 
-`brief.md` is every open comment, grouped by screen size and rewritten on each
-delivery. `comments.json` beside it is the same data structured. Each comment:
+`brief.md` is the one active comment, grouped by screen size and rewritten on
+each delivery. `comments.json` beside it holds the whole queue. Each comment:
 
 | field | meaning |
 |---|---|
@@ -235,10 +235,9 @@ the desktop one.
 
 ## The conversation
 
-The reviewer has no resolve button — `publish --close <ids>` is the only thing
-that closes a comment out, and nothing they do can refuse it. Anything you do
-not name stays open and comes back on the next delivery, so a partial answer is
-a normal one.
+The reviewer has no resolve button — `publish --close <id>` is the only thing
+that closes a comment out, and nothing they do can refuse it. A delivery contains
+one comment. Close it or reply before the FIFO advances.
 They can take back a comment you have not been handed yet, but they cannot mark
 one done.
 Emptying a comment's text deletes it, so an empty comment never reaches you.

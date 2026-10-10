@@ -54,17 +54,31 @@ const phaseHtml = fs.readFileSync(phasePath, 'utf8')
 
 // ── parsing ───────────────────────────────────────────────────────────────────
 
-const stripComments = (html) => html.replace(/<!--[\s\S]*?-->/g, '')
+/** One pass can leave a `<!--` behind, because removing a comment can join the
+ *  text either side of it into a new one. Repeat until nothing more comes out. */
+const stripComments = (html) => {
+  let out = html
+  for (let before = null; before !== out;) {
+    before = out
+    out = out.replace(/<!--[\s\S]*?-->/g, '')
+  }
+  return out
+}
+
+/* A closing tag ends at its `>`, not at the tag name: `</style foo >` closes a
+   style block just as `</style>` does, because a parser reads and discards
+   whatever sits between. A pattern that stops at the name misses those and
+   reads the rest of the document as stylesheet. */
 
 /** Concatenated contents of every <style> block, in document order. */
 const styles = (html) =>
-  [...html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map((m) => m[1]).join('\n/*—*/\n')
+  [...html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style\b[^>]*>/gi)].map((m) => m[1]).join('\n/*—*/\n')
 
 /** Blank out <script> and <style> bodies so their contents aren't read as markup. */
 const stripRawText = (html) =>
   html
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '<script></script>')
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '<style></style>')
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script\b[^>]*>/gi, '<script></script>')
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style\b[^>]*>/gi, '<style></style>')
 
 const OPEN_TAG = /<([a-zA-Z][a-zA-Z0-9-]*)((?:"[^"]*"|'[^']*'|[^>"'])*)>/g
 

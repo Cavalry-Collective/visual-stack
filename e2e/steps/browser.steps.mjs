@@ -271,20 +271,53 @@ async function framedBox (world, selector) {
   return box
 }
 
-When('the reviewer scrolls the framed page to the bottom', async function () {
-  const framed = await framedWindow(this)
-  await framed.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+/* Both scrolls are re-applied on every attempt rather than done once and then
+   waited on. Until the page under review has laid out there is nothing to
+   scroll, and a scroll made at that moment is dropped rather than queued — so
+   an attempt that observes without repeating the scroll can never recover.
+
+   Each one waits to be at the bottom and to have stayed there, not merely to
+   have moved. The bottom keeps moving while the page lays out, and a step that
+   stops at the first sign of movement leaves what it scrolled to off screen,
+   where the click that follows cannot reach it. */
+
+/** The workspace sizes the frame to the page once that page has loaded, so the
+    canvas has no final extent before then. Waiting for the size it set is what
+    tells a step the layout it is about to scroll or measure has arrived. */
+async function framedPageIsFitted (world) {
   await eventually(async () => {
-    assert.ok(await framed.evaluate(() => window.scrollY) > 0, 'the page did not scroll')
-  }, 'the page under review scrolls in its own window')
+    const height = await world.browserPage.locator('#frame').evaluate(frame =>
+      frame.contentDocument?.readyState === 'complete' ? parseFloat(frame.style.height) || 0 : 0)
+    assert.ok(height > 0, 'the workspace has not sized the frame to the page')
+  }, 'the workspace sizes the frame to the page')
+}
+
+/** Scroll to the bottom and confirm it got there. `reach` scrolls and reports
+    where it landed and where the bottom is, in the same evaluation. */
+async function scrolledToTheBottom (reach, what) {
+  await eventually(async () => {
+    const { at, end } = await reach()
+    assert.ok(end > 0, `${what} did not scroll`)
+    assert.ok(Math.abs(at - end) <= 1, `${what} is not at the bottom`)
+  }, `${what} scrolls to the bottom`)
+}
+
+When('the reviewer scrolls the framed page to the bottom', async function () {
+  await framedPageIsFitted(this)
+  const framed = await framedWindow(this)
+  await scrolledToTheBottom(() => framed.evaluate(() => {
+    window.scrollTo(0, document.body.scrollHeight)
+    return { at: window.scrollY, end: document.documentElement.scrollHeight - window.innerHeight }
+  }), 'the page under review')
 })
 
 When('the reviewer scrolls the canvas to the bottom', async function () {
+  await framedPageIsFitted(this)
   const port = this.browserPage.locator('#viewportBox')
-  await port.evaluate(element => { element.scrollTop = element.scrollHeight })
-  await eventually(async () => {
-    assert.ok(await port.evaluate(element => element.scrollTop) > 0, 'the canvas did not scroll')
-  }, 'the canvas scrolls')
+  await scrolledToTheBottom(() => port.evaluate(element => {
+    element.scrollTop = element.scrollHeight
+    return { at: element.scrollTop, end: element.scrollHeight - element.clientHeight }
+  }), 'the canvas')
 })
 
 When('the reviewer clicks {string} in the framed page and writes {string}',
@@ -384,4 +417,58 @@ When('the reviewer clears all comments from the workspace', async function () {
     const { comments } = await this.project()
     assert.equal(comments.length, 0)
   }, 'the list empties')
+})
+
+/* ── handing a queued comment out to a subagent ── */
+
+/** The card for one comment. The panel is rebuilt on every change, so it is
+    found by the id the review holds rather than by a node kept from earlier. */
+const cardFor = (world, note) =>
+  world.browserPage.locator(`.item[data-id="${world.idFor(note)}"]`)
+
+Then('the hand-out control on {string} is {word}', async function (note, shown) {
+  const control = cardFor(this, note).locator('.idelegate')
+  await cardFor(this, note).waitFor()
+  await eventually(async () => {
+    assert.equal(await control.count(), shown === 'shown' ? 1 : 0,
+      `the control is ${shown === 'shown' ? 'missing' : 'there'}`)
+  }, `the hand-out control on "${note}" is ${shown}`)
+})
+
+When('the reviewer hands {string} out to a subagent', async function (note) {
+  await cardFor(this, note).locator('.idelegate').click()
+  await eventually(() => {
+    assert.ok(this.byNote(note).delegatedAt, 'the server records the hand-out')
+  }, 'the hand-out reaches the server')
+})
+
+Then('the workspace shows {string} as work in flight', async function (note) {
+  await eventually(async () => {
+    const classes = await cardFor(this, note).getAttribute('class')
+    assert.match(classes, /\bworking\b/, `the card reads "${classes}"`)
+  }, `the panel shows "${note}" as work in flight`)
+})
+
+/* ── Parallel mode: every comment handed out as it is sent ── */
+
+Then('the Parallel mode setting is {word}', async function (shown) {
+  await this.browserPage.locator('#settingsBtn').click()
+  const row = this.browserPage.locator('#cogParallelRow')
+  await eventually(async () => {
+    assert.equal(await row.isVisible(), shown === 'shown', `the setting is ${shown === 'shown' ? 'missing' : 'there'}`)
+  }, `the setting is ${shown}`)
+})
+
+When('the reviewer turns on Parallel mode', async function () {
+  await this.browserPage.locator('#settingsBtn').click()
+  const box = this.browserPage.locator('#parallelMode')
+  await box.check()
+  assert.equal(await box.isChecked(), true)
+  await this.browserPage.locator('#settingsBtn').click()
+})
+
+Then('the server records {string} as handed out', async function (note) {
+  await eventually(() => {
+    assert.ok(this.byNote(note).delegatedAt, 'the server records the hand-out')
+  }, `"${note}" is handed out`)
 })

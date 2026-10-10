@@ -16,8 +16,10 @@ assert.equal(codex.id, 'codex')
 assert.equal(codex.name, 'Codex')
 assert.deepEqual(codex.capabilities, {
   share: 'copy',
-  watch: 'stream',
+  watch: 'pull',
+  turnGate: false,
   browser: true,
+  subagents: false,
   updateDetect: 'codex-install',
 })
 assert.equal(resolveHostId({ host: ' CODEX ' }), 'codex')
@@ -40,11 +42,13 @@ for (const id of listHosts()) {
   assert.equal(p.id, id, `${where}: id matches filename`)
   assert.ok(p.name.length >= 1, `${where}: name`)
   const c = p.capabilities
-  assert.deepEqual(Object.keys(c).sort(), ['browser', 'share', 'updateDetect', 'watch'],
+  assert.deepEqual(Object.keys(c).sort(), ['browser', 'share', 'subagents', 'turnGate', 'updateDetect', 'watch'],
     `${where}: capabilities keys`)
   assert.ok(['artifact', 'copy', 'none'].includes(c.share), `${where}: share enum`)
-  assert.ok(['stream', 'oneshot'].includes(c.watch), `${where}: watch enum`)
+  assert.ok(['stream', 'pull'].includes(c.watch), `${where}: watch enum`)
+  assert.equal(typeof c.turnGate, 'boolean', `${where}: turnGate`)
   assert.equal(typeof c.browser, 'boolean', `${where}: browser`)
+  assert.equal(typeof c.subagents, 'boolean', `${where}: subagents`)
   assert.ok(['claude-install', 'codex-install', 'none'].includes(c.updateDetect), `${where}: updateDetect enum`)
   if (p.install) {
     assert.deepEqual(Object.keys(p.install).filter(k => !['howLead', 'commands', 'auto'].includes(k)), [],

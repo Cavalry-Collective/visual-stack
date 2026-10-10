@@ -15,6 +15,7 @@
  */
 import { execFileSync } from "node:child_process"
 import { readFileSync } from "node:fs"
+import { sectionFor } from "./changelog.mjs"
 
 const MANIFEST = "plugins/vstack/.claude-plugin/plugin.json"
 const CHANGELOG = "CHANGELOG.md"
@@ -32,22 +33,15 @@ try {
   // No release under that tag yet, which is the case this runs for.
 }
 
-// Everything from this version's heading up to the next one. Written by a
-// person, so it is published as-is rather than regenerated from commits.
-const changelog = readFileSync(CHANGELOG, "utf8")
-const heading = new RegExp(`^## ${version.replace(/\./g, "\\.")}\\b.*$`, "m")
-const start = changelog.search(heading)
+// Everything under this version's heading. Written by a person, so it is
+// published as-is rather than regenerated from commits.
+const notes = sectionFor(readFileSync(CHANGELOG, "utf8"), version)
 
-if (start === -1) {
+if (notes === null) {
   console.error(`${CHANGELOG} has no entry for ${version}, so there are no notes to publish.`)
   console.error("A pull request cannot merge without one, so this commit did not come through one.")
   process.exit(1)
 }
-
-const rest = changelog.slice(start)
-const nextRelease = rest.indexOf("\n## ", 1)
-const section = (nextRelease === -1 ? rest : rest.slice(0, nextRelease)).trim()
-const notes = section.slice(section.indexOf("\n") + 1).trim()
 
 gh(
   "release", "create", tag,

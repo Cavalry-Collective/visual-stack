@@ -18,7 +18,7 @@
     },
     "capabilities": {
       "type": "object",
-      "required": ["share", "watch", "browser", "updateDetect"],
+      "required": ["share", "watch", "turnGate", "browser", "subagents", "updateDetect"],
       "additionalProperties": false,
       "properties": {
         "share": {
@@ -28,12 +28,20 @@
         },
         "watch": {
           "type": "string",
-          "enum": ["stream", "oneshot"],
-          "description": "Preferred watch mode. stream is required for product-quality Linked state."
+          "enum": ["stream", "pull"],
+          "description": "Delivery mode: pushed stream events, or bounded pull waits followed by an explicit claim."
+        },
+        "turnGate": {
+          "type": "boolean",
+          "description": "Whether the Host can block a turn that tries to end with a delivered round unanswered."
         },
         "browser": {
           "type": "boolean",
           "description": "Host can navigate and run harvest scripts."
+        },
+        "subagents": {
+          "type": "boolean",
+          "description": "Host can start a subagent that works beside the session. False hides the workspace's hand-out control."
         },
         "updateDetect": {
           "type": "string",

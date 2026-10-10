@@ -24,6 +24,7 @@ Default when unset is `claude`, so existing installs keep working without this.
 | `stop(handle)` | TaskStop / stop the background task | After approve or when ending the session |
 | `run(cmd)` | Bash (foreground) | `publish`, `reply`, `ack`, `share`, `status`, `unanswered` |
 | `edit` | Edit / Write tools | Change the HTML file or app source |
+| `subagent(task)` | **Agent** tool, `subagent_type: "general-purpose"` | One per group of related comments in a `DELEGATE` event. Give it the `brief-<id>.md` of each comment in its group, and tell it to change only what those comments ask for and to report back rather than publish. Leave it in the background so the round you are on carries on |
 | `share(file)` | **Artifact** tool (favicon 🎨) | Publish the wireframe file; then `share --url <url>` |
 | `browser_capture` | Claude-in-Chrome / browser tools | Navigate, screenshot, run `harvest-reference.js` |
 

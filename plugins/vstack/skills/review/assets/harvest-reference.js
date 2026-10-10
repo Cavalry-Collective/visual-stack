@@ -67,7 +67,7 @@
     // reports `currentColor`, which would file every text colour as a border.
     for (const side of ['Top', 'Bottom', 'Left']) {
       const w = px(c['border' + side + 'Width']);
-      if (w && c['border' + side + 'Style'] !== 'none') { bump('border', `${w}px ${c['border' + side + 'Color']}`, r.width); break }
+      if (w && c['border' + side + 'Style'] !== 'none') { bump('border', `${w}px ${c['border' + side + 'Color']}`, r.width); break; }
     }
     if (px(c.borderTopLeftRadius)) bump('radius', c.borderTopLeftRadius, area);
     if (c.boxShadow !== 'none') bump('shadow', c.boxShadow, area);

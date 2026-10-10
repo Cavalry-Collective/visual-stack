@@ -14,3 +14,11 @@ Feature: The stream watcher links a session
     When the reviewer sends a comment "A"
     Then the watcher receives a REVIEW event
     And the workspace cannot requeue the round while the watcher lives
+
+  Scenario: S18 — a Codex pull does not deliver until its offer is claimed
+    Given a page is under review with host "codex"
+    When the reviewer sends a comment "A"
+    And the agent runs a bounded pull
+    Then the pull offers the round without delivering it
+    When the agent claims the pull offer
+    Then the pull claim delivers the round to session "codex-test"

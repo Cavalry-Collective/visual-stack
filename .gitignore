@@ -10,5 +10,10 @@
 # Recording the README demo installs playwright-core at the repo root.
 node_modules/
 
+# A host writes this into the plugin directory when it installs from this clone
+# as a local marketplace, which is how the plugin is tested before it ships. It
+# is that machine's install bookkeeping, not part of the plugin.
+plugins/vstack/.orphaned_at
+
 .DS_Store
 .env

@@ -3,15 +3,14 @@
 # Visual Stack
 
 [![CI](https://github.com/Cavalry-Collective/visual-stack/actions/workflows/ci.yml/badge.svg)](https://github.com/Cavalry-Collective/visual-stack/actions/workflows/ci.yml)
+[![Security](https://github.com/Cavalry-Collective/visual-stack/actions/workflows/security.yml/badge.svg)](https://github.com/Cavalry-Collective/visual-stack/actions/workflows/security.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Cavalry-Collective/visual-stack/badge)](https://scorecard.dev/viewer/?uri=github.com/Cavalry-Collective/visual-stack)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 <!-- Hidden until each one reports green again.
-     Security workflow: failing.
-     OpenSSF Scorecard: "invalid repo path" — the project is not registered with scorecard.dev.
-     Sonar quality gate: not computed. Sonar security rating: E.
+     Sonar has not analysed the repository since v5.0.0: the quality gate is
+     not computed and the security rating is still the E it was left on.
 
-[![Security](https://github.com/Cavalry-Collective/visual-stack/actions/workflows/security.yml/badge.svg)](https://github.com/Cavalry-Collective/visual-stack/actions/workflows/security.yml)
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Cavalry-Collective/visual-stack/badge)](https://scorecard.dev/viewer/?uri=github.com/Cavalry-Collective/visual-stack)
 [![Quality gate](https://sonarcloud.io/api/project_badges/measure?project=Cavalry-Collective_visual-stack&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Cavalry-Collective_visual-stack)
 [![Security rating](https://sonarcloud.io/api/project_badges/measure?project=Cavalry-Collective_visual-stack&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=Cavalry-Collective_visual-stack)
 -->
@@ -53,7 +52,7 @@ Then run:
 /vstack:review Wireframe a desktop personal task manager with minimal aesthetics.
 ```
 
-### Codex
+### Codex<sup>1</sup>
 
 Install, in your terminal:
 
@@ -67,6 +66,8 @@ Then run:
 ```text
 $vstack:review Wireframe a desktop personal task manager with minimal aesthetics.
 ```
+
+<sup>1</sup> Codex support is experimental. Codex does not come with a background monitor tool that allows two-way communication with Visual Stack. A deterministic polling workaround is used, but occasionally the agent stops polling prematurely. If that happens, prompt the agent to resume watching.
 
 ## What you can do
 
@@ -100,13 +101,13 @@ No scrolling back through the chat. No screenshot graveyard on your desktop. No 
 
 ### Live Link
 
-Each workspace is linked to one agent session. The link holds while that session is active, its heartbeat is less than 15 seconds old, and every submitted review round has been claimed.
+Each workspace is linked to one agent session. The link holds while that session is active and its heartbeat is less than 15 seconds old. Comments wait in one FIFO, and only the active comment is in the agent's hands.
 
 ![The workspace page in a browser tab talks over http and SSE to the review server on 127.0.0.1. The server reads and writes a store on disk holding the state, the versions, the comments, the rounds, and the files that carry the link. The agent session watches and writes the same store.](docs/assets/live-link.svg)
 
 ### Review Lifecycle
 
-![Your comments are submitted as one review round. The agent claims the round and reads its brief, asking for clarification when a comment is unclear. Comments sent while the round is in progress join it. Publishing is blocked until every comment has been applied, answered, or dismissed, and the published version appears in the same workspace.](docs/assets/review-lifecycle.svg)
+![Comments enter one FIFO queue. The agent receives one comment at a time, so later comments never interrupt active work. Asking a question releases the queue while that thread waits for an answer, and the answered thread rejoins in arrival order. Each completed comment publishes into the same workspace.](docs/assets/review-lifecycle.svg)
 
 ## Security
 
