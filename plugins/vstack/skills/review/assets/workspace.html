@@ -3037,6 +3037,8 @@ function fitFrameHeight () {
     return vh;
   }
   const inner = modalViewport ? (fwin()?.scrollY || 0) : 0;
+  // Read the outer scroll before apply(vh) shrinks the frame and clamps it to 0.
+  const outer = modalViewport ? 0 : vpBox.scrollTop;
   modalViewport = false;
   apply(vh);
   const natural = measure();
@@ -3044,7 +3046,7 @@ function fitFrameHeight () {
     apply(natural);
     if (measure() > natural + 2) apply(vh);
   }
-  if (inner) vpBox.scrollTop = inner;
+  if (inner || outer) vpBox.scrollTop = inner || outer;
   requestAnimationFrame(() => { sizingFrame = false });
   return parseFloat(frame.style.height) || 0;
 }

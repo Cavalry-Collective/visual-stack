@@ -8,6 +8,14 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.9.1 — 2026-11-06
+
+**Fixed**
+
+- **The canvas stays where you were when the page changes height.** If you had
+  scrolled down a long page and it then grew or shrank, the canvas jumped back to
+  the top. It now keeps your place.
+
 ## 6.9.0 — 2026-11-06
 
 **Added**

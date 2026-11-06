@@ -371,6 +371,18 @@ Then('the canvas fits the whole page again', async function () {
   }, 'the frame goes back to the height of the page')
 })
 
+When('the framed page grows', async function () {
+  this.canvasScrollWas = await this.browserPage.locator('#viewportBox').evaluate(element => element.scrollTop)
+  const framed = await framedWindow(this)
+  await framed.evaluate(() => { document.querySelector('main').style.minHeight = '2800px' })
+})
+
+Then('the canvas has not moved', async function () {
+  const now = await this.browserPage.locator('#viewportBox').evaluate(element => element.scrollTop)
+  assert.ok(Math.abs(now - this.canvasScrollWas) <= 1,
+    `the canvas was at ${this.canvasScrollWas} and is now at ${now}`)
+})
+
 When('the reviewer opens Clear all', async function () {
   await this.browserPage.locator('#btnClear').click()
   await this.browserPage.locator('#clearDialog[open]').waitFor()
