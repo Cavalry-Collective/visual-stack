@@ -32,3 +32,12 @@ Feature: Long pages and overlays on the canvas
     Then the dialog is where the reviewer is looking
     When the framed page closes its confirmation dialog
     Then the canvas fits the whole page again
+
+  @browser
+  Scenario: F4 — the canvas stays where the reviewer was when the page changes height
+    Given a long page is under review
+    And the reviewer opens the workspace
+    When the reviewer scrolls the canvas to the bottom
+    And the framed page grows
+    Then the canvas fits the whole page again
+    And the canvas has not moved
