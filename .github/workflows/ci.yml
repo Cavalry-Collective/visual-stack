@@ -35,6 +35,8 @@ jobs:
         run: node plugins/vstack/skills/review/tests/update-check.mjs
       - name: Design tokens
         run: node plugins/vstack/skills/review/tests/design-tokens.mjs
+      - name: Proofread
+        run: node plugins/vstack/skills/proofread/tests/proofread.mjs
 
   e2e:
     name: E2E (${{ matrix.host }})

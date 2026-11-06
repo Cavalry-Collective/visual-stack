@@ -27,6 +27,16 @@ Default when unset is `claude`, so existing installs keep working without this.
 | `subagent(task)` | **Agent** tool, `subagent_type: "general-purpose"` | One per group of related comments in a `DELEGATE` event. Give it the `brief-<id>.md` of each comment in its group, and tell it to change only what those comments ask for and to report back rather than publish. Leave it in the background so the round you are on carries on |
 | `share(file)` | **Artifact** tool (favicon 🎨) | Publish the wireframe file; then `share --url <url>` |
 | `browser_capture` | Claude-in-Chrome / browser tools | Navigate, screenshot, run `harvest-reference.js` |
+| `user_browser` | Claude in Chrome | See the table below. If its tools are missing, ask the user to run `/chrome` |
+
+### `user_browser` steps
+
+| Step | Tool | How |
+| --- | --- | --- |
+| `open(url)` | `tabs_context_mcp`, `tabs_create_mcp`, `navigate` | Get the tab context first, then work in a new tab. If the tool reports several browsers and none selected, ask the user which one, as the tool requires |
+| `run_script` | `javascript_tool`, action `javascript_exec` | A script times out at 45 seconds. Output that looks like a secret or encoded data can be redacted |
+| `screenshot` | `computer`, action `screenshot` | |
+| `close` | `tabs_close_mcp` | |
 
 ---
 

@@ -23,6 +23,7 @@ node "$SKILL/assets/review-server.mjs" serve --file "$FILE" --port 7788 --host c
 | `subagent(task)` | none | Profile uses `capabilities.subagents: false`. The workspace hides the hand-out control and the Parallel mode setting, so no `DELEGATE` event is ever sent and every comment waits its turn. |
 | `share(file)` | no generic public Artifact publisher | Profile uses `capabilities.share: copy`; offer the HTML file or an offline bundle instead of inventing a URL. |
 | `browser_capture` | Codex Browser controls, when installed | Navigate, resize, screenshot, and run `harvest-reference.js`. If Browser is unavailable, use screenshots supplied by the user. |
+| `user_browser` | **Not available** | Codex Browser has not been tested against the user's signed-in browser. The proofread skill stops and says so. |
 
 ## Concrete start sequence
 

@@ -25,6 +25,7 @@ export VSTACK_HOST=grok
 | `subagent(task)` | Grok's subagent spawn tool — the one whose task id `kill_command_or_subagent` takes | One per group of related comments in a `DELEGATE` event. Give it the `brief-<id>.md` of each comment in its group, tell it to change only what those comments ask for, and let it run beside the round you are on |
 | `share(file)` | **Not available** as a public Artifact | Profile `capabilities.share: copy` — do not run the share-URL flow; UI hides “Publish a link” |
 | `browser_capture` | Browser MCP / chrome-devtools when connected | Otherwise use user screenshots per skill §2 |
+| `user_browser` | **Not available** | Not tested against the user's signed-in browser. The proofread skill stops and says so. |
 
 ---
 
