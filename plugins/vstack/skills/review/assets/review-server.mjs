@@ -1123,19 +1123,21 @@ async function cmdStream (stores, label, all, subjectFlags) {
       const at = n => inStore(store, n)
       const was = seen.get(store)
 
+      /* Each sentinel is announced once per appearance, not once per poll. These
+         come before the check for a closed server, because approving closes the
+         server within one poll and the approval is what the agent has to hear. */
+      for (const [file, what] of [['approved', 'APPROVED '], ['share', 'SHARE    ']]) {
+        if (fs.existsSync(at(file))) {
+          if (!was.flags.has(file)) { say(`${what} ${label(store)} · read ${at(file)}`); was.flags.add(file) }
+        } else was.flags.delete(file)
+      }
+
       if (!fs.existsSync(at('url'))) {
         say(`CLOSED    ${label(store)} · the tab went away`)
         fs.rmSync(at('watching'), { force: true })
         stores = stores.filter(x => x !== store)
         seen.delete(store)
         continue
-      }
-
-      // Each sentinel is announced once per appearance, not once per poll.
-      for (const [file, what] of [['approved', 'APPROVED '], ['share', 'SHARE    ']]) {
-        if (fs.existsSync(at(file))) {
-          if (!was.flags.has(file)) { say(`${what} ${label(store)} · read ${at(file)}`); was.flags.add(file) }
-        } else was.flags.delete(file)
       }
 
       /* The tick. Anything the reviewer has written and not had back — a new

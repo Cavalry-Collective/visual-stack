@@ -439,6 +439,29 @@ try {
   assert.ok(fs.existsSync(path.join(oldStore, 'reviews', 'v1', 'annotations.json')),
     'the older store is read where it lies, never moved')
 
+  /* Approve writes its sentinel and the server takes the `url` file away 350ms
+     later, which fits between two polls of a stream watcher. Both changes land
+     before the next poll here, so the order the watcher reads them in decides
+     whether the agent is told the design was approved or that the tab went away. */
+  const approvedPage = path.join(temp, 'approved.html')
+  fs.writeFileSync(approvedPage, '<!doctype html><title>Approved</title>')
+  assert.equal(spawnSync(process.execPath, [SERVER, 'publish', '--file', approvedPage, '--label', 'One'], { cwd: temp }).status, 0)
+  const approvedStore = path.join(temp, '.vstack', 'local', 'review', 'approved')
+  fs.writeFileSync(path.join(approvedStore, 'url'), 'http://127.0.0.1:1/\n')
+  const streamWatcher = spawn(process.execPath, [SERVER, 'watch', '--file', approvedPage, '--stream'], {
+    cwd: temp, stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  let streamed = ''
+  streamWatcher.stdout.on('data', chunk => { streamed += chunk })
+  const streamEnded = new Promise(resolve => streamWatcher.on('exit', resolve))
+  for (let attempt = 0; attempt < 50 && !streamed.includes('WATCHING'); attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
+  fs.writeFileSync(path.join(approvedStore, 'approved'), '{}')
+  fs.rmSync(path.join(approvedStore, 'url'))
+  await streamEnded
+  assert.match(streamed, /APPROVED[^\n]*\n[^]*CLOSED/, 'an approval that closes the server is still announced')
+
   console.log('review lifecycle integration: ok')
 } finally {
   server?.kill('SIGTERM')

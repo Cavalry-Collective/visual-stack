@@ -1,6 +1,6 @@
 ---
 name: review
-description: Visual Stack's primary tool. Build a UI wireframe and open it in an interactive review workspace where the user comments directly on the page, turning those comments into the next iteration — or point the same workspace at an app that is already running and review the real thing. Use when the user wants a wireframe, UI mockup, screen design or prototype built; wants to review, annotate, mark up or comment on a page, a design, an existing UI, a running app or a website; wants to iterate on a UI; asks to use Visual Stack; or invokes $vstack:review, /vstack:review, or the older /vstack:wireframe.
+description: Visual Stack's primary tool. Build a UI wireframe and open it in an interactive review workspace where the user comments directly on the page, turning those comments into the next iteration — or point the same workspace at an app that is already running and review the real thing. Use when the user wants a wireframe, UI mockup, screen design or prototype built; wants to review, annotate, mark up or comment on a page, a design, an existing UI, a running app or a website; wants to iterate on a UI; asks to use Visual Stack; or invokes $vstack:review, /vstack:review, or the older /vstack:wireframe. For an audit that proposes changes, use vstack:design-review.
 ---
 
 ## 0 · Host (do this first)
