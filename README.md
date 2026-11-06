@@ -78,6 +78,7 @@ $vstack:review Wireframe a desktop personal task manager with minimal aesthetics
 - Preview desktop, tablet, and mobile layouts before production does it for you.
 - Compare revisions and identify the exact moment things went wrong.
 - Replace “you know what I mean” with actual context.
+- Run `/vstack:proofread` to pass the copy your agent is writing to ChatGPT in your own browser. Your agent uses the reply to remove AI-sounding phrasing. This needs Claude Code with Claude in Chrome, and a ChatGPT sign-in.
 
 ## Why Visual Stack?
 

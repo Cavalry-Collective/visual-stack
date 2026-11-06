@@ -21,6 +21,7 @@ node plugins/vstack/skills/review/tests/review-lifecycle.mjs
 node plugins/vstack/skills/review/tests/host-profiles.mjs
 node plugins/vstack/skills/review/tests/workdir.mjs
 node plugins/vstack/skills/review/tests/round-gate.mjs
+node plugins/vstack/skills/proofread/tests/proofread.mjs
 node plugins/vstack/lib/build-shell.mjs check
 claude plugin validate . --strict
 claude plugin validate ./plugins/vstack --strict

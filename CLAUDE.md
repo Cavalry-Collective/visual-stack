@@ -37,6 +37,7 @@ node plugins/vstack/skills/review/tests/workdir.mjs            # .vstack/local w
 node plugins/vstack/skills/review/tests/round-gate.mjs         # `unanswered` and the Stop hook that runs it
 node plugins/vstack/skills/review/tests/update-check.mjs       # per-host update detection and the banner it produces
 node plugins/vstack/skills/review/tests/design-tokens.mjs      # the shell's palette still matches design/tokens.css
+node plugins/vstack/skills/proofread/tests/proofread.mjs       # proofread's insert script and host rules
 ```
 
 The Gherkin end-to-end suite lives in `e2e/` — the one directory with a
@@ -224,7 +225,8 @@ back. Review's rounds sat in `local/wireframe/` before the tool was renamed.
 
 Each skill is `plugins/vstack/skills/<name>/SKILL.md` plus `assets/` (the pages
 and servers it runs). `review` is the primary tool and `user-story-map` ships
-alongside it; `wireframe` is a compatibility entry that reads `review/SKILL.md`
+alongside it; `proofread` passes user-facing copy to ChatGPT in the user's browser and
+runs only on a host whose adapter provides `user_browser`; `wireframe` is a compatibility entry that reads `review/SKILL.md`
 and nothing else — it is what `review` used to be called. Engine
 assets (`workspace.html`,
 `review-server.mjs`, `bundle-artifact.mjs`) are never edited to fit a project —

@@ -132,6 +132,21 @@ Navigate, screenshot, and run in-page JS (e.g. `harvest-reference.js`). Profile:
 `capabilities.browser: true | false`. If false, the skill uses screenshots the
 user provides or skips harvest.
 
+### `user_browser` — **optional**
+
+Act in the browser the user works in, with the user's own sign-ins. Used by the
+proofread skill, which reaches a web app through the user's account.
+
+| Step | Meaning |
+| --- | --- |
+| `open(url) → tab` | Open a new tab at the URL |
+| `run_script(tab, script)` | Run JavaScript in the page and return its result |
+| `screenshot(tab)` | Capture the page, for diagnosis |
+| `close(tab)` | Close a tab this session opened |
+
+- An isolated browser does not satisfy this op, because it has none of the user's sign-ins.
+- The adapter says when a Host does not provide this op, and the skill stops.
+
 ---
 
 ## Runtime injection

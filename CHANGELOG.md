@@ -8,6 +8,27 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.9.0 — 2026-11-06
+
+**Added**
+
+- **Remove AI-sounding phrasing from your agent's copy.** `/vstack:proofread`
+  passes the copy your agent is writing to ChatGPT in your own browser, using your
+  sign-in. It works on any user-facing copy, such as a document, UI text, release
+  notes, or a message. Your agent then uses the reply as a reference and edits its
+  own copy, keeping its facts, code, and URLs.
+- **It runs without asking.** It uses the connected browser and edits with no
+  approval step, so review the edit the way you review any other change. The run
+  stops if the copy contains secrets or the browser is signed out of ChatGPT. Your
+  clipboard is not touched.
+- **Long copy works.** ChatGPT turns a long paste into an attachment, and the skill
+  handles that route itself.
+
+This needs Claude Code with Claude in Chrome, and a ChatGPT sign-in. On Codex and
+Grok the skill says it is not available and stops. It uses a temporary chat, which
+stays out of your history, but ChatGPT's page says a copy may be kept for up to 30
+days. Run it only on copy you are willing to send to ChatGPT.
+
 ## 6.8.0 — 2026-08-11
 
 **Added**
