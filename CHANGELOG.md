@@ -8,6 +8,30 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.10.0 — 2026-11-06
+
+**Added**
+
+- **Audit a UI before changing it.** `/vstack:design-review` looks at what you are
+  working on, at a polish level you choose: Clean, Refined or Showcase. It writes
+  its findings as one page, with a before and after comparison or a red-box
+  screenshot for each visible finding, and opens that page in the review workspace
+  for your comments.
+- **Nothing is built until you approve.** Product code stays unchanged until you
+  choose **Approve & finish** or say to build. It then builds one slice at a time.
+- **A later round checks the last one.** It marks each earlier area as Landed,
+  Landed but broken, or Moved.
+- **New UI copy goes to ChatGPT.** While building, it runs `/vstack:proofread` on
+  new UI copy without asking first. This needs Claude Code with Claude in Chrome.
+  Elsewhere, or if the copy contains secrets or personal data, nothing is sent and
+  the build continues. The review page itself is never sent.
+
+**Fixed**
+
+- **Your agent now hears when you approve.** Approve & finish often reached the
+  agent as "the tab went away", so it did not know the design was signed off. This
+  affected Claude Code and Grok.
+
 ## 6.9.1 — 2026-11-06
 
 **Fixed**
