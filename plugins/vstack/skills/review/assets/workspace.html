@@ -3699,7 +3699,7 @@ overlay.addEventListener('pointerdown', e => {
 const PAGE_CONTROL = '[data-vstack-control], a[href^="#"]';
 const overPageControl = e => !!elAt(pt(e))?.closest?.(PAGE_CONTROL);
 overlay.addEventListener('pointermove', e => {
-  if (!drag && S.mode === 'annotate' && overPageControl(e)) { overlay.style.pointerEvents = 'none'; clearHoverOutline(); return }
+  if (!drag && S.mode === 'annotate' && overPageControl(e)) { overlay.style.pointerEvents = 'none'; clearHoverOutline(); return; }
   if (!drag) return hoverOutline(e);
   const p = pt(e);
   if (Math.abs(p.x - drag.start.x) > 4 || Math.abs(p.y - drag.start.y) > 4) drag.moved = true;
