@@ -3142,6 +3142,7 @@ function setMode (m) {
     if (document.activeElement === b) b.blur();
   });
   overlay.classList.toggle('view', m === 'view');
+  overlay.style.pointerEvents = '';
   document.body.classList.toggle('viewing', m === 'view');
   overlay.style.cursor = m === 'annotate' ? 'crosshair' : 'default';
   clearHoverOutline();
@@ -3195,6 +3196,10 @@ function bindFrameKeys () {
   if (!fdoc || fdoc._keysBound) return;
   fdoc._keysBound = true;
   fdoc.addEventListener('keydown', onKey);
+  // The overlay stands aside over a page control. Only the page sees the pointer leave it.
+  fdoc.addEventListener('pointermove', e => {
+    if (overlay.style.pointerEvents && !e.target.closest?.(PAGE_CONTROL)) overlay.style.pointerEvents = '';
+  }, true);
 }
 
 /* ─────────────── click = comment · drag = area comment ─────────────── */
@@ -3687,7 +3692,14 @@ overlay.addEventListener('pointerdown', e => {
   drag = { start: pt(e), moved: false, tool: S.tool };
   try { overlay.setPointerCapture(e.pointerId) } catch {}
 });
+/* A page may hold controls of its own: a button that answers a finding, a link
+   that jumps to one. The overlay sits over the page, so such a press would be a
+   comment. The pointer leaves the overlay's hands while it is over one, and the
+   page's own listener takes the press. */
+const PAGE_CONTROL = '[data-vstack-control], a[href^="#"]';
+const overPageControl = e => !!elAt(pt(e))?.closest?.(PAGE_CONTROL);
 overlay.addEventListener('pointermove', e => {
+  if (!drag && S.mode === 'annotate' && overPageControl(e)) { overlay.style.pointerEvents = 'none'; clearHoverOutline(); return; }
   if (!drag) return hoverOutline(e);
   const p = pt(e);
   if (Math.abs(p.x - drag.start.x) > 4 || Math.abs(p.y - drag.start.y) > 4) drag.moved = true;
@@ -5486,8 +5498,12 @@ async function approve () {
     showDone();
   } catch { toast(T('approveFail')) }
 }
+/* A page that approved the review itself, from a control of its own, cannot reach
+   this window's bar. It says so, and the same closing screen follows. */
+window.addEventListener('message', e => {
+  if (e.origin === location.origin && e.source === frame.contentWindow && e.data?.type === 'vstack:approved') showDone();
+});
 function showDone () {
-  clearWorking();
   closeComposer();
   setMode('view');
   hideWork(); hideShare();

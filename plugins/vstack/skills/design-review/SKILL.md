@@ -51,15 +51,16 @@ Collect evidence:
 1. Write the findings with the lenses for the chosen level:
    - Name the weakness, with its evidence and its location in the code.
    - Propose a concrete change with values, such as "13.5px, weight 600, two-line clamp".
-   - Show the finding visually: a before and after comparison, or a screenshot with a red box around the area. See `report.md`.
+   - Show every finding as a before and after picture pair, with one short title. See `report.md`.
    - Report one finding per kind of defect.
    - Mark **Owner's call** on any change to something the owner clearly chose. Offer a way to keep the idea.
-   - Say what already works, so the owner knows what to protect.
-2. Build the review as one self-contained HTML page, in the format in `report.md`. Save it as `.vstack/local/design-review/<target>-round-<n>.html`, from the project root.
+2. Build the review as one self-contained HTML page. Copy `assets/report-template.html` and fill it, in the format in `report.md`. Save it as `.vstack/local/design-review/<target>-round-<n>.html`, from the project root.
 3. Read `../review/SKILL.md` and start at §3, with the review page as `$FILE`. Follow its comment loop. Use the page form of the review, because each comment changes the review page. Do not use §7, which changes source.
-4. Reply in chat with the verdict and the top changes.
+4. Reply in chat with the verdict, the top changes and what already works, so the owner knows what to protect. Keep the reply short.
 
 Product code stays unchanged until the owner chooses **Approve & finish** or says to build.
+
+The owner answers in the report with Approve, Reject and Steer, and the answers arrive as one comment. See *How the owner answers* in `report.md`. Change a Steer section and publish the next version. Do not build a Rejected or an undecided section.
 
 ## Step 5: Build
 

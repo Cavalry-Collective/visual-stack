@@ -8,6 +8,28 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.11.0 — 2026-11-10
+
+**Changed**
+
+- **A design review is a set of pictures you answer in place.** Each finding is a
+  short title and a before and after picture. The long text, the metric tiles and
+  the verdict paragraph are gone.
+- **Approve, Reject or Steer on every finding.** The bar sits in the same place on
+  each section. Send decisions delivers your answers as one comment. Approve & finish
+  ends the review from the page.
+- **One report template.** `/vstack:design-review` now fills a shipped template
+  instead of writing a new page each time, so every report looks the same and takes
+  the design guide's palette.
+- **Page controls work while you annotate.** A button marked `data-vstack-control`,
+  or an in-page link, takes your click in Annotate mode. It no longer opens a comment.
+
+**Fixed**
+
+- **Approving no longer reports a failure.** Approve & finish closed the review but
+  threw an error before showing the closing screen, so the workspace said approval
+  failed. The closing screen now appears.
+
 ## 6.10.0 — 2026-11-06
 
 **Added**
