@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- FILL: "<Target> design review, round <n>" -->
+<title>Design review report</title>
+<style>
+/* vstack:shell tokens */
+/* One palette for every vstack page. Roles, not colours: a page asks for
+   --surface, not for white, so light and dark are the same stylesheet.
+
+   The values come from `design/tokens.css`, which owns the palette. They are
+   copied rather than imported because a page has to work opened off disk and
+   inlined into an Artifact under a CSP that blocks every external request —
+   nothing here may be fetched. `tests/design-tokens.mjs` fails when the two
+   files disagree, so the copy cannot drift quietly.
+
+   Page-specific hues (the story map's phase bands, the board's new/have/touch,
+   the spec's priorities) stay in the page, below this block — they mean
+   something only there. Everything here is shared, and is the reason a board
+   and a spec look like the same product.
+
+   Three states, in this order: the OS preference, then an explicit choice.
+   `data-theme` absent means auto.
+
+   The type scale is the guide's; the families are not. Space Grotesk and Inter
+   would each be an external request, so every page reads in the system stack. */
+:root{
+  --paper:#efecf4; --surface:#ffffff; --surface-2:#f6f4f8;
+  --ink:#171320; --ink-2:#453f52; --ink-3:#665e72;
+  --line:#e6e2ec; --line-2:#cfc9d8;
+  --brand:#e02b20; --brand-soft:#fff1f0; --brand-line:#ffb3ad;
+  --ok:#0b8157; --ok-soft:#e9f9f2;
+  --shadow:0 1px 2px rgba(23,19,32,.08);
+  --shadow-pop:0 1px 2px rgba(23,19,32,.08),0 4px 16px rgba(23,19,32,.12);
+  --window-shadow:0 4px 16px rgba(23,19,32,.12),0 16px 48px rgba(23,19,32,.22);
+  --radius:8px;
+  --font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --paper:#0e0c13; --surface:#171320; --surface-2:#1e1a28;
+  --ink:#f3f1f7; --ink-2:#bdb7c8; --ink-3:#8d86a0;
+  --line:#2a2534; --line-2:#372f45;
+  --brand:#ff6b60; --brand-soft:rgba(255,107,96,.14); --brand-line:rgba(255,107,96,.38);
+  --ok:#2fb89b; --ok-soft:rgba(47,184,155,.14);
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+  --shadow-pop:0 1px 2px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.5);
+  --window-shadow:0 4px 16px rgba(0,0,0,.5),0 16px 48px rgba(0,0,0,.6);
+  color-scheme:dark;
+}}
+:root[data-theme=light]{
+  --paper:#efecf4; --surface:#ffffff; --surface-2:#f6f4f8;
+  --ink:#171320; --ink-2:#453f52; --ink-3:#665e72;
+  --line:#e6e2ec; --line-2:#cfc9d8;
+  --brand:#e02b20; --brand-soft:#fff1f0; --brand-line:#ffb3ad;
+  --ok:#0b8157; --ok-soft:#e9f9f2;
+  --shadow:0 1px 2px rgba(23,19,32,.08);
+  --shadow-pop:0 1px 2px rgba(23,19,32,.08),0 4px 16px rgba(23,19,32,.12);
+  --window-shadow:0 4px 16px rgba(23,19,32,.12),0 16px 48px rgba(23,19,32,.22);
+  color-scheme:light;
+}
+:root[data-theme=dark]{
+  --paper:#0e0c13; --surface:#171320; --surface-2:#1e1a28;
+  --ink:#f3f1f7; --ink-2:#bdb7c8; --ink-3:#8d86a0;
+  --line:#2a2534; --line-2:#372f45;
+  --brand:#ff6b60; --brand-soft:rgba(255,107,96,.14); --brand-line:rgba(255,107,96,.38);
+  --ok:#2fb89b; --ok-soft:rgba(47,184,155,.14);
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+  --shadow-pop:0 1px 2px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.5);
+  --window-shadow:0 4px 16px rgba(0,0,0,.5),0 16px 48px rgba(0,0,0,.6);
+  color-scheme:dark;
+}
+/* /vstack:shell tokens */
+:root {
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --p1-ink: #b8231a;
+  --warn: #8a5c06;
+}
+@media (prefers-color-scheme: dark) { :root { --p1-ink: #ff8a80; --warn: #d29a3f; } }
+:root[data-theme=light] { --p1-ink: #b8231a; --warn: #8a5c06; }
+:root[data-theme=dark] { --p1-ink: #ff8a80; --warn: #d29a3f; }
+
+/* The guide's rem scale is unchanged. Only the root moves, so a page fitted to
+   70% in the workspace stays readable and a phone still gets 16px. */
+html { font-size: clamp(16px, 1.25vw, 20px); -webkit-text-size-adjust: 100%; }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; background: var(--surface); color: var(--ink); font: 400 1rem/1.5 var(--font); font-variant-numeric: tabular-nums; }
+h1, h2, h3, p, ul, ol, figure { margin: 0; padding: 0; }
+ul, ol { list-style: none; }
+img { display: block; width: 100%; height: auto; }
+a { color: inherit; text-decoration: none; }
+a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.wrap { width: min(100%, 86rem); margin-inline: auto; padding-inline: clamp(1rem, 3vw, 3rem); }
+
+/* Masthead */
+.band { background: var(--paper); padding-block: 2.25rem 2.25rem; }
+.meta { font: 500 .875rem/1.5 var(--mono); color: var(--ink-3); }
+h1 { margin-top: .375rem; font-size: 2.5rem; line-height: 1.08; font-weight: 700; letter-spacing: -.022em; }
+
+/* Decision deck */
+.deck { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 1rem 2rem; margin-top: 1.5rem; padding: 1.25rem 1.5rem; border-radius: 14px; background: var(--ink); color: var(--surface); }
+.counts { display: flex; gap: 1.25rem; }
+.counts b { display: block; font-size: 1.75rem; line-height: 1.1; letter-spacing: -.02em; }
+.counts span { font-size: .875rem; opacity: .78; }
+.tally-bar { display: flex; gap: 3px; }
+.tally-bar i { flex: 1; height: .625rem; border-radius: 3px; background: color-mix(in srgb, var(--surface) 22%, transparent); transition: background 250ms var(--ease-standard); }
+.tally-bar i.approve { background: var(--ok); }
+.tally-bar i.reject { background: color-mix(in srgb, var(--surface) 72%, transparent); }
+.tally-bar i.steer { background: #d29a3f; }
+.tally-text { margin-top: .375rem; font-size: .875rem; opacity: .86; }
+.actions { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: flex-end; }
+.pbtn { min-height: 2.75rem; padding: 0 1rem; border: 1px solid color-mix(in srgb, var(--surface) 40%, transparent); border-radius: 9px; background: transparent; color: var(--surface); font: 700 .875rem var(--font); cursor: pointer; transition: background 150ms var(--ease-standard), opacity 150ms var(--ease-standard); }
+.pbtn:hover { background: color-mix(in srgb, var(--surface) 12%, transparent); }
+.pbtn.solid { background: var(--surface); border-color: var(--surface); color: var(--ink); }
+.pbtn.solid:hover { background: color-mix(in srgb, var(--surface) 86%, transparent); }
+.pbtn.go { background: var(--ok); border-color: var(--ok); color: #fff; }
+.pbtn.go:hover { background: var(--ok); opacity: .88; }
+.pbtn[disabled] { opacity: .45; cursor: default; }
+.deck-foot { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 1rem; }
+.steer-all { display: block; width: 100%; padding: .5rem .75rem; border: 0; border-radius: 8px; background: var(--surface); color: var(--ink); font: 400 .875rem/1.4 var(--font); resize: vertical; }
+.hint { font-size: .875rem; opacity: .86; }
+.hint kbd { padding: .05em .4em; border: 1px solid color-mix(in srgb, var(--surface) 40%, transparent); border-radius: 4px; font: 500 .875em var(--mono); }
+.msg { grid-column: 1 / -1; font-size: .875rem; }
+.msg:empty { display: none; }
+.plan-deck { grid-template-columns: minmax(0, 1fr) auto; margin-top: 1.5rem; }
+
+/* Index of findings */
+.index { display: flex; flex-wrap: wrap; gap: .375rem; margin-top: 1rem; }
+.index a { display: inline-flex; align-items: center; gap: .375rem; padding: .2rem .625rem .2rem .25rem; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-size: .875rem; font-weight: 500; transition: border-color 150ms var(--ease-standard), background 150ms var(--ease-standard), opacity 250ms var(--ease-standard); }
+.index a:hover { border-color: var(--ink-3); }
+.index a.approve { background: var(--ok-soft); border-color: var(--ok); }
+.index a.steer { border-color: var(--warn); }
+.index a.reject { opacity: .5; text-decoration: line-through; }
+
+/* Severity escalates by degree. Only P0 and P1 carry colour. */
+.sev { display: inline-block; padding: .05rem .4rem; border-radius: 5px; border: 1px solid var(--line-2); font: 700 .875rem/1.45 var(--mono); color: var(--ink); background: var(--surface-2); white-space: nowrap; }
+.sev.p0 { background: var(--brand); border-color: var(--brand); color: #fff; }
+.sev.p1 { background: var(--brand-soft); border-color: var(--brand-line); color: var(--p1-ink); }
+.sev.p3 { background: none; border-color: transparent; padding-inline: .1rem; color: var(--ink-3); }
+
+/* A section: its bar, then the two pictures. */
+.area-title { padding-top: 2.5rem; padding-bottom: .25rem; font-size: 1.75rem; line-height: 1.2; font-weight: 700; letter-spacing: -.018em; }
+.finding { padding-block: 1rem 1.75rem; border-radius: 8px; }
+.finding:target > .dbar, .finding:target > .fh { animation: arrive 900ms var(--ease-decelerate); }
+@keyframes arrive { from { background: var(--brand-soft); box-shadow: 0 0 0 3px var(--brand-line); } to { box-shadow: 0 0 0 0 transparent; } }
+.fh, .dbar-left { display: flex; flex-wrap: wrap; align-items: center; gap: .375rem .625rem; min-width: 0; }
+h3 { font-size: 1.25rem; line-height: 1.25; font-weight: 700; letter-spacing: -.01em; }
+.delta { padding: .05rem .5rem; border-radius: 6px; background: var(--surface); border: 1px solid var(--line); font: 700 .875rem/1.5 var(--mono); white-space: nowrap; }
+.bar-label { font-size: .875rem; font-weight: 500; color: var(--ink-3); }
+
+.dbar { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; min-height: 3.75rem; padding: .5rem; padding-inline-start: .875rem; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); transition: background 250ms var(--ease-standard), border-color 250ms var(--ease-standard); }
+.dbar .dbar-left { flex: 1 1 18rem; }
+.is-approve > .dbar { background: var(--ok-soft); border-color: var(--ok); }
+.is-steer > .dbar { border-color: var(--warn); }
+.is-reject > .dbar { background: transparent; border-color: var(--line-2); }
+.is-reject > :not(.dbar) { opacity: .35; transition: opacity 250ms var(--ease-standard); }
+.dc { display: flex; align-items: center; gap: .75rem; margin-left: auto; }
+html:not(.live) .dc, html:not(.live) .only-live, html:not(.live) .dbar textarea { display: none !important; }
+.live .only-static { display: none; }
+.dc-row { display: flex; gap: .375rem; }
+.dcb { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-width: 7.5rem; min-height: 2.75rem; padding: 0 1rem; border: 1.5px solid var(--ink-3); border-radius: 9px; background: var(--surface); color: var(--ink); font: 700 1rem var(--font); cursor: pointer; transition: background 150ms var(--ease-standard), color 150ms var(--ease-standard), border-color 150ms var(--ease-standard); }
+.dcb svg { width: 1em; height: 1em; flex: none; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.dcb:hover { background: var(--line); }
+.dcb[data-d=approve] { border-color: var(--ok); color: var(--ok); }
+.dcb[data-d=approve]:hover { background: var(--ok-soft); }
+.dcb[data-d=approve][aria-pressed=true] { background: var(--ok); border-color: var(--ok); color: var(--surface); }
+.dcb[data-d=reject][aria-pressed=true] { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+.dcb[data-d=steer][aria-pressed=true] { background: var(--warn); border-color: var(--warn); color: var(--surface); }
+.dc-send { display: none; align-items: center; gap: .5rem; font-size: .875rem; color: var(--ink-3); white-space: nowrap; }
+.dc.last .dc-send.show { display: inline-flex; }
+.dc-send button { min-height: 2.75rem; padding: 0 .875rem; border: 0; border-radius: 9px; background: var(--ink); color: var(--surface); font: 700 .875rem var(--font); cursor: pointer; }
+.dbar textarea { flex-basis: 100%; display: block; width: 100%; padding: .5rem .75rem; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface); color: var(--ink); font: 400 .875rem/1.4 var(--font); resize: vertical; }
+.dbar textarea[hidden] { display: none; }
+
+/* Before and after */
+.cmp { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; margin-top: .75rem; }
+.side figcaption { display: flex; align-items: center; gap: .5rem; margin-bottom: .375rem; font-size: .875rem; color: var(--ink-2); min-height: 1.75rem; }
+.side figcaption b { padding: .05rem .5rem; border-radius: 5px; font-weight: 700; background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line-2); }
+.side.prop figcaption b { background: var(--ok); border-color: var(--ok); color: var(--surface); }
+.shot { position: relative; aspect-ratio: 16 / 10; border: 1px solid var(--line-2); border-radius: 10px; overflow: hidden; background: var(--surface-2); }
+.side.prop .shot { border: 2px solid var(--ok); }
+.shot img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.cmp.page .shot { aspect-ratio: 4 / 5; }
+.cmp.phone { grid-template-columns: repeat(2, minmax(0, 20rem)); justify-content: center; }
+.cmp.phone .shot { aspect-ratio: 9 / 17; background: #fff; }
+.cmp.phone .shot img { object-fit: contain; }
+.shot.draw { aspect-ratio: auto; min-height: 9rem; padding: 1rem; display: grid; align-content: center; gap: .75rem; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .375rem; }
+.grid2 .shot { aspect-ratio: 16 / 10; }
+.box { position: absolute; border: 2px solid var(--brand); border-radius: 3px; pointer-events: none; }
+
+/* Strip chart */
+.lanes { display: grid; grid-template-columns: 2rem minmax(0, 1fr); row-gap: 3px; align-items: center; width: 100%; font: 500 .875rem var(--mono); color: var(--ink-3); }
+.lane { position: relative; height: 1rem; background: var(--line); border-radius: 3px; overflow: hidden; }
+.mark { position: absolute; top: 0; bottom: 0; border-right: 2px solid var(--line); }
+.mark.p1 { background: var(--brand); } .mark.p2 { background: var(--ink-3); } .mark.p3 { background: var(--line-2); }
+.axis { display: flex; justify-content: space-between; grid-column: 2; margin-top: .25rem; }
+
+/* Small task app, drawn for the comparison-label finding */
+.tm { background: #fff; color: #171320; border-radius: 8px; padding: .625rem; font-size: .875rem; line-height: 1.3; }
+.tm .f { display: flex; gap: .375rem; }
+.tm .in { flex: 1; min-width: 0; height: 2rem; padding: 0 .5rem; display: flex; align-items: center; border-radius: 6px; }
+.tm .btn { height: 2rem; padding: 0 .625rem; display: flex; align-items: center; border-radius: 6px; font-weight: 500; background: #4f5bea; color: #fff; }
+.today-in { background: #f6f4f8; color: #8d86a0; }
+.prop-in { background: #fff; border: 1.5px solid #171320; color: #665e72; }
+.minicap { display: inline-block; margin-bottom: .25rem; font-size: .875rem; color: var(--ink-3); }
+.minicap.tag { padding: 0 .5rem; border-radius: 5px; font-weight: 700; background: var(--surface); border: 1px solid var(--line-2); color: var(--ink-2); }
+.minicap.tag.go { background: var(--ok); border-color: var(--ok); color: var(--surface); }
+.stage2 { padding: .375rem; border-radius: 8px; background: var(--paper); }
+.stage2.go { box-shadow: 0 0 0 2px var(--ok); }
+.oldcap { font-size: .75rem; }
+
+/* Wipe */
+.wipe { --pos: 50%; position: relative; aspect-ratio: 16 / 10; margin-top: .75rem; border-radius: 10px; overflow: hidden; border: 1px solid var(--line-2); touch-action: pan-y; }
+.wipe img { position: absolute; inset: 0; height: 100%; object-fit: cover; object-position: top; }
+.wipe img.after { clip-path: inset(0 0 0 var(--pos)); }
+.wipe .tag { position: absolute; top: .5rem; padding: .05rem .5rem; border-radius: 5px; font-size: .875rem; font-weight: 700; background: rgba(23,19,32,.82); color: #fff; }
+.wipe .tag.l { left: .5rem; } .wipe .tag.r { right: .5rem; background: #0b8157; }
+.wipe .handle { position: absolute; top: 0; bottom: 0; left: var(--pos); width: 2px; background: #171320; pointer-events: none; }
+.wipe .handle::after { content: "\2194"; position: absolute; top: 50%; left: 50%; width: 2.25rem; height: 2.25rem; transform: translate(-50%, -50%); display: grid; place-items: center; border-radius: 50%; background: #171320; color: #fff; }
+.wipe input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize; }
+
+/* Plan */
+.slices { display: grid; margin-top: .75rem; counter-reset: s; }
+.slice { counter-increment: s; display: grid; grid-template-columns: 2.5rem minmax(0, 1fr); align-items: center; gap: 1rem; padding-block: .75rem; border-top: 1px solid var(--line); }
+.slice::before { content: counter(s); font-size: 1.75rem; line-height: 1; font-weight: 700; color: var(--ink-3); }
+.slice-body { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; }
+.refs { display: flex; flex-wrap: wrap; gap: .25rem; }
+.ref { padding: .02rem .5rem; border-radius: 999px; background: var(--surface-2); font-size: .875rem; color: var(--ink-2); transition: color 150ms var(--ease-standard), background 150ms var(--ease-standard); }
+.ref.approve { background: var(--ok-soft); color: var(--ok); }
+.ref.reject { text-decoration: line-through; opacity: .55; }
+.ref.steer { color: var(--warn); }
+.stop { display: flex; align-items: center; gap: .875rem; padding-block: .625rem; font-size: .875rem; font-weight: 700; color: var(--p1-ink); }
+.stop::before, .stop::after { content: ""; flex: 1; border-top: 2px dashed var(--brand-line); }
+
+footer { margin-top: 2.5rem; padding-block: 1.25rem 2rem; background: var(--paper); color: var(--ink-2); font-size: .875rem; }
+
+@media (max-width: 960px) {
+  .deck, .plan-deck { grid-template-columns: minmax(0, 1fr); }
+  .actions { justify-content: flex-start; }
+  .deck-foot { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .dc { flex-basis: 100%; flex-wrap: wrap; margin-left: 0; }
+  .dc-row { flex: 1 1 100%; }
+  .dcb { flex: 1; min-width: 0; padding: 0 .5rem; }
+  .band { padding-block: 1.5rem; }
+}
+@media (max-width: 560px) {
+  .cmp, .cmp.phone { grid-template-columns: minmax(0, 1fr); }
+}
+@media (pointer: coarse) { .dcb, .pbtn, .dc-send button { min-height: 44px; } }
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body id="top">
+
+<header class="band" id="head">
+  <div class="wrap">
+    <!-- FILL: round, date, polish level, build or commit -->
+    <p class="meta" id="head-meta">Round 1 · 1 Jan 2027 · Clean · main at 0000000</p>
+    <h1 id="head-title">Target design review</h1>
+    <section class="deck" id="deck">
+      <!-- FILL: one count per severity that has findings -->
+      <div class="counts" id="counts"><div><b>1</b><span>P1</span></div><div><b>1</b><span>P3</span></div></div>
+      <div class="tally only-live" data-tally><div class="tally-bar" data-tally-bar></div><p class="tally-text" data-tally-text></p></div>
+      <div class="actions only-live" data-actions data-vstack-control>
+        <button class="pbtn solid" type="button" data-send>Send decisions</button>
+        <button class="pbtn" type="button" data-rest>Approve the rest</button>
+        <button class="pbtn go" type="button" data-finish>Approve &amp; finish</button>
+      </div>
+      <p class="only-static" style="grid-column:2/-1">Comment on anything. Approve &amp; finish builds the plan.</p>
+      <div class="deck-foot only-live">
+        <textarea class="steer-all" id="steer-all" data-vstack-control rows="1" aria-label="Steer the whole report" placeholder="Steer the whole report"></textarea>
+        <p class="hint" id="hint">Controls work in Annotate and View mode.</p>
+      </div>
+      <p class="msg only-live" data-msg></p>
+    </section>
+    <!-- FILL: one link per decidable section, worst first. Class sev p0, p1 or p3 colours the tag. -->
+    <nav class="index" id="index" aria-label="Findings">
+      <a href="#f-example" data-ref="f-example"><span class="sev p1">P1</span>Example finding</a>
+      <a href="#f-slider" data-ref="f-slider"><span class="sev p3">P3</span>Drag to compare</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- A decidable section is an article with data-decide and a stable id. Its .fh row holds the
+     severity, the title and an optional delta. The script builds the Approve, Reject and Steer
+     bar from that row. Add data-yes and data-no to rename the buttons for a question. -->
+<article class="finding" id="f-example" data-decide>
+  <div class="fh"><span class="sev p1">P1</span><h3>Title in six words or fewer</h3><span class="delta">12 → 44 px</span></div>
+  <div class="cmp">
+    <figure class="side"><figcaption><b>Today</b> One short detail</figcaption><div class="shot"><img alt="What it looks like today" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100'%3E%3Crect width='160' height='100' fill='%23f6f4f8'/%3E%3C/svg%3E"></div></figure>
+    <figure class="side prop"><figcaption><b>Proposed</b> One short detail</figcaption><div class="shot"><img alt="What it would look like" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100'%3E%3Crect width='160' height='100' fill='%23e9f9f2'/%3E%3C/svg%3E"></div></figure>
+  </div>
+</article>
+
+<h2 class="area-title" id="extras">Optional</h2>
+<article class="finding" id="f-slider" data-decide>
+  <div class="fh"><span class="sev p3">P3</span><h3>Drag to compare</h3></div>
+  <!-- Use only when both images are the same size. -->
+  <div class="wipe" id="wipe">
+    <img class="before" alt="Today" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100'%3E%3Crect width='160' height='100' fill='%23f6f4f8'/%3E%3C/svg%3E">
+    <img class="after" alt="Proposed" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100'%3E%3Crect width='160' height='100' fill='%23e9f9f2'/%3E%3C/svg%3E">
+    <span class="tag l">Today</span><span class="tag r">Proposed</span><span class="handle"></span>
+    <input id="wipe-input" type="range" min="0" max="100" value="50" aria-label="Wipe between today and proposed" data-vstack-control>
+  </div>
+</article>
+
+<h2 class="area-title" id="plan">Plan</h2>
+<ol class="slices" id="slices">
+  <!-- FILL: one slice per outcome. Each chip links to a finding and takes its status. -->
+  <li class="slice" id="plan-1"><div class="slice-body"><h3>Slice name</h3><span class="refs"><a class="ref" data-ref="f-example" href="#f-example">Example finding</a></span></div></li>
+  <li class="stop" id="plan-stop">I would stop here</li>
+  <li class="slice" id="plan-2"><div class="slice-body"><h3>After the stop</h3><span class="refs"><a class="ref" data-ref="f-slider" href="#f-slider">Drag to compare</a></span></div></li>
+</ol>
+<section class="deck plan-deck only-live" id="plan-deck">
+  <div class="tally" data-tally><div class="tally-bar" data-tally-bar></div><p class="tally-text" data-tally-text></p></div>
+  <div class="actions" data-actions data-vstack-control>
+    <button class="pbtn solid" type="button" data-send>Send decisions</button>
+    <button class="pbtn" type="button" data-rest>Approve the rest</button>
+    <button class="pbtn go" type="button" data-finish>Approve &amp; finish</button>
+  </div>
+  <p class="msg" data-msg></p>
+</section>
+</main>
+
+<footer id="foot"><div class="wrap"><!-- FILL: what you did not exercise, and why. -->Not tested: Safari, a real phone.</div></footer>
+
+<script>
+(function () {
+  var wipe = document.getElementById('wipe'), input = document.getElementById('wipe-input');
+  if (wipe && input) input.addEventListener('input', function () { wipe.style.setProperty('--pos', input.value + '%'); });
+
+  /* Decisions. They go to the review's one comment list, so the agent hears about
+     them the way it hears about anything else, and one send is one round. */
+  var root = document.documentElement;
+  var storageKey = 'vstack-report:' + document.title;
+  var ICONS = {
+    approve: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>',
+    reject: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+    steer: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-4L16 5l3 3L8 19l-4 1z"/></svg>'
+  };
+  var items = Array.prototype.slice.call(document.querySelectorAll('[data-decide]'));
+  var decisions = {};
+  var finishArmed = false, finished = false;
+
+  // Only the current version, framed by the workspace, can send. A timeline version or a file on disk is a still.
+  if (window.parent === window || location.pathname !== '/page') return;
+  root.classList.add('live');
+
+  var readStored = function () { try { return JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch (e) { return {}; } };
+  var store = function () {
+    var unsent = {};
+    Object.keys(decisions).forEach(function (id) { if (!decisions[id].sent) unsent[id] = decisions[id]; });
+    unsent['steer-all'] = { note: steerAll.value };
+    try { localStorage.setItem(storageKey, JSON.stringify(unsent)); } catch (e) {}
+  };
+  var steerAll = document.getElementById('steer-all');
+  var titles = {};
+  items.forEach(function (el) { var h = el.querySelector('h3') || el.querySelector('a'); var copy = h ? h.cloneNode(true) : null; if (copy) copy.querySelectorAll('.call').forEach(function (c) { c.remove(); }); titles[el.id] = copy ? copy.textContent.trim() : el.id; });
+  var titleOf = function (el) { return titles[el.id]; };
+  var unsentIds = function () {
+    return Object.keys(decisions).filter(function (id) {
+      var d = decisions[id];
+      return !d.sent && (d.choice !== 'steer' || (d.note || '').trim());
+    });
+  };
+  var hasUnsent = function () { return unsentIds().length > 0 || steerAll.value.trim().length > 0; };
+
+  var paintItem = function (el) {
+    var d = decisions[el.id], choice = d ? d.choice : null;
+    ['approve', 'reject', 'steer'].forEach(function (c) { el.classList.toggle('is-' + c, choice === c); });
+    el.querySelectorAll('.dcb').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.d === choice)); });
+    var box = el.querySelector('.dbar textarea');
+    box.hidden = choice !== 'steer';
+    document.querySelectorAll('[data-ref="' + el.id + '"]').forEach(function (ref) { ['approve', 'reject', 'steer'].forEach(function (c) { ref.classList.toggle(c, choice === c); }); });
+  };
+  var say = function (text) { document.querySelectorAll('[data-msg]').forEach(function (m) { m.textContent = text; }); };
+  var paintTotals = function () {
+    var counts = { approve: 0, reject: 0, steer: 0 };
+    var cells = items.map(function (el) {
+      var d = decisions[el.id];
+      if (d) counts[d.choice]++;
+      return '<i' + (d ? ' class="' + d.choice + '"' : '') + '></i>';
+    }).join('');
+    var open = items.length - counts.approve - counts.reject - counts.steer;
+    var text = counts.approve + ' approved · ' + counts.reject + ' rejected · ' + counts.steer + ' steered · ' + open + ' left';
+    document.querySelectorAll('[data-tally-bar]').forEach(function (b) { b.innerHTML = cells; });
+    document.querySelectorAll('[data-tally-text]').forEach(function (t) { t.textContent = text; });
+    var pending = unsentIds().length + (steerAll.value.trim() ? 1 : 0);
+    document.querySelectorAll('[data-send]').forEach(function (b) {
+      b.disabled = !pending || finished;
+      b.textContent = pending ? 'Send ' + pending + (pending === 1 ? ' decision' : ' decisions') : 'Send decisions';
+    });
+    document.querySelectorAll('[data-rest]').forEach(function (b) { b.disabled = !open || finished; });
+    document.querySelectorAll('.dc-send').forEach(function (row) {
+      row.classList.toggle('show', pending > 0);
+      row.querySelector('span').textContent = pending + ' unsent';
+    });
+  };
+  var choose = function (el, choice) {
+    var current = decisions[el.id];
+    if (current && current.choice === choice && !current.sent) delete decisions[el.id];
+    else decisions[el.id] = { choice: choice, note: current && choice === 'steer' ? current.note : '' };
+    document.querySelectorAll('.dc.last').forEach(function (dc) { dc.classList.remove('last'); });
+    el.querySelector('.dc').classList.add('last');
+    finishArmed = false;
+    paintFinish();
+    paintItem(el); paintTotals(); store();
+    if (decisions[el.id] && choice === 'steer') el.querySelector('.dbar textarea').focus();
+  };
+
+  items.forEach(function (el) {
+    var yes = el.dataset.yes || 'Approve', no = el.dataset.no || 'Reject';
+    var bar = document.createElement('div');
+    bar.className = 'dbar';
+    var left = document.createElement('div');
+    left.className = 'dbar-left';
+    // The bar takes over what labels the section, so title and answer read as one line.
+    var labels = el.querySelector('.fh');
+    while (labels.firstChild) left.appendChild(labels.firstChild);
+    labels.remove();
+    bar.appendChild(left);
+    var dc = document.createElement('div');
+    dc.className = 'dc';
+    dc.setAttribute('data-vstack-control', '');
+    dc.innerHTML = '<span class="dc-send"><span></span><button type="button" data-send-inline>Send</button></span>' +
+      '<div class="dc-row" role="group" aria-label="Decision on ' + titleOf(el).replace(/"/g, '&quot;') + '">' +
+      '<button class="dcb" type="button" data-d="approve" aria-pressed="false">' + ICONS.approve + yes + '</button>' +
+      '<button class="dcb" type="button" data-d="reject" aria-pressed="false">' + ICONS.reject + no + '</button>' +
+      '<button class="dcb" type="button" data-d="steer" aria-pressed="false">' + ICONS.steer + 'Steer</button></div>';
+    bar.appendChild(dc);
+    var box = document.createElement('textarea');
+    box.rows = 2; box.hidden = true;
+    box.setAttribute('aria-label', 'How should this change?');
+    box.setAttribute('placeholder', 'How should this change?');
+    box.setAttribute('data-vstack-control', '');
+    bar.appendChild(box);
+    el.insertBefore(bar, el.firstChild);
+    dc.querySelectorAll('.dcb').forEach(function (b) { b.addEventListener('click', function () { choose(el, b.dataset.d); }); });
+    dc.querySelector('[data-send-inline]').addEventListener('click', function () { send(); });
+    box.addEventListener('input', function () {
+      if (decisions[el.id]) { decisions[el.id].note = box.value; decisions[el.id].sent = false; }
+      paintTotals(); store();
+    });
+    // A version the agent has published carries its statuses in the markup.
+    if (el.dataset.decision) decisions[el.id] = { choice: el.dataset.decision, note: '', sent: true };
+  });
+
+  var stored = readStored();
+  Object.keys(stored).forEach(function (id) {
+    if (id === 'steer-all') steerAll.value = stored[id].note || '';
+    else if (document.getElementById(id)) {
+      decisions[id] = stored[id];
+      var box = document.getElementById(id).querySelector('.dbar textarea');
+      if (box) box.value = stored[id].note || '';
+    }
+  });
+  steerAll.addEventListener('input', function () { paintTotals(); store(); });
+
+  var noteFor = function () {
+    var ids = unsentIds(), lines = ['Decisions from the report.'];
+    var byChoice = function (c) { return ids.filter(function (id) { return decisions[id].choice === c; }); };
+    var name = function (id) { return id + ' (' + titleOf(document.getElementById(id)) + ')'; };
+    if (byChoice('approve').length) lines.push('Approved: ' + byChoice('approve').map(name).join('; '));
+    if (byChoice('reject').length) lines.push('Rejected: ' + byChoice('reject').map(name).join('; '));
+    byChoice('steer').forEach(function (id) { lines.push('Steer ' + name(id) + ': ' + decisions[id].note.trim()); });
+    if (steerAll.value.trim()) lines.push('Steer the whole report: ' + steerAll.value.trim());
+    var undecided = items.filter(function (el) { return !decisions[el.id]; }).map(function (el) { return el.id; });
+    lines.push('Undecided: ' + (undecided.length ? undecided.join(', ') : 'none'));
+    return lines.join('\n');
+  };
+  var sizeNow = function () {
+    var w = window.innerWidth;
+    return w >= 2000 ? 'ultrawide' : w >= 1000 ? 'desktop' : w >= 600 ? 'tablet' : 'phone';
+  };
+  var send = async function () {
+    if (!hasUnsent()) return true;
+    document.querySelectorAll('[data-send]').forEach(function (b) { b.disabled = true; });
+    try {
+      var now = new Date().toISOString();
+      var response = await fetch('/api/comments', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comments: [{ id: 'decisions-' + Date.now().toString(36), kind: 'general', size: sizeNow(), note: noteFor(), sentAt: now, createdAt: now }] })
+      });
+      if (!response.ok) throw new Error(String(response.status));
+      unsentIds().forEach(function (id) { decisions[id].sent = true; });
+      steerAll.value = '';
+      store();
+      say('Sent.');
+      paintTotals();
+      return true;
+    } catch (e) {
+      say('Not sent. Your decisions are kept. Try again.');
+      paintTotals();
+      return false;
+    }
+  };
+  var paintFinish = function () {
+    document.querySelectorAll('[data-finish]').forEach(function (b) {
+      if (finished) { b.textContent = 'Approved'; b.disabled = true; return; }
+      b.textContent = finishArmed ? 'Confirm: end review' : 'Approve & finish';
+    });
+    if (finishArmed) {
+      var open = items.filter(function (el) { return !decisions[el.id]; }).length;
+      var built = decisions['oc-silence'] && decisions['oc-silence'].choice === 'approve';
+      say(open ? open + ' undecided: ' + (built ? 'built as proposed.' : 'I will ask first.') : 'All decided.');
+    }
+  };
+  var finish = async function () {
+    if (!finishArmed) { finishArmed = true; paintFinish(); return; }
+    finishArmed = false;
+    if (!(await send())) return;
+    try {
+      var response = await fetch('/api/approve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+      if (!response.ok) throw new Error(String(response.status));
+      finished = true;
+      window.parent.postMessage({ type: 'vstack:approved' }, location.origin);
+      paintFinish(); paintTotals();
+      say('Approved. Building now.');
+    } catch (e) {
+      paintFinish();
+      say('Failed. Use Approve & finish beside Send.');
+    }
+  };
+  document.querySelectorAll('[data-send]').forEach(function (b) { b.addEventListener('click', function () { send(); }); });
+  document.querySelectorAll('[data-finish]').forEach(function (b) { b.addEventListener('click', finish); });
+  document.querySelectorAll('[data-rest]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      items.forEach(function (el) { if (!decisions[el.id]) { decisions[el.id] = { choice: 'approve', note: '' }; paintItem(el); } });
+      paintTotals(); store();
+    });
+  });
+
+  items.forEach(paintItem);
+  paintTotals();
+
+})();
+</script>
+</body>
+</html>

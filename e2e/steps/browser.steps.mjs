@@ -1,7 +1,13 @@
 import { Given, Then, When } from '@cucumber/cucumber'
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import * as agent from '../support/mock-agent.mjs'
 import { PAGES } from '../support/world.mjs'
+
+const REPORT_TEMPLATE = path.resolve(path.dirname(fileURLToPath(import.meta.url)),
+  '../../plugins/vstack/skills/design-review/assets/report-template.html')
 
 const HOST_NAMES = { claude: 'Claude', codex: 'Codex' }
 
@@ -483,4 +489,52 @@ Then('the server records {string} as handed out', async function (note) {
   await eventually(() => {
     assert.ok(this.byNote(note).delegatedAt, 'the server records the hand-out')
   }, `"${note}" is handed out`)
+})
+
+/* ── a design review report with controls of its own ── */
+
+Given('a design review report is under review', async function () {
+  await this.startFileReview(this.hostId, fs.readFileSync(REPORT_TEMPLATE, 'utf8'))
+})
+
+/** A press on the framed page goes through the mouse at the element's on-screen
+    box. Playwright's own click would refuse, because the overlay is over it, and
+    the overlay standing aside for the pointer is what is under test. */
+async function pressInFrame (world, selector) {
+  const target = world.browserPage.frameLocator('#frame').locator(selector)
+  await target.waitFor()
+  const box = await target.boundingBox()
+  await world.browserPage.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await world.browserPage.mouse.down()
+  await world.browserPage.mouse.up()
+}
+
+When('the reviewer presses Approve on the section {string} without leaving Annotate mode', async function (id) {
+  assert.equal(await this.browserPage.locator('#modeSwitch [data-mode="annotate"]').getAttribute('aria-pressed'), 'true')
+  await pressInFrame(this, `#${id} .dcb[data-d="approve"]`)
+})
+
+When('the reviewer presses Send decisions on the page', async function () {
+  await pressInFrame(this, '#deck [data-send]')
+})
+
+When('the reviewer presses Approve & finish on the page twice', async function () {
+  await pressInFrame(this, '#deck [data-finish]')
+  await pressInFrame(this, '#deck [data-finish]')
+})
+
+Then('the review holds a comment that says {string}', async function (text) {
+  await eventually(() => {
+    assert.ok(this.stored().some(item => (item.note || '').includes(text)), `a comment says "${text}"`)
+  }, `a comment says ${text}`)
+})
+
+Then('the workspace shows its closing screen', async function () {
+  await eventually(async () => {
+    assert.ok(await this.browserPage.locator('#doneTitle').isVisible(), 'the closing screen is up')
+  }, 'the closing screen appears')
+})
+
+Then('the review is closed', async function () {
+  assert.ok(await this.waitForServerExit(), 'approval closes the server')
 })
