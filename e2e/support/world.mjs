@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const SERVER = path.resolve(HERE, '../../plugins/vstack/skills/review/assets/review-server.mjs')
+const BRIDGE = path.resolve(HERE, '../../plugins/vstack/lib/json-bridge.mjs')
 
 const PAGE_V1 = '<!doctype html><title>Review e2e page</title><main><h1 id="title">Todo</h1></main>'
 const EDIT_MARKER = 'Todo — edited'
@@ -114,6 +115,32 @@ export class ReviewWorld {
     }
     throw new Error(`review server did not start:\n${this.serverLog}`)
   }
+
+  /** A design review report, served on its own over the JSON bridge the way
+      the skill serves it. The answers file starts empty. */
+  async startReportServer (html, hostId = this.hostId) {
+    const dir = path.join(this.temp, '.vstack', 'local', 'design-review')
+    fs.mkdirSync(dir, { recursive: true })
+    this.reportPage = path.join(dir, 'target-round-1.html')
+    this.answersFile = path.join(dir, 'target-round-1.json')
+    fs.writeFileSync(this.reportPage, html)
+    fs.writeFileSync(this.answersFile, JSON.stringify({ decisions: {}, overall: '', revised: {} }))
+    this.server = spawn(process.execPath, [
+      BRIDGE, 'serve', '--json', this.answersFile, '--template', this.reportPage,
+      '--tool', 'design-review', '--port', String(this.port), '--idle-timeout', '0',
+      '--host', hostId, '--no-open',
+    ], { cwd: this.temp, stdio: ['ignore', 'pipe', 'pipe'] })
+    this.server.stdout.on('data', chunk => { this.serverLog += chunk })
+    this.server.stderr.on('data', chunk => { this.serverLog += chunk })
+    for (let attempt = 0; attempt < 100; attempt++) {
+      const opened = this.serverLog.match(/open (http\S+)/)
+      if (opened) { this.reportUrl = opened[1]; return }
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
+    throw new Error(`the report server did not start:\n${this.serverLog}`)
+  }
+
+  answers () { return JSON.parse(fs.readFileSync(this.answersFile, 'utf8')) }
 
   async post (pathname, body) {
     const response = await fetch(this.origin + this.base + pathname, {

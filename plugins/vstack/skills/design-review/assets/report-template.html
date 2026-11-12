@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- FILL: "<Target> design review, round <n>" -->
-<title>Design review report</title>
+<!-- FILL: "<Target> · Design review round <n>" -->
+<title>Target · Design review round 1</title>
 <style>
 /* vstack:shell tokens */
 /* One palette for every vstack page. Roles, not colours: a page asks for
@@ -74,229 +74,571 @@
   color-scheme:dark;
 }
 /* /vstack:shell tokens */
-:root {
-  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
-  --ease-decelerate: cubic-bezier(0, 0, 0.2, 1);
-  --p1-ink: #b8231a;
-  --warn: #8a5c06;
+/* vstack:shell css */
+/* The chrome every vstack page wears: the top bar and the controls that sit in
+   it. Page layout stays in the page — some of these are app shells that fill
+   the viewport, some are documents that scroll — but the bar, the buttons and
+   the segmented controls are the same object everywhere. */
+/* The shell hides its own controls with `hidden` — the link dot when there is
+   no link, the primary action on a page that doesn't send. A class that sets
+   `display` outranks the browser's default [hidden] rule, and .btn/.linkdot
+   both do, so state this here rather than trusting each page's reset. */
+[hidden]{display:none!important}
+/* Above anything the page floats at its edges. The bar makes a stacking context,
+   so a menu opening out of it can never rise past a sibling with a higher
+   z-index — which is how the comments handle came to sit on top of the settings
+   menu. Raising the bar raises everything it opens. */
+.vs-topbar{display:flex;align-items:center;gap:10px;padding:0 12px;height:46px;
+  background:var(--surface);border-bottom:1px solid var(--line);
+  position:sticky;top:0;z-index:50}
+.vs-topbar .brand{display:flex;align-items:center;gap:8px;min-width:0}
+.vslink{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:inherit}
+.vsmark{width:15px;height:15px;flex:none;color:var(--ink)}
+.vslink:hover .vsmark{opacity:.8}
+/* The tool's name, in the place the wordmark used to take. */
+.brand b{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;max-width:280px}
+.brand .eyebrow{font:600 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);white-space:nowrap}
+.spacer{flex:1}
+.sep{width:1px;height:20px;background:var(--line);flex:none}
+
+/* Says the tool itself is unfinished — not that something is running. A page
+   still being built should admit it in the chrome, not in a footnote. */
+.wip{flex:none;font:700 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+  color:#b0761a;background:color-mix(in srgb,#b0761a 12%,transparent);
+  border:1px solid color-mix(in srgb,#b0761a 34%,transparent);
+  border-radius:999px;padding:4px 8px;white-space:nowrap}
+@media (prefers-color-scheme:dark){.wip{color:#d29a3f;background:color-mix(in srgb,#d29a3f 14%,transparent);
+  border-color:color-mix(in srgb,#d29a3f 34%,transparent)}}
+:root[data-theme=dark] .wip{color:#d29a3f;background:color-mix(in srgb,#d29a3f 14%,transparent);
+  border-color:color-mix(in srgb,#d29a3f 34%,transparent)}
+:root[data-theme=light] .wip{color:#b0761a;background:color-mix(in srgb,#b0761a 12%,transparent);
+  border-color:color-mix(in srgb,#b0761a 34%,transparent)}
+
+/* A switch is on or off. A segmented control is a choice between alternatives —
+   using one to mean the other is why "Highlight new" read as two buttons. */
+.switch{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px 0 9px;
+  border:1px solid var(--line-2);border-radius:7px;background:var(--surface);color:var(--ink-2);
+  font:inherit;font-weight:550;white-space:nowrap;cursor:pointer;flex:none}
+.switch:hover{background:var(--surface-2);color:var(--ink)}
+.switch .track{width:26px;height:15px;border-radius:999px;background:var(--line-2);
+  position:relative;flex:none;transition:background .14s}
+.switch .knob{position:absolute;top:2px;left:2px;width:11px;height:11px;border-radius:50%;
+  background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.35);transition:transform .14s}
+/* On is the same "this one is selected" the segmented control uses. The brand
+   red is the primary action — a view option wearing it read as the thing to
+   press; solid black read like one too. */
+.switch[aria-checked=true]{color:var(--ink);border-color:var(--line-2)}
+/* The same near-black the segmented controls use when selected — on is on,
+   whichever control is saying it. */
+.switch[aria-checked=true] .track{background:var(--ink-2)}
+.switch[aria-checked=true] .knob{transform:translateX(11px)}
+
+/* buttons — one shape, three sizes of intent */
+.btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;
+  border:1px solid var(--line-2);background:var(--surface);color:var(--ink);font-weight:550;
+  white-space:nowrap;cursor:pointer}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.primary[disabled]{opacity:.45;cursor:default;filter:none;pointer-events:none}
+.btn[disabled]{opacity:.45;cursor:default;pointer-events:none}
+.btn.sm{height:25px;padding:0 9px;font-size:11.5px}
+
+/* A primary action with a ▾ beside it. The workspace and the story map both
+   have one and they were built twice; same markup, same metrics, here. */
+.split{display:inline-flex;position:relative;flex:none}
+.split > .btn:first-child{border-radius:7px 0 0 7px}
+.split > .caret{border-radius:0 7px 7px 0;width:28px;padding:0 8px;justify-content:center;
+  border-left:1px solid color-mix(in srgb,#fff 28%,transparent)}
+
+/* segmented control — modes, sizes, language, theme */
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;
+  background:var(--surface);flex:none}
+.seg button{height:30px;padding:0 12px;font-weight:550;color:var(--ink-2);display:inline-flex;
+  align-items:center;gap:6px;border:0;border-right:1px solid var(--line-2);background:none;
+  cursor:pointer;font:inherit;font-weight:550}
+.seg button:last-child{border-right:0}
+.seg button:hover{background:var(--surface-2)}
+/* Selected is near-black rather than black: dark enough to find at a glance,
+   one step off the ink the page's own words are set in, so the bar never
+   out-blacks the content. --ink-2 flips with the theme, so in dark mode this is
+   the same step down from white. */
+.seg button[aria-pressed=true]{background:var(--ink-2);color:var(--surface);font-weight:650}
+.seg.sm button{height:25px;padding:0 9px;font-size:11.5px}
+#langSwitch button,#themeSwitch button{padding:0 9px;font-size:11.5px;font-weight:600}
+#themeSwitch button{padding:0 8px}
+#themeSwitch svg{width:13px;height:13px;display:block}
+
+/* ── settings: how you like the page, out of the way ── */
+.cogwrap{position:relative;flex:none}
+.cog{width:30px;height:30px;border:1px solid var(--line-2);border-radius:7px;background:var(--surface);
+  color:var(--ink-2);display:grid;place-items:center;cursor:pointer}
+.cog:hover,.cog[aria-expanded=true]{background:var(--surface-2);color:var(--ink)}
+.cog svg{width:15px;height:15px;display:block}
+.cogmenu{position:absolute;top:36px;right:0;z-index:60;background:var(--surface);
+  border:1px solid var(--line-2);border-radius:10px;box-shadow:var(--shadow-pop);padding:9px;
+  display:grid;gap:9px;min-width:210px}
+.cogmenu[hidden]{display:none}
+.cogmenu .row{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.cogmenu .lbl{font-size:12px;color:var(--ink-2);white-space:nowrap}
+.cogmenu .about{align-items:flex-start}
+.cogmenu .abouts{display:grid;gap:3px;justify-items:end}
+.cogmenu .abouts .one{display:flex;gap:8px;align-items:baseline}
+/* An author `display` beats the UA rule for [hidden], so every row that is
+   hidden from script needs its own. A page that never hears a server version
+   showed "server —" for good without this. */
+.cogmenu .abouts .one[hidden]{display:none}
+.cogmenu .abouts em{font-style:normal;font-size:10.5px;letter-spacing:.03em;color:var(--ink-3)}
+.cogmenu .abouts b{font:600 11px/1.3 var(--mono);color:var(--ink);font-variant-numeric:tabular-nums}
+.cogmenu .stale{font-size:11px;line-height:1.4;color:var(--brand);justify-content:flex-start}
+.cogmenu .stale[hidden]{display:none}
+.cogmenu .about[hidden]{display:none}
+
+/* the live link, stated rather than implied */
+.linkdot{display:inline-flex;align-items:center;gap:6px;font:600 10.5px/1 var(--mono);
+  letter-spacing:.03em;color:var(--ink-3);white-space:nowrap}
+.linkdot::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ink-3);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--ink-3) 18%,transparent)}
+.linkdot.on{color:var(--ok)}
+.linkdot.on::before{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
+/* Up, but nobody is waiting to read what you send. Amber rather than green,
+   because the page works and the round will not — the same distinction the
+   WIP tag makes. */
+.linkdot.idle{color:#b0761a}
+.linkdot.idle::before{background:#b0761a;box-shadow:0 0 0 3px color-mix(in srgb,#b0761a 22%,transparent)}
+@media (prefers-color-scheme:dark){.linkdot.idle{color:#d29a3f}
+  .linkdot.idle::before{background:#d29a3f;box-shadow:0 0 0 3px color-mix(in srgb,#d29a3f 22%,transparent)}}
+:root[data-theme=dark] .linkdot.idle{color:#d29a3f}
+:root[data-theme=dark] .linkdot.idle::before{background:#d29a3f;
+  box-shadow:0 0 0 3px color-mix(in srgb,#d29a3f 22%,transparent)}
+
+/* floating banners — the page talking back, never blocking the work.
+   z-index above every panel and menu (comments panel 40–46, dropdowns 60–70):
+   a snackbar that slides under other chrome reads as clipped. Full-screen
+   overlays (z 200+) still cover it. */
+.banner{position:fixed;left:50%;top:58px;transform:translateX(-50%);z-index:80;display:none;
+  align-items:center;gap:10px;padding:8px 10px 8px 14px;border-radius:10px;box-shadow:var(--shadow-pop);
+  font-size:12.5px;white-space:nowrap;max-width:calc(100% - 24px)}
+.banner.on{display:flex}
+.banner.dark{background:var(--ink);color:var(--surface)}
+.banner.dark .btn{background:color-mix(in srgb,var(--surface) 16%,transparent);
+  border-color:transparent;color:var(--surface)}
+.banner.dark .btn:hover{background:color-mix(in srgb,var(--surface) 28%,transparent)}
+.banner.good{background:var(--ok-soft);border:1px solid var(--ok);color:var(--ink)}
+.banner.good .tick{color:var(--ok);font-weight:700}
+
+/* the toast — VSShell.toast(); one element, appended on first use */
+/* It is a popover, so the browser's own [popover] rules apply first: inset,
+   margin and border are theirs to set and ours to put back. */
+.vs-toast{position:fixed;inset:auto;left:50%;bottom:18px;transform:translateX(-50%);z-index:80;
+  background:var(--ink);color:var(--surface);border:0;margin:0;padding:8px 14px;border-radius:8px;
+  font-size:12.5px;box-shadow:var(--shadow-pop);opacity:0;pointer-events:none;transition:opacity .25s}
+.vs-toast.on{opacity:1}
+
+/* ── "there is a newer one" ──
+   One line under the bar, in the workmanlike amber the WIP tag uses: it is
+   information, not an alarm, and it goes away for good on ×. */
+/* The bar and the notice as one block, because that is what a page's layout
+   sized the row for: on its own, the notice would claim the content row of a
+   `grid-template-rows:auto 1fr` shell and stretch down the window. Only ever
+   built when there is a notice to put in it.
+   It carries the bar's sticky, not just its place in the flow — a sticky child
+   sticks within its containing block, so a shrink-wrapped wrapper would scroll
+   the bar away with the notice on any page that is a document rather than an
+   app shell. */
+.vs-chrome{flex:none;min-width:0;position:sticky;top:0;z-index:50}
+.vs-update{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:7px 12px;font-size:12px;color:var(--ink-2);
+  background:color-mix(in srgb,#b0761a 8%,var(--surface));
+  border-bottom:1px solid color-mix(in srgb,#b0761a 26%,transparent)}
+.vs-update .v{font:500 9.5px/1 var(--mono);letter-spacing:.06em;color:#8a5c06;
+  background:color-mix(in srgb,#b0761a 16%,transparent);border-radius:999px;padding:4px 7px;flex:none}
+.vs-update .t{flex:1;min-width:0}
+/* Both buttons are one height and centre their own contents. Left to padding
+   and line-height they came out different sizes, and the × — which sits on the
+   maths axis, not the baseline — hung high inside the smaller one. */
+.vs-update button{font:inherit;font-size:11.5px;font-weight:600;color:var(--ink-2);
+  border:1px solid var(--line-2);background:var(--surface);border-radius:6px;
+  height:24px;padding:0 8px;flex:none;
+  display:inline-flex;align-items:center;justify-content:center}
+.vs-update button:hover{color:var(--ink);background:var(--surface-2)}
+.vs-update .no{width:24px;padding:0;display:grid;place-items:center}
+.vs-update .no svg{width:11px;height:11px;display:block}
+.vs-update-how{flex-basis:100%;margin:2px 0 0;font-size:11.5px;color:var(--ink-3)}
+.vs-update-how[hidden]{display:none}
+.vs-update-how p{margin:0 0 4px}
+.vs-update-how pre{margin:0 0 4px;padding:7px 9px;border-radius:7px;overflow-x:auto;
+  font:500 11px/1.6 var(--mono);color:var(--ink);background:var(--surface);border:1px solid var(--line)}
+.vs-update-how .auto{margin:0 0 4px}
+@media (prefers-color-scheme:dark){.vs-update .v{color:#e2b567}}
+:root[data-theme=dark] .vs-update .v{color:#e2b567}
+
+@media (max-width:720px){
+  .brand .eyebrow,.wip{display:none}
+  .vs-topbar{gap:8px;padding:0 8px}
+  /* What the bar keeps at this width is what the page is doing. The mark says
+     which tool this is as well as the word beside it did, and the dot carries
+     the link state on its own — colour is the whole message, the words only
+     ever spelled it out. Both stay in the DOM: the text is still the dot's
+     accessible name, and its title says it on hover. */
+  .brand b{display:none}
+  .linkdot{gap:0;font-size:0}
 }
-@media (prefers-color-scheme: dark) { :root { --p1-ink: #ff8a80; --warn: #d29a3f; } }
-:root[data-theme=light] { --p1-ink: #b8231a; --warn: #8a5c06; }
-:root[data-theme=dark] { --p1-ink: #ff8a80; --warn: #d29a3f; }
+/* /vstack:shell css */
 
-/* The guide's rem scale is unchanged. Only the root moves, so a page fitted to
-   70% in the workspace stays readable and a phone still gets 16px. */
-html { font-size: clamp(16px, 1.25vw, 20px); -webkit-text-size-adjust: 100%; }
+/* Meanings that exist only in a report: a steer is amber, P1 text is a darker
+   red than the brand so it holds contrast on its tint. */
+:root { --warn: #8a5c06; --warn-soft: #fef5e6; --warn-line: #fbd38d; --p1-ink: #b8231a;
+  --ease: cubic-bezier(0.2, 0, 0, 1); --ease-in: cubic-bezier(0, 0, 0.2, 1); --bar-h: 46px; }
+@media (prefers-color-scheme: dark) { :root { --warn: #d29a3f; --warn-soft: rgba(210,154,63,.14); --warn-line: rgba(210,154,63,.4); --p1-ink: #ff8a80; } }
+:root[data-theme=light] { --warn: #8a5c06; --warn-soft: #fef5e6; --warn-line: #fbd38d; --p1-ink: #b8231a; }
+:root[data-theme=dark] { --warn: #d29a3f; --warn-soft: rgba(210,154,63,.14); --warn-line: rgba(210,154,63,.4); --p1-ink: #ff8a80; }
+
+html { font-size: 16px; scroll-padding-top: calc(var(--bar-h) + 1.5rem); -webkit-text-size-adjust: 100%; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
 * { box-sizing: border-box; }
-body { margin: 0; min-height: 100vh; background: var(--surface); color: var(--ink); font: 400 1rem/1.5 var(--font); font-variant-numeric: tabular-nums; }
-h1, h2, h3, p, ul, ol, figure { margin: 0; padding: 0; }
-ul, ol { list-style: none; }
-img { display: block; width: 100%; height: auto; }
+body { margin: 0; background: var(--surface); color: var(--ink); font: 400 1rem/1.5 var(--font); font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; }
+.vs-topbar { font-size: 13px; }
+h1, h2, h3, p, ol, ul, figure { margin: 0; padding: 0; }
+ol, ul { list-style: none; }
+img { display: block; max-width: 100%; height: auto; }
 a { color: inherit; text-decoration: none; }
-a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-.wrap { width: min(100%, 86rem); margin-inline: auto; padding-inline: clamp(1rem, 3vw, 3rem); }
+button { font: inherit; }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+kbd { display: inline-block; min-width: 1.4em; padding: .1em .35em; border: 1px solid var(--line-2); border-bottom-width: 2px; border-radius: 4px; background: var(--surface); font: 600 11px/1.2 var(--mono); color: var(--ink-2); text-align: center; }
 
-/* Masthead */
-.band { background: var(--paper); padding-block: 2.25rem 2.25rem; }
-.meta { font: 500 .875rem/1.5 var(--mono); color: var(--ink-3); }
-h1 { margin-top: .375rem; font-size: 2.5rem; line-height: 1.08; font-weight: 700; letter-spacing: -.022em; }
+/* ── top bar: progress and the split action ── */
+.tally { display: flex; align-items: center; gap: 8px; font: 600 10.5px/1 var(--mono); letter-spacing: .03em; color: var(--ink-3); white-space: nowrap; }
+.segs { display: flex; gap: 2px; width: 96px; }
+.segs i { flex: 1; height: 6px; border-radius: 2px; background: var(--line-2); transition: background 250ms var(--ease); }
+.segs i.approve { background: var(--ok); }
+.segs i.reject { background: var(--ink-3); }
+.segs i.steer { background: var(--warn); }
+.btn .kbd { font: 500 10px/1 var(--mono); opacity: .6; }
+/* The workspace's ▾ menu, item for item: a title, then what pressing it does. */
+.splitmenu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 60; width: 266px; padding: 5px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: var(--shadow-pop); animation: menu-in 150ms var(--ease-in); }
+.splitmenu button { display: block; width: 100%; padding: 8px 9px; border: 0; border-radius: 7px; background: none; color: var(--ink); text-align: left; cursor: pointer; }
+.splitmenu button:hover { background: var(--surface-2); }
+.splitmenu button[disabled] { opacity: .45; pointer-events: none; }
+.splitmenu .t { display: block; font-weight: 500; font-size: 12.5px; }
+.splitmenu .d { display: block; margin-top: 3px; font-size: 11.5px; line-height: 1.35; color: var(--ink-3); }
+.splitmenu .d:empty { display: none; }
+.splitmenu button.armed { background: var(--brand-soft); }
+.splitmenu button.armed .t { color: var(--brand); }
+@keyframes menu-in { from { opacity: 0; transform: translateY(-4px); } }
 
-/* Decision deck */
-.deck { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 1rem 2rem; margin-top: 1.5rem; padding: 1.25rem 1.5rem; border-radius: 14px; background: var(--ink); color: var(--surface); }
-.counts { display: flex; gap: 1.25rem; }
-.counts b { display: block; font-size: 1.75rem; line-height: 1.1; letter-spacing: -.02em; }
-.counts span { font-size: .875rem; opacity: .78; }
-.tally-bar { display: flex; gap: 3px; }
-.tally-bar i { flex: 1; height: .625rem; border-radius: 3px; background: color-mix(in srgb, var(--surface) 22%, transparent); transition: background 250ms var(--ease-standard); }
-.tally-bar i.approve { background: var(--ok); }
-.tally-bar i.reject { background: color-mix(in srgb, var(--surface) 72%, transparent); }
-.tally-bar i.steer { background: #d29a3f; }
-.tally-text { margin-top: .375rem; font-size: .875rem; opacity: .86; }
-.actions { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: flex-end; }
-.pbtn { min-height: 2.75rem; padding: 0 1rem; border: 1px solid color-mix(in srgb, var(--surface) 40%, transparent); border-radius: 9px; background: transparent; color: var(--surface); font: 700 .875rem var(--font); cursor: pointer; transition: background 150ms var(--ease-standard), opacity 150ms var(--ease-standard); }
-.pbtn:hover { background: color-mix(in srgb, var(--surface) 12%, transparent); }
-.pbtn.solid { background: var(--surface); border-color: var(--surface); color: var(--ink); }
-.pbtn.solid:hover { background: color-mix(in srgb, var(--surface) 86%, transparent); }
-.pbtn.go { background: var(--ok); border-color: var(--ok); color: #fff; }
-.pbtn.go:hover { background: var(--ok); opacity: .88; }
-.pbtn[disabled] { opacity: .45; cursor: default; }
-.deck-foot { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 1rem; }
-.steer-all { display: block; width: 100%; padding: .5rem .75rem; border: 0; border-radius: 8px; background: var(--surface); color: var(--ink); font: 400 .875rem/1.4 var(--font); resize: vertical; }
-.hint { font-size: .875rem; opacity: .86; }
-.hint kbd { padding: .05em .4em; border: 1px solid color-mix(in srgb, var(--surface) 40%, transparent); border-radius: 4px; font: 500 .875em var(--mono); }
-.msg { grid-column: 1 / -1; font-size: .875rem; }
-.msg:empty { display: none; }
-.plan-deck { grid-template-columns: minmax(0, 1fr) auto; margin-top: 1.5rem; }
+/* ── layout: an index that stays put beside a column that scrolls ── */
+.layout { display: grid; grid-template-columns: 16rem minmax(0, 1fr); max-width: 94rem; margin-inline: auto; }
+.rail { position: sticky; top: var(--bar-h); align-self: start; height: calc(100vh - var(--bar-h)); overflow: auto; padding: 2.5rem 1rem 2rem 1.5rem; border-right: 1px solid var(--line); }
+main { min-width: 0; padding: 2.5rem clamp(1rem, 4vw, 3.5rem) 0; }
+.rail-h { font: 600 12px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+.rail-progress { margin: .75rem 0 1.25rem; font-size: 14px; color: var(--ink-2); }
+.rail-progress b { font-size: 1.75rem; line-height: 1; font-weight: 700; letter-spacing: -.02em; color: var(--ink); }
+.rail-progress .segs { width: 100%; margin-top: .625rem; }
+.rail-progress .segs i { height: 4px; }
+.toc a { display: grid; grid-template-columns: 1.5rem auto minmax(0, 1fr) .5rem; align-items: center; gap: .5rem; padding: .4rem .5rem; border-radius: 6px; font-size: 14px; line-height: 1.3; color: var(--ink-2); transition: background 150ms var(--ease), color 150ms var(--ease); }
+.toc a:hover { background: var(--surface-2); color: var(--ink); }
+.toc a[aria-current=true] { background: var(--surface-2); color: var(--ink); box-shadow: inset 2px 0 0 var(--brand); }
+.toc .n { font: 500 12px/1 var(--mono); color: var(--ink-3); }
+.toc .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toc .sev { font-size: 11px; }
+.toc a.reject .t { color: var(--ink-3); text-decoration: line-through; }
+.dot { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--line-2); transition: background 250ms var(--ease), border-color 250ms var(--ease), transform 250ms var(--ease); }
+.approve > .dot { background: var(--ok); border-color: var(--ok); }
+.reject > .dot { background: var(--ink-3); border-color: var(--ink-3); }
+.steer > .dot { background: var(--warn); border-color: var(--warn); }
+.revised > .dot { border-color: var(--brand); background: var(--brand-soft); }
+.unsent > .dot { transform: scale(1.25); }
+.rail-plan { display: block; margin-top: .75rem; padding: .4rem .5rem; border-top: 1px solid var(--line); font-size: 14px; color: var(--ink-2); }
+.rail-plan:hover { color: var(--ink); }
+.keys { margin-top: 1.5rem; display: grid; gap: .5rem; font-size: 12px; color: var(--ink-3); }
 
-/* Index of findings */
-.index { display: flex; flex-wrap: wrap; gap: .375rem; margin-top: 1rem; }
-.index a { display: inline-flex; align-items: center; gap: .375rem; padding: .2rem .625rem .2rem .25rem; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-size: .875rem; font-weight: 500; transition: border-color 150ms var(--ease-standard), background 150ms var(--ease-standard), opacity 250ms var(--ease-standard); }
-.index a:hover { border-color: var(--ink-3); }
-.index a.approve { background: var(--ok-soft); border-color: var(--ok); }
-.index a.steer { border-color: var(--warn); }
-.index a.reject { opacity: .5; text-decoration: line-through; }
+/* ── masthead ── */
+.head .eyebrow { display: inline-flex; align-items: center; gap: .5rem; font: 700 11px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--brand); }
+.head .eyebrow::before { content: ""; width: 1.4rem; height: 2px; border-radius: 2px; background: var(--brand); }
+h1 { margin-top: .875rem; font-size: 2.5rem; line-height: 1.1; font-weight: 750; letter-spacing: -.025em; text-wrap: balance; }
+.meta { margin-top: .625rem; font: 500 14px/1.5 var(--mono); color: var(--ink-3); }
+.counts { display: flex; flex-wrap: wrap; gap: .5rem 1rem; margin-top: 1.25rem; font-size: 14px; color: var(--ink-2); }
+.counts span { display: inline-flex; align-items: center; gap: .375rem; }
+.howto { margin-top: .75rem; font-size: 14px; color: var(--ink-3); }
+.index { display: none; flex-wrap: wrap; gap: .375rem; margin-top: 1rem; }
+.index li a { display: inline-flex; align-items: center; gap: .375rem; padding: .25rem .625rem .25rem .3rem; border: 1px solid var(--line); border-radius: 999px; font-size: 14px; }
+.index .n { display: none; }
+.index a.reject .t { text-decoration: line-through; color: var(--ink-3); }
 
 /* Severity escalates by degree. Only P0 and P1 carry colour. */
-.sev { display: inline-block; padding: .05rem .4rem; border-radius: 5px; border: 1px solid var(--line-2); font: 700 .875rem/1.45 var(--mono); color: var(--ink); background: var(--surface-2); white-space: nowrap; }
+.sev { display: inline-block; padding: .05rem .4rem; border-radius: 5px; border: 1px solid var(--line-2); background: var(--surface-2); font: 700 12px/1.45 var(--mono); color: var(--ink); white-space: nowrap; }
 .sev.p0 { background: var(--brand); border-color: var(--brand); color: #fff; }
 .sev.p1 { background: var(--brand-soft); border-color: var(--brand-line); color: var(--p1-ink); }
 .sev.p3 { background: none; border-color: transparent; padding-inline: .1rem; color: var(--ink-3); }
 
-/* A section: its bar, then the two pictures. */
-.area-title { padding-top: 2.5rem; padding-bottom: .25rem; font-size: 1.75rem; line-height: 1.2; font-weight: 700; letter-spacing: -.018em; }
-.finding { padding-block: 1rem 1.75rem; border-radius: 8px; }
-.finding:target > .dbar, .finding:target > .fh { animation: arrive 900ms var(--ease-decelerate); }
-@keyframes arrive { from { background: var(--brand-soft); box-shadow: 0 0 0 3px var(--brand-line); } to { box-shadow: 0 0 0 0 transparent; } }
-.fh, .dbar-left { display: flex; flex-wrap: wrap; align-items: center; gap: .375rem .625rem; min-width: 0; }
-h3 { font-size: 1.25rem; line-height: 1.25; font-weight: 700; letter-spacing: -.01em; }
-.delta { padding: .05rem .5rem; border-radius: 6px; background: var(--surface); border: 1px solid var(--line); font: 700 .875rem/1.5 var(--mono); white-space: nowrap; }
-.bar-label { font-size: .875rem; font-weight: 500; color: var(--ink-3); }
+/* ── a section: its bar, the steer box, then the pictures ── */
+.area-title { padding: 3rem 0 .5rem; font-size: 1.75rem; line-height: 1.2; font-weight: 750; letter-spacing: -.02em; }
+.finding { position: relative; margin-top: 2.5rem; padding-top: 2.5rem; border-top: 1px solid var(--line); }
+.area-title + .finding { margin-top: 0; }
+.fh { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; margin: -.5rem; padding: .5rem; border-radius: 12px; }
+.finding:target > .fh { animation: arrive 1.4s var(--ease-in); }
+@keyframes arrive { from { background: var(--brand-soft); } to { background: transparent; } }
+.label { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; flex: 1 1 22rem; min-width: 0; }
+.num { font: 500 14px/1 var(--mono); color: var(--ink-3); transition: color 150ms var(--ease); }
+.kbd-nav .finding.current .num { color: var(--brand); }
+.kbd-nav .finding.current::before { content: ""; position: absolute; left: -1.25rem; top: 2.75rem; width: 3px; height: 2rem; border-radius: 2px; background: var(--brand); }
+h2 { font-size: 1.25rem; line-height: 1.25; font-weight: 700; letter-spacing: -.01em; transition: color 250ms var(--ease); }
+.is-reject h2 { color: var(--ink-3); text-decoration: line-through; text-decoration-thickness: 1.5px; }
+.delta { padding: .125rem .5rem; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); font: 600 12px/1.5 var(--mono); color: var(--ink-2); white-space: nowrap; }
+.call { padding: .125rem .5rem; border: 1px solid var(--ink-3); border-radius: 999px; font-size: 12px; font-weight: 700; line-height: 1.5; color: var(--ink-2); white-space: nowrap; }
 
-.dbar { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; min-height: 3.75rem; padding: .5rem; padding-inline-start: .875rem; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); transition: background 250ms var(--ease-standard), border-color 250ms var(--ease-standard); }
-.dbar .dbar-left { flex: 1 1 18rem; }
-.is-approve > .dbar { background: var(--ok-soft); border-color: var(--ok); }
-.is-steer > .dbar { border-color: var(--warn); }
-.is-reject > .dbar { background: transparent; border-color: var(--line-2); }
-.is-reject > :not(.dbar) { opacity: .35; transition: opacity 250ms var(--ease-standard); }
-.dc { display: flex; align-items: center; gap: .75rem; margin-left: auto; }
-html:not(.live) .dc, html:not(.live) .only-live, html:not(.live) .dbar textarea { display: none !important; }
-.live .only-static { display: none; }
-.dc-row { display: flex; gap: .375rem; }
-.dcb { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-width: 7.5rem; min-height: 2.75rem; padding: 0 1rem; border: 1.5px solid var(--ink-3); border-radius: 9px; background: var(--surface); color: var(--ink); font: 700 1rem var(--font); cursor: pointer; transition: background 150ms var(--ease-standard), color 150ms var(--ease-standard), border-color 150ms var(--ease-standard); }
-.dcb svg { width: 1em; height: 1em; flex: none; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
-.dcb:hover { background: var(--line); }
-.dcb[data-d=approve] { border-color: var(--ok); color: var(--ok); }
-.dcb[data-d=approve]:hover { background: var(--ok-soft); }
-.dcb[data-d=approve][aria-pressed=true] { background: var(--ok); border-color: var(--ok); color: var(--surface); }
-.dcb[data-d=reject][aria-pressed=true] { background: var(--ink); border-color: var(--ink); color: var(--surface); }
-.dcb[data-d=steer][aria-pressed=true] { background: var(--warn); border-color: var(--warn); color: var(--surface); }
-.dc-send { display: none; align-items: center; gap: .5rem; font-size: .875rem; color: var(--ink-3); white-space: nowrap; }
-.dc.last .dc-send.show { display: inline-flex; }
-.dc-send button { min-height: 2.75rem; padding: 0 .875rem; border: 0; border-radius: 9px; background: var(--ink); color: var(--surface); font: 700 .875rem var(--font); cursor: pointer; }
-.dbar textarea { flex-basis: 100%; display: block; width: 100%; padding: .5rem .75rem; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface); color: var(--ink); font: 400 .875rem/1.4 var(--font); resize: vertical; }
-.dbar textarea[hidden] { display: none; }
+/* Approve, Reject, Steer: the shell's segmented control, sized for a decision
+   and coloured by what was decided. */
+.decide { display: inline-flex; flex: none; border: 1px solid var(--line-2); border-radius: 9px; background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }
+.decide button { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; height: 2.5rem; padding: 0 1rem; border: 0; border-right: 1px solid var(--line-2); background: none; color: var(--ink-2); font-size: 14px; font-weight: 600; cursor: pointer; transition: background 150ms var(--ease), color 150ms var(--ease); }
+.decide button:last-child { border-right: 0; }
+.decide button:hover { background: var(--surface-2); color: var(--ink); }
+.decide button:active { background: var(--line); }
+.decide svg { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.decide [aria-pressed=true] svg { animation: pop 300ms var(--ease-in); }
+.decide [data-d=approve][aria-pressed=true] { background: var(--ok); color: var(--surface); }
+.decide [data-d=reject][aria-pressed=true] { background: var(--ink-2); color: var(--surface); }
+.decide [data-d=steer][aria-pressed=true] { background: var(--warn); color: var(--surface); }
+@keyframes pop { 0% { transform: scale(.5); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
 
-/* Before and after */
-.cmp { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; margin-top: .75rem; }
-.side figcaption { display: flex; align-items: center; gap: .5rem; margin-bottom: .375rem; font-size: .875rem; color: var(--ink-2); min-height: 1.75rem; }
-.side figcaption b { padding: .05rem .5rem; border-radius: 5px; font-weight: 700; background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line-2); }
-.side.prop figcaption b { background: var(--ok); border-color: var(--ok); color: var(--surface); }
-.shot { position: relative; aspect-ratio: 16 / 10; border: 1px solid var(--line-2); border-radius: 10px; overflow: hidden; background: var(--surface-2); }
-.side.prop .shot { border: 2px solid var(--ok); }
-.shot img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
-.cmp.page .shot { aspect-ratio: 4 / 5; }
+/* The steer box opens in place, under the bar it answers. */
+.steer { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 250ms var(--ease); }
+.steer > div { overflow: hidden; }
+.steer-open .steer { grid-template-rows: 1fr; }
+.steer-box { margin-top: 1rem; padding: .875rem; border: 1px solid var(--warn-line); border-radius: 12px; background: var(--warn-soft); }
+.steer-box label { font-size: 14px; font-weight: 700; color: var(--warn); }
+.field { display: block; width: 100%; min-height: 4.5rem; max-height: 16rem; margin-top: .5rem; padding: .625rem .75rem; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface); color: var(--ink); font: 400 1rem/1.45 var(--font); resize: vertical; field-sizing: content; transition: border-color 150ms var(--ease), box-shadow 150ms var(--ease); }
+.field::placeholder { color: var(--ink-3); }
+.field:focus { outline: none; border-color: var(--warn); box-shadow: 0 0 0 3px var(--warn-line); }
+.steer-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .25rem 1rem; margin-top: .5rem; font-size: 12px; color: var(--ink-3); }
+.status { display: none; align-items: center; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; font-size: 14px; color: var(--ink-2); }
+.status.on { display: flex; animation: menu-in 250ms var(--ease-in); }
+.status q { color: var(--ink-3); font-style: italic; }
+.pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); animation: pulse 2s var(--ease) infinite; }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 var(--warn-line); } 50% { box-shadow: 0 0 0 6px transparent; } }
+.revised-tag { padding: .125rem .5rem; border: 1px solid var(--brand-line); border-radius: 999px; background: var(--brand-soft); font: 700 11px/1.5 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--brand); }
+
+/* ── before and after ── */
+.cmp { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; margin-top: 1.25rem; align-items: start; transition: opacity 250ms var(--ease), filter 250ms var(--ease); }
+.is-reject .cmp, .is-reject .wipe { opacity: .35; filter: grayscale(1); }
+.side figcaption { display: flex; align-items: baseline; gap: .5rem; min-height: 1.5rem; margin-bottom: .5rem; font-size: 14px; color: var(--ink-3); }
+.side figcaption b { font: 700 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); }
+.side.prop figcaption b { color: var(--ok); }
+.shot { position: relative; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface-2); box-shadow: var(--shadow); transition: box-shadow 250ms var(--ease), transform 250ms var(--ease); }
+.shot img { width: 100%; }
+.shot.zoom { cursor: zoom-in; }
+.shot.zoom:hover { transform: translateY(-2px); box-shadow: var(--shadow-pop); }
+.is-approve .side.prop .shot { box-shadow: 0 0 0 2px var(--ok), var(--shadow-pop); }
+.is-steer .side.prop .shot { box-shadow: 0 0 0 2px var(--warn), var(--shadow); }
+.side.prop .shot::after { content: ""; position: absolute; top: .625rem; right: .625rem; width: 1.75rem; height: 1.75rem; border-radius: 50%; background: var(--ok) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 13l4 4L19 7'/%3E%3C/svg%3E") center / 60% no-repeat; box-shadow: var(--shadow-pop); opacity: 0; transform: scale(.4); transition: opacity 250ms var(--ease), transform 300ms var(--ease-in); }
+.is-approve .side.prop .shot::after { opacity: 1; transform: scale(1); }
+.cmp.fixed .shot { aspect-ratio: 16 / 10; }
+.cmp.fixed .shot img { height: 100%; object-fit: cover; object-position: top; }
 .cmp.phone { grid-template-columns: repeat(2, minmax(0, 20rem)); justify-content: center; }
-.cmp.phone .shot { aspect-ratio: 9 / 17; background: #fff; }
-.cmp.phone .shot img { object-fit: contain; }
-.shot.draw { aspect-ratio: auto; min-height: 9rem; padding: 1rem; display: grid; align-content: center; gap: .75rem; }
-.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .375rem; }
-.grid2 .shot { aspect-ratio: 16 / 10; }
-.box { position: absolute; border: 2px solid var(--brand); border-radius: 3px; pointer-events: none; }
+.shot.draw { min-height: 9rem; padding: 1rem; display: grid; align-content: center; gap: .75rem; }
+.box { position: absolute; border: 2px solid var(--brand); border-radius: 4px; pointer-events: none; }
 
-/* Strip chart */
-.lanes { display: grid; grid-template-columns: 2rem minmax(0, 1fr); row-gap: 3px; align-items: center; width: 100%; font: 500 .875rem var(--mono); color: var(--ink-3); }
-.lane { position: relative; height: 1rem; background: var(--line); border-radius: 3px; overflow: hidden; }
-.mark { position: absolute; top: 0; bottom: 0; border-right: 2px solid var(--line); }
-.mark.p1 { background: var(--brand); } .mark.p2 { background: var(--ink-3); } .mark.p3 { background: var(--line-2); }
-.axis { display: flex; justify-content: space-between; grid-column: 2; margin-top: .25rem; }
-
-/* Small task app, drawn for the comparison-label finding */
-.tm { background: #fff; color: #171320; border-radius: 8px; padding: .625rem; font-size: .875rem; line-height: 1.3; }
-.tm .f { display: flex; gap: .375rem; }
-.tm .in { flex: 1; min-width: 0; height: 2rem; padding: 0 .5rem; display: flex; align-items: center; border-radius: 6px; }
-.tm .btn { height: 2rem; padding: 0 .625rem; display: flex; align-items: center; border-radius: 6px; font-weight: 500; background: #4f5bea; color: #fff; }
-.today-in { background: #f6f4f8; color: #8d86a0; }
-.prop-in { background: #fff; border: 1.5px solid #171320; color: #665e72; }
-.minicap { display: inline-block; margin-bottom: .25rem; font-size: .875rem; color: var(--ink-3); }
-.minicap.tag { padding: 0 .5rem; border-radius: 5px; font-weight: 700; background: var(--surface); border: 1px solid var(--line-2); color: var(--ink-2); }
-.minicap.tag.go { background: var(--ok); border-color: var(--ok); color: var(--surface); }
-.stage2 { padding: .375rem; border-radius: 8px; background: var(--paper); }
-.stage2.go { box-shadow: 0 0 0 2px var(--ok); }
-.oldcap { font-size: .75rem; }
-
-/* Wipe */
-.wipe { --pos: 50%; position: relative; aspect-ratio: 16 / 10; margin-top: .75rem; border-radius: 10px; overflow: hidden; border: 1px solid var(--line-2); touch-action: pan-y; }
-.wipe img { position: absolute; inset: 0; height: 100%; object-fit: cover; object-position: top; }
-.wipe img.after { clip-path: inset(0 0 0 var(--pos)); }
-.wipe .tag { position: absolute; top: .5rem; padding: .05rem .5rem; border-radius: 5px; font-size: .875rem; font-weight: 700; background: rgba(23,19,32,.82); color: #fff; }
-.wipe .tag.l { left: .5rem; } .wipe .tag.r { right: .5rem; background: #0b8157; }
-.wipe .handle { position: absolute; top: 0; bottom: 0; left: var(--pos); width: 2px; background: #171320; pointer-events: none; }
-.wipe .handle::after { content: "\2194"; position: absolute; top: 50%; left: 50%; width: 2.25rem; height: 2.25rem; transform: translate(-50%, -50%); display: grid; place-items: center; border-radius: 50%; background: #171320; color: #fff; }
+/* A wipe, for two pictures of one size. */
+.wipe { --pos: 50%; position: relative; margin-top: 1.25rem; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow); touch-action: pan-y; transition: opacity 250ms var(--ease), filter 250ms var(--ease); }
+.wipe img { width: 100%; }
+.wipe img.after { position: absolute; inset: 0; height: 100%; object-fit: cover; object-position: top; clip-path: inset(0 0 0 var(--pos)); }
+.wipe .tag { position: absolute; top: .625rem; padding: .25rem .5rem; border-radius: 6px; background: rgba(23,19,32,.82); color: #fff; font: 700 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+.wipe .tag.l { left: .625rem; }
+.wipe .tag.r { right: .625rem; background: #0b8157; }
+.wipe .handle { position: absolute; top: 0; bottom: 0; left: var(--pos); width: 2px; background: #fff; box-shadow: 0 0 0 1px rgba(23,19,32,.3); pointer-events: none; }
+.wipe .handle::after { content: "\2194"; position: absolute; top: 50%; left: 50%; display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: 50%; background: #fff; color: #171320; box-shadow: var(--shadow-pop); transform: translate(-50%, -50%); }
 .wipe input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize; }
 
-/* Plan */
-.slices { display: grid; margin-top: .75rem; counter-reset: s; }
-.slice { counter-increment: s; display: grid; grid-template-columns: 2.5rem minmax(0, 1fr); align-items: center; gap: 1rem; padding-block: .75rem; border-top: 1px solid var(--line); }
-.slice::before { content: counter(s); font-size: 1.75rem; line-height: 1; font-weight: 700; color: var(--ink-3); }
+/* ── plan ── */
+.slices { display: grid; margin-top: .75rem; counter-reset: slice; }
+.slice { counter-increment: slice; display: grid; grid-template-columns: 2.5rem minmax(0, 1fr); align-items: center; gap: 1rem; padding-block: 1rem; border-top: 1px solid var(--line); }
+.slice::before { content: counter(slice); font: 700 1.75rem/1 var(--font); color: var(--ink-3); }
 .slice-body { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; }
-.refs { display: flex; flex-wrap: wrap; gap: .25rem; }
-.ref { padding: .02rem .5rem; border-radius: 999px; background: var(--surface-2); font-size: .875rem; color: var(--ink-2); transition: color 150ms var(--ease-standard), background 150ms var(--ease-standard); }
-.ref.approve { background: var(--ok-soft); color: var(--ok); }
-.ref.reject { text-decoration: line-through; opacity: .55; }
-.ref.steer { color: var(--warn); }
-.stop { display: flex; align-items: center; gap: .875rem; padding-block: .625rem; font-size: .875rem; font-weight: 700; color: var(--p1-ink); }
+.slice h3 { font-size: 1rem; font-weight: 700; }
+.refs { display: flex; flex-wrap: wrap; gap: .375rem; }
+.ref { display: inline-flex; align-items: center; gap: .375rem; padding: .125rem .625rem .125rem .5rem; border: 1px solid var(--line); border-radius: 999px; font-size: 14px; color: var(--ink-2); transition: border-color 150ms var(--ease), color 150ms var(--ease); }
+.ref:hover { border-color: var(--ink-3); color: var(--ink); }
+.ref.reject { color: var(--ink-3); text-decoration: line-through; }
+.stop { display: flex; align-items: center; gap: .875rem; padding-block: .75rem; font: 700 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--brand); }
 .stop::before, .stop::after { content: ""; flex: 1; border-top: 2px dashed var(--brand-line); }
 
-footer { margin-top: 2.5rem; padding-block: 1.25rem 2rem; background: var(--paper); color: var(--ink-2); font-size: .875rem; }
+/* ── the close: anything else, then send ── */
+.closing { margin-top: 3rem; padding: 1.5rem; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-2); }
+.closing label { font-size: 1rem; font-weight: 700; }
+.closing .field:focus { border-color: var(--ink-3); box-shadow: 0 0 0 3px var(--line); }
+.closing-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 1rem; margin-top: .875rem; font-size: 14px; color: var(--ink-3); }
+.closing .btn { height: 2.5rem; padding: 0 1rem; font-size: 14px; }
+footer { margin-top: 3rem; padding: 1.25rem 0 2.5rem; border-top: 1px solid var(--line); font-size: 14px; color: var(--ink-3); }
 
-@media (max-width: 960px) {
-  .deck, .plan-deck { grid-template-columns: minmax(0, 1fr); }
-  .actions { justify-content: flex-start; }
-  .deck-foot { grid-template-columns: minmax(0, 1fr); }
+/* ── a picture at full size, flipping between today and proposed ── */
+.lightbox { width: min(96vw, 1400px); max-width: none; max-height: 94vh; padding: 0; border: 0; border-radius: 14px; background: var(--surface); color: var(--ink); box-shadow: var(--window-shadow); }
+.lightbox[open] { display: flex; flex-direction: column; animation: lb-in 250ms var(--ease-in); }
+.lightbox::backdrop { background: rgba(14,12,19,.6); backdrop-filter: blur(4px); }
+@keyframes lb-in { from { opacity: 0; transform: translateY(8px) scale(.98); } }
+.lb-bar { display: flex; align-items: center; gap: .75rem; padding: .625rem .75rem .625rem 1rem; border-bottom: 1px solid var(--line); font-size: 13px; }
+.lb-bar b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.lb-bar .hint { color: var(--ink-3); white-space: nowrap; }
+.lb-body { overflow: auto; padding: 1rem; background: var(--surface-2); }
+.lb-body img { width: auto; max-width: 100%; margin-inline: auto; border-radius: 8px; box-shadow: var(--shadow); }
+
+/* ── after Approve & finish, the page is a record ── */
+.finished .decide, .finished .steer, .finished .closing { pointer-events: none; opacity: .55; }
+.banner .btn { height: 26px; }
+
+@media (max-width: 1100px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .rail { display: none; }
+  .index { display: flex; }
 }
 @media (max-width: 760px) {
-  .dc { flex-basis: 100%; flex-wrap: wrap; margin-left: 0; }
-  .dc-row { flex: 1 1 100%; }
-  .dcb { flex: 1; min-width: 0; padding: 0 .5rem; }
-  .band { padding-block: 1.5rem; }
-}
-@media (max-width: 560px) {
+  h1 { font-size: 1.75rem; }
   .cmp, .cmp.phone { grid-template-columns: minmax(0, 1fr); }
+  .label { flex-basis: 100%; }
+  .decide { width: 100%; }
+  .decide button { flex: 1; padding: 0 .5rem; }
+  .kbd-nav .finding.current::before { left: -.75rem; }
 }
-@media (pointer: coarse) { .dcb, .pbtn, .dc-send button { min-height: 44px; } }
+@media (max-width: 720px) {
+  .tally .txt, .btn .kbd { display: none; }
+  .segs { width: 56px; }
+}
+@media (pointer: coarse) { .decide button { height: 2.75rem; } }
 @media (prefers-reduced-motion: reduce) {
-  * { transition: none !important; animation: none !important; }
+  *, *::before, *::after { transition: none !important; animation: none !important; }
 }
 </style>
 </head>
-<body id="top">
+<body>
 
-<header class="band" id="head">
-  <div class="wrap">
-    <!-- FILL: round, date, polish level, build or commit -->
-    <p class="meta" id="head-meta">Round 1 · 1 Jan 2027 · Clean · main at 0000000</p>
-    <h1 id="head-title">Target design review</h1>
-    <section class="deck" id="deck">
-      <!-- FILL: one count per severity that has findings -->
-      <div class="counts" id="counts"><div><b>1</b><span>P1</span></div><div><b>1</b><span>P3</span></div></div>
-      <div class="tally only-live" data-tally><div class="tally-bar" data-tally-bar></div><p class="tally-text" data-tally-text></p></div>
-      <div class="actions only-live" data-actions data-vstack-control>
-        <button class="pbtn solid" type="button" data-send>Send decisions</button>
-        <button class="pbtn" type="button" data-rest>Approve the rest</button>
-        <button class="pbtn go" type="button" data-finish>Approve &amp; finish</button>
-      </div>
-      <p class="only-static" style="grid-column:2/-1">Comment on anything. Approve &amp; finish builds the plan.</p>
-      <div class="deck-foot only-live">
-        <textarea class="steer-all" id="steer-all" data-vstack-control rows="1" aria-label="Steer the whole report" placeholder="Steer the whole report"></textarea>
-        <p class="hint" id="hint">Controls work in Annotate and View mode.</p>
-      </div>
-      <p class="msg only-live" data-msg></p>
-    </section>
-    <!-- FILL: one link per decidable section, worst first. Class sev p0, p1 or p3 colours the tag. -->
-    <nav class="index" id="index" aria-label="Findings">
-      <a href="#f-example" data-ref="f-example"><span class="sev p1">P1</span>Example finding</a>
-      <a href="#f-slider" data-ref="f-slider"><span class="sev p3">P3</span>Drag to compare</a>
-    </nav>
+<!-- vstack:shell topbar -->
+<div class="vs-topbar" id="top">
+  <div class="brand">
+    <!-- The repo, not the marketing page: someone clicking the mark inside the
+         tool wants the source, the issues, or the install command. -->
+    <a class="vslink" href="https://github.com/Cavalry-Collective/visual-stack" target="_blank" rel="noopener"
+       title="Visual Stack">
+      <svg class="vsmark" viewBox="0 0 64 64" aria-hidden="true">
+        <g fill="currentColor"><rect x="6" y="44" width="52" height="16"/><rect x="6" y="24" width="52" height="16"/><rect x="6" y="4" width="40" height="16"/></g>
+        <rect x="46" y="4" width="12" height="16" fill="var(--brand)"/>
+      </svg>
+    </a>
+    <!-- The mark is the stack; the word beside it is this tool. Writing
+         "Visual Stack" here said what the logo already says, and pushed the
+         one thing you can't infer — which tool you are in — further right. -->
+    <b id="pageName"></b>
+    <span class="wip" id="wip" hidden></span>
+    <span class="eyebrow" id="pageEyebrow"></span>
   </div>
+  <div class="spacer"></div>
+  <!-- The page's own controls: `tools` sits before the shared switches,
+       `actions` after them, where the primary action belongs. -->
+  <!-- vstack:slot tools -->
+  <div class="tally" id="tally"><span class="segs" data-segs></span><span class="txt" data-tally-text></span></div>
+  <!-- /vstack:slot tools -->
+  <!-- How you like the page, rather than anything about the work: two segmented
+       controls sat in the bar all day for a choice made once. They live behind
+       the cog now, and the bar keeps only what the tool is doing. -->
+  <div class="cogwrap">
+    <button class="cog" id="settingsBtn" aria-haspopup="true" aria-expanded="false" aria-label="Settings">
+      <!-- A real gear: a toothed rim with a hole. Spokes radiating from a circle
+           is a brightness dial, which is what the first attempt drew. -->
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"
+              d="M13.15 9.45 L14.64 10.22 L14.26 11.13 L12.67 10.61 L10.61 12.67 L11.13 14.26 L10.22 14.64 L9.45 13.15 L6.55 13.15 L5.78 14.64 L4.87 14.26 L5.39 12.67 L3.33 10.61 L1.74 11.13 L1.36 10.22 L2.85 9.45 L2.85 6.55 L1.36 5.78 L1.74 4.87 L3.33 5.39 L5.39 3.33 L4.87 1.74 L5.78 1.36 L6.55 2.85 L9.45 2.85 L10.22 1.36 L11.13 1.74 L10.61 3.33 L12.67 5.39 L14.26 4.87 L14.64 5.78 L13.15 6.55 Z M8 5.6a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8Z"/>
+      </svg>
+    </button>
+    <div class="cogmenu" id="settingsMenu" hidden>
+      <div class="row">
+        <span class="lbl" id="cogTheme">Theme</span>
+        <div class="seg" id="themeSwitch">
+          <button data-theme-set="auto" aria-pressed="true" title="Match the system">A</button>
+          <button data-theme-set="light" aria-pressed="false" title="Light">
+            <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="8" cy="8" r="3.1"/><path d="M8 .9v2M8 13.1v2M.9 8h2M13.1 8h2M3 3l1.4 1.4M11.6 11.6 13 13M13 3l-1.4 1.4M4.4 11.6 3 13" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <button data-theme-set="dark" aria-pressed="false" title="Dark">
+            <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M13.4 9.6A5.8 5.8 0 0 1 6.4 2.6a5.8 5.8 0 1 0 7 7Z" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="row">
+        <span class="lbl" id="cogLang">Language</span>
+        <div class="seg" id="langSwitch">
+          <button data-lang="en" aria-pressed="true">EN</button>
+          <button data-lang="zh" aria-pressed="false">中文</button>
+        </div>
+      </div>
+      <!-- A tool's own settings, beside the shell's. -->
+      <!-- vstack:slot cog-settings -->
+      <!-- /vstack:slot cog-settings -->
+      <!-- What is running. The workspace reports the version it loaded with and
+           the server the one it is on now, so a tab left open across an update
+           says which is which. -->
+      <div class="row about" id="cogAbout" hidden>
+        <span class="lbl">Version</span>
+        <span class="abouts">
+          <span class="one"><em>workspace UI</em><b id="cogVersionPage">—</b></span>
+          <span class="one" id="cogServerLine"><em>server</em><b id="cogVersionServer">—</b></span>
+        </span>
+      </div>
+      <div class="row stale" id="cogStale" hidden>Reload to pick up the server's version.</div>
+      <!-- What only this tool can offer about its own state — starting it over,
+           usually. Every tool keeps different things, so the shell offers the
+           place rather than the content. -->
+      <!-- vstack:slot cog -->
+      <!-- /vstack:slot cog -->
+    </div>
+  </div>
+  <div class="sep"></div>
+  <span class="linkdot" id="linkDot" hidden></span>
+  <button class="btn primary" id="send" disabled hidden></button>
+  <!-- vstack:slot actions -->
+  <div class="split" id="sendSplit">
+    <button class="btn primary" id="sendBtn" type="button"></button>
+    <button class="btn primary caret" id="moreBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="More">▾</button>
+    <div class="splitmenu" id="moreMenu" hidden>
+      <button id="restBtn" type="button"><span class="t">Approve the rest</span><span class="d">Approves all unanswered sections.</span></button>
+      <button id="finishBtn" type="button"><span class="t"></span><span class="d"></span></button>
+    </div>
+  </div>
+  <!-- /vstack:slot actions -->
+</div>
+<!-- /vstack:shell topbar -->
+
+<div class="layout">
+<aside class="rail" aria-label="Findings">
+  <p class="rail-h">Decisions</p>
+  <div class="rail-progress"><b data-decided>0</b> of <span data-total>0</span> answered<span class="segs" data-segs></span></div>
+  <ol class="toc" id="toc"></ol>
+  <a class="rail-plan" href="#plan">Plan</a>
+  <div class="keys"><span><kbd>J</kbd> <kbd>K</kbd> next / previous</span><span><kbd>A</kbd> <kbd>R</kbd> <kbd>S</kbd> approve / reject / steer</span><span><kbd>⌘</kbd> <kbd>⏎</kbd> send</span></div>
+</aside>
+
+<main>
+<header class="head">
+  <!-- FILL: round and polish level -->
+  <p class="eyebrow">Design review · Round 1 · Clean</p>
+  <!-- FILL: the target, by its own name -->
+  <h1>Target</h1>
+  <!-- FILL: date, then the build or commit reviewed -->
+  <p class="meta">1 Jan 2027 · main at 0000000</p>
+  <div class="counts" id="counts"></div>
+  <p class="howto">Approve, reject, or steer each section, then send.</p>
+  <ol class="index toc" id="index" aria-label="Findings"></ol>
 </header>
 
-<main class="wrap">
-
-<!-- A decidable section is an article with data-decide and a stable id. Its .fh row holds the
-     severity, the title and an optional delta. The script builds the Approve, Reject and Steer
-     bar from that row. Add data-yes and data-no to rename the buttons for a question. -->
+<!-- A section is an article with data-decide and a stable id, worst first. Its .fh row holds the
+     severity, a title of six words or fewer and an optional delta. The script numbers it, adds it
+     to the index and builds Approve, Reject and Steer into the row. data-yes and data-no rename the
+     first two buttons for a question. -->
 <article class="finding" id="f-example" data-decide>
-  <div class="fh"><span class="sev p1">P1</span><h3>Title in six words or fewer</h3><span class="delta">12 → 44 px</span></div>
+  <div class="fh"><span class="sev p1">P1</span><h2>Title in six words or fewer</h2><span class="delta">12 → 44 px</span></div>
   <div class="cmp">
     <figure class="side"><figcaption><b>Today</b> One short detail</figcaption><div class="shot"><img alt="What it looks like today" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100'%3E%3Crect width='160' height='100' fill='%23f6f4f8'/%3E%3C/svg%3E"></div></figure>
     <figure class="side prop"><figcaption><b>Proposed</b> One short detail</figcaption><div class="shot"><img alt="What it would look like" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100'%3E%3Crect width='160' height='100' fill='%23e9f9f2'/%3E%3C/svg%3E"></div></figure>
@@ -305,246 +647,944 @@ footer { margin-top: 2.5rem; padding-block: 1.25rem 2rem; background: var(--pape
 
 <h2 class="area-title" id="extras">Optional</h2>
 <article class="finding" id="f-slider" data-decide>
-  <div class="fh"><span class="sev p3">P3</span><h3>Drag to compare</h3></div>
+  <div class="fh"><span class="sev p3">P3</span><h2>Drag to compare</h2></div>
   <!-- Use only when both images are the same size. -->
-  <div class="wipe" id="wipe">
+  <div class="wipe">
     <img class="before" alt="Today" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100'%3E%3Crect width='160' height='100' fill='%23f6f4f8'/%3E%3C/svg%3E">
     <img class="after" alt="Proposed" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100'%3E%3Crect width='160' height='100' fill='%23e9f9f2'/%3E%3C/svg%3E">
     <span class="tag l">Today</span><span class="tag r">Proposed</span><span class="handle"></span>
-    <input id="wipe-input" type="range" min="0" max="100" value="50" aria-label="Wipe between today and proposed" data-vstack-control>
+    <input type="range" min="0" max="100" value="50" aria-label="Wipe between today and proposed">
   </div>
 </article>
 
 <h2 class="area-title" id="plan">Plan</h2>
-<ol class="slices" id="slices">
-  <!-- FILL: one slice per outcome. Each chip links to a finding and takes its status. -->
-  <li class="slice" id="plan-1"><div class="slice-body"><h3>Slice name</h3><span class="refs"><a class="ref" data-ref="f-example" href="#f-example">Example finding</a></span></div></li>
+<ol class="slices">
+  <!-- FILL: one slice per outcome. A chip names a section by data-ref and takes its decision. -->
+  <li class="slice" id="plan-1"><div class="slice-body"><h3>Slice name</h3><span class="refs"><a class="ref" data-ref="f-example" href="#f-example"><i class="dot"></i>Example finding</a></span></div></li>
   <li class="stop" id="plan-stop">I would stop here</li>
-  <li class="slice" id="plan-2"><div class="slice-body"><h3>After the stop</h3><span class="refs"><a class="ref" data-ref="f-slider" href="#f-slider">Drag to compare</a></span></div></li>
+  <li class="slice" id="plan-2"><div class="slice-body"><h3>After the stop</h3><span class="refs"><a class="ref" data-ref="f-slider" href="#f-slider"><i class="dot"></i>Drag to compare</a></span></div></li>
 </ol>
-<section class="deck plan-deck only-live" id="plan-deck">
-  <div class="tally" data-tally><div class="tally-bar" data-tally-bar></div><p class="tally-text" data-tally-text></p></div>
-  <div class="actions" data-actions data-vstack-control>
-    <button class="pbtn solid" type="button" data-send>Send decisions</button>
-    <button class="pbtn" type="button" data-rest>Approve the rest</button>
-    <button class="pbtn go" type="button" data-finish>Approve &amp; finish</button>
-  </div>
-  <p class="msg" data-msg></p>
-</section>
-</main>
 
-<footer id="foot"><div class="wrap"><!-- FILL: what you did not exercise, and why. -->Not tested: Safari, a real phone.</div></footer>
+<section class="closing" aria-labelledby="overall-label">
+  <label id="overall-label" for="overall">Anything about the review as a whole?</label>
+  <textarea class="field" id="overall" rows="2" placeholder="Optional. Included in your next send."></textarea>
+  <div class="closing-foot"><span data-closing-text></span><button class="btn primary" id="closingSend" type="button"></button></div>
+</section>
+
+<!-- FILL: what you did not exercise, and why. -->
+<footer>Not tested: Safari, a real phone.</footer>
+</main>
+</div>
+
+<div class="banner dark" id="pushbar" role="status"><span data-push-text></span><button class="btn" id="pushShow" type="button">Show</button><button class="btn" id="pushLater" type="button">Later</button></div>
+<div class="banner good" id="donebar" role="status"><span class="tick">✓</span><span data-done-text></span></div>
+
+<dialog class="lightbox" id="lightbox" aria-label="Picture at full size">
+  <div class="lb-bar"><b data-lb-title></b><span class="hint">Space flips</span><div class="seg" data-lb-seg></div><button class="btn" type="button" data-lb-close>Close</button></div>
+  <div class="lb-body"><img alt="" data-lb-img></div>
+</dialog>
+
+<script>
+/* vstack:shell js */
+/* The behaviour behind the top bar: theme, language, the link dot, and the
+   page's own name. Everything else — what the page does — is the page's.
+
+   Nothing here touches the network or the document beyond the bar, so a page
+   works identically served, opened off disk, or published as an Artifact. */
+window.VSShell = (function () {
+  const $ = s => document.querySelector(s);
+  const KEY = { theme: 'vstack:theme', lang: 'vstack:lang', seen: 'vstack:update-seen' };
+  const store = {
+    get (k, d) { try { return localStorage.getItem(k) ?? d } catch { return d } },
+    set (k, v) { try { localStorage.setItem(k, v) } catch {} },
+  };
+
+  /* ── theme: auto (whatever the OS says) / light / dark ──
+     Auto is the absence of an override, so the page keeps following the system
+     if it changes while open — and an Artifact viewer's own toggle still wins
+     the same way it does on a page that never had this control. */
+  let theme = store.get(KEY.theme, 'auto');
+  function applyTheme () {
+    if (theme === 'auto') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', theme);
+    document.querySelectorAll('#themeSwitch button').forEach(b => {
+      b.setAttribute('aria-pressed', String(b.dataset.themeSet === theme));
+    });
+  }
+  function setTheme (next) {
+    theme = ['auto', 'light', 'dark'].includes(next) ? next : 'auto';
+    store.set(KEY.theme, theme);
+    applyTheme();
+  }
+
+  /* ── language: chrome only. Page content stays as authored. ── */
+  const storedLang = store.get(KEY.lang, null);
+  let lang = storedLang === 'zh' ? 'zh' : 'en';
+  const langListeners = [];
+  function applyLang () {
+    // zh-CN, not zh: the specific tag is what picks the right font and
+    // line-breaking for simplified Chinese.
+    document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+    document.querySelectorAll('#langSwitch button').forEach(b => {
+      b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+    });
+    langListeners.forEach(fn => { try { fn(lang) } catch {} });
+    paintLink();
+  }
+  function setLang (next) {
+    lang = next === 'zh' ? 'zh' : 'en';
+    store.set(KEY.lang, lang);
+    applyLang();
+  }
+
+  /* ── the live link, said out loud ── */
+  /* Three states, not two. "The page reached its server" and "an agent session
+     is waiting to read what you send" are different facts, and only the second
+     is the one anyone actually wants to know. `watching` undefined means the
+     page has no way to tell, and the dot behaves as it always did. Host name
+     comes from window.__VSTACK_HOST__ (contracts/host.md), so no page bakes a
+     product name in; the words live here, in both languages, so no page
+     repeats them either. A page with something more specific to say passes
+     `labels` to setLink and only those keys win. */
+  let linked = null, linkLabels = null, watching;
+  function linkWords () {
+    const agent = window.__VSTACK_HOST__?.name || 'agent';
+    return lang === 'zh' ? {
+      on: `已连接 ${agent}`, off: '连接已断开', idle: '未连接',
+      idleTitle: `页面是通的，但没有 ${agent} 会话在等待——发送的内容会一直留在这里，直到有会话接手。`,
+      offTitle: `${agent} 会话已不再提供此页面——你写的内容只保存在这个标签页里。`,
+    } : {
+      on: `LINKED TO ${String(agent).toUpperCase()}`, off: 'LINK LOST', idle: 'UNLINKED',
+      idleTitle: `This page is live, but no ${agent} session is waiting for it — what you send will sit here until one is.`,
+      offTitle: `The ${agent} session is no longer serving this page — anything you write stays in this tab.`,
+    };
+  }
+  function paintLink () {
+    const el = $('#linkDot');
+    if (!el || linked === null) return;
+    el.hidden = false;
+    const idle = linked && watching === false;
+    el.classList.toggle('on', linked && !idle);
+    el.classList.toggle('idle', !!idle);
+    const words = linkWords();
+    const label = !linked ? (linkLabels?.off ?? words.off)
+      : idle ? (linkLabels?.idle ?? words.idle)
+      : (linkLabels?.on ?? words.on);
+    el.textContent = label;
+    // Narrow bars show the dot and not the words, so the title has to say what
+    // the words would have — the state that needs no explaining still needs
+    // naming when nothing beside the colour is left.
+    el.title = (!linked ? (linkLabels?.offTitle ?? words.offTitle)
+      : idle ? (linkLabels?.idleTitle ?? words.idleTitle) : '') || label;
+  }
+  function setLink (up, labels, isWatching) {
+    linked = !!up;
+    if (labels) linkLabels = labels;
+    if (isWatching !== undefined) watching = isWatching;
+    paintLink();
+  }
+  /** The server saying who is listening now, without the page repeating itself. */
+  function setWatching (isWatching) {
+    if (watching === isWatching) return;
+    watching = isWatching;
+    paintLink();
+  }
+  const hideLink = () => { const el = $('#linkDot'); if (el) el.hidden = true };
+
+  /* ── which version is running ──
+     The page reports what served it, held from load; the server reports what it
+     is on now. A tab open across an update shows both and offers the reload. */
+  let pageVersion = null, serverVersion = null;
+  function paintVersions () {
+    const row = $('#cogAbout');
+    if (!row) return;
+    row.hidden = !pageVersion && !serverVersion;
+    const put = (id, value) => { const el = $(id); if (el) el.textContent = value || '—' };
+    put('#cogVersionPage', pageVersion || serverVersion);
+    put('#cogVersionServer', serverVersion);
+    const line = $('#cogServerLine');
+    if (line) line.hidden = !serverVersion;
+    const stale = $('#cogStale');
+    if (stale) stale.hidden = !(pageVersion && serverVersion && pageVersion !== serverVersion);
+  }
+  /** What the server is on right now, which a page learns from its own payload. */
+  function setServerVersion (version) {
+    const next = version || null;
+    if (serverVersion === next) return;
+    serverVersion = next;
+    paintVersions();
+  }
+
+  /* ── one live-link client, instead of one per page ──
+     Wires the dot to a server: SSE when the page has an event stream, a plain
+     poll for a server that only answers /ping. Either way the shell owns the
+     socket-to-dot translation and the page only hears about its own events.
+
+       VSShell.connect({ url, on: { push: ev => apply(ev) }, onLink })
+       VSShell.connect({ poll: '/ping', onLink })
+
+     SSE reconnects on its own, so the dot only ever reports what is true right
+     now. `presence` — who is listening, said by the server rather than guessed
+     from the socket — is handled here; every other event is the page's. */
+  function connect (opts = {}) {
+    const say = up => { setLink(up); try { opts.onLink?.(up) } catch {} };
+    if (opts.poll) {
+      const tick = async () => {
+        try { const r = await fetch(opts.poll, { cache: 'no-store' }); say(r.ok) }
+        catch { say(false) }
+      };
+      tick();
+      const timer = setInterval(tick, opts.interval || 5000);
+      return { stop: () => clearInterval(timer) };
+    }
+    const es = new EventSource(opts.url);
+    es.onopen = () => say(true);
+    es.onerror = () => say(false);
+    es.addEventListener('presence', ev => {
+      try { setWatching(JSON.parse(ev.data).watching) } catch {}
+    });
+    for (const [name, fn] of Object.entries(opts.on || {})) es.addEventListener(name, fn);
+    return { stop: () => es.close(), source: es };
+  }
+
+  /* ── a toast: the page saying "done" without stopping anyone ── */
+  /* Long enough for the opacity transition in shell.css to finish before the
+     toast leaves the top layer, so it fades rather than vanishing. */
+  const TOAST_FADE_MS = 300;
+  let toastTimer = null;
+  function toast (msg, ms = 2200) {
+    let el = document.querySelector('.vs-toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'vs-toast';
+      /* A modal dialog paints in the top layer, above every z-index there is,
+         and its backdrop blurs what lies under it. A toast raised while one is
+         open has to join the top layer or it is unreadable behind the very
+         dialog whose failure it is reporting. */
+      el.popover = 'manual';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    /* Promoted on each toast rather than left open, because the top layer
+       stacks in the order things entered it: one promoted before a dialog
+       would sit under it. Older browsers have no popover and lose nothing but
+       the stacking. */
+    try { el.showPopover(); } catch {}
+    el.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      el.classList.remove('on');
+      toastTimer = setTimeout(() => { try { el.hidePopover() } catch {} }, TOAST_FADE_MS);
+    }, ms);
+  }
+
+  /* ── two-step confirm on one button ──
+     First press arms it (class `armed`, plus whatever `arm` repaints); a second
+     press inside the window fires; the window closing quietly disarms. The
+     page styles `armed` and words the button — this owns only the dance. */
+  function armConfirm (btn, { onConfirm, arm, disarm, ms = 4000 } = {}) {
+    let timer = null;
+    const reset = () => { timer = null; btn.classList.remove('armed'); try { disarm?.() } catch {} };
+    btn.addEventListener('click', () => {
+      if (timer) { clearTimeout(timer); reset(); onConfirm(); return }
+      btn.classList.add('armed');
+      try { arm?.() } catch {}
+      timer = setTimeout(reset, ms);
+    });
+    return { armed: () => timer !== null, disarm: () => { if (timer) { clearTimeout(timer); reset() } } };
+  }
+
+  function name (pageName, eyebrow) {
+    const n = $('#pageName'); const e = $('#pageEyebrow');
+    if (n && pageName != null) n.textContent = pageName;
+    if (e && eyebrow != null) e.textContent = eyebrow;
+  }
+
+  /** Mark the tool itself as unfinished. `false` takes it off again. */
+  function wip (on, label) {
+    const el = $('#wip');
+    if (!el) return;
+    el.hidden = !on;
+    el.textContent = label || 'Work in progress';
+  }
+
+  /* ── a newer Visual Stack than this one ──
+     The server looked it up before serving this page and left the answer on
+     `window.__VSTACK_UPDATE__`; nothing here reaches the network. Dismissal is
+     remembered per version, so saying "not now" to 4.2 stays said, and 4.3
+     asks once. */
+  function updateNotice () {
+    const info = window.__VSTACK_UPDATE__;
+    // Dismissal is per release: saying "not now" to this one stays said, and
+    // the next one asks once. `key` is the release — the sentence reads the
+    // same every time, so remembering the sentence would silence every future
+    // release too.
+    const seen = info?.key || info?.title;
+    // Nothing here decides whether a release is worth mentioning yet — the
+    // server holds back the first sighting (lib/update-check.mjs), because a
+    // page served on an ephemeral port has no memory that outlives its run.
+    if (!info?.title || store.get(KEY.seen, '') === seen) return;
+    const bar = document.createElement('div');
+    bar.className = 'vs-update';
+    bar.innerHTML =
+      `<span class="v">${esc(info.pill || 'new')}</span>` +
+      `<span class="t">${esc(info.title)}</span>` +
+      `<button class="how">Update instructions</button>` +
+      // Drawn, not typed: the × glyph hangs off the maths axis, so no amount of
+      // centring the line box centres the mark you actually see. Same treatment
+      // as the cog.
+      `<button class="no" aria-label="Dismiss">` +
+      `<svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" ` +
+      `stroke-width="1.6" stroke-linecap="round"><path d="M4.5 4.5 11.5 11.5M11.5 4.5 4.5 11.5"/>` +
+      `</svg></button>`;
+    const how = document.createElement('div');
+    how.className = 'vs-update-how';
+    how.hidden = true;
+    const lead = info.howLead || 'To update:';
+    how.innerHTML = `<p>${esc(lead)}</p><pre>${esc((info.install || []).join('\n'))}</pre>` +
+      (info.auto ? `<p class="auto">${esc(info.auto)}</p>` : '');
+    bar.appendChild(how);
+    bar.querySelector('.how').onclick = () => { how.hidden = !how.hidden };
+    bar.querySelector('.no').onclick = () => {
+      store.set(KEY.seen, seen);
+      // Say it to the server too, when there is one: this page's memory of it
+      // lasts as long as its origin does, which for a server on an ephemeral
+      // port is one run. Nothing here depends on the answer.
+      if (info.dismiss) {
+        try {
+          fetch(info.dismiss, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ key: seen }),
+          }).catch(() => {});
+        } catch {}
+      }
+      bar.remove();
+    };
+    // Pages lay their chrome out in a row grid — `grid-template-rows:auto 1fr`
+    // and the like — so a bare sibling of the bar takes the row meant for the
+    // content and gets stretched down the whole window. The notice moves in
+    // with the bar instead, leaving the layout the single child it sized for.
+    const top = $('.vs-topbar');
+    if (!top) return;
+    let slot = top.parentElement;
+    if (!slot || !slot.classList.contains('vs-chrome')) {
+      slot = document.createElement('div');
+      slot.className = 'vs-chrome';
+      top.insertAdjacentElement('beforebegin', slot);
+      slot.appendChild(top);
+    }
+    slot.appendChild(bar);
+  }
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  /* The cog: one button for the two choices nobody makes twice. */
+  function wireSettings () {
+    const btn = $('#settingsBtn'), menu = $('#settingsMenu');
+    if (!btn || !menu) return;
+    const open = on => { menu.hidden = !on; btn.setAttribute('aria-expanded', String(on)) };
+    // A control in the cog's slot can act on the page behind it, so the page
+    // needs a way to put the menu away first.
+    closeSettings = () => open(false);
+    btn.addEventListener('click', e => { e.stopPropagation(); open(menu.hidden) });
+    menu.addEventListener('click', e => e.stopPropagation());
+    document.addEventListener('click', () => open(false));
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !menu.hidden) open(false) });
+  }
+
+  function init (opts = {}) {
+    document.querySelectorAll('#themeSwitch button').forEach(b => {
+      b.addEventListener('click', () => setTheme(b.dataset.themeSet));
+    });
+    document.querySelectorAll('#langSwitch button').forEach(b => {
+      b.addEventListener('click', () => setLang(b.dataset.lang));
+    });
+    if (opts.onLang) langListeners.push(opts.onLang);
+    // `defaultLang` is what the artifact was authored in — it opens that way
+    // once, and after that the reader's own choice is the one that sticks.
+    if (opts.defaultLang && !storedLang) lang = opts.defaultLang === 'zh' ? 'zh' : 'en';
+    if (opts.lang) { lang = opts.lang === 'zh' ? 'zh' : 'en'; store.set(KEY.lang, lang); }
+    // Not every page sends something back — the form doesn't — so the primary
+    // action stays out of the bar unless a page asks for it.
+    const send = $('#send');
+    if (send && opts.send) send.hidden = false;
+    if (opts.wip) wip(true, typeof opts.wip === 'string' ? opts.wip : undefined);
+    name(opts.name, opts.eyebrow);
+    wireSettings();
+    pageVersion = (window.__VSTACK_BUILD__ || {}).version || null;
+    paintVersions();
+    applyTheme();
+    applyLang();
+    updateNotice();
+    return api;
+  }
+
+  let closeSettings = () => {};
+
+  const api = {
+    init, setTheme, setLang, setLink, setWatching, setServerVersion, hideLink, name, wip,
+    connect, toast, armConfirm, esc,
+    closeSettings: () => closeSettings(),
+    get theme () { return theme },
+    get lang () { return lang },
+    onLang (fn) { langListeners.push(fn) },
+  };
+  return api;
+})();
+
+/* ── the scrubber ──
+   An ordered set of states and a handle that moves between them: versions on
+   the spec and the review workspace, release phases on phase-preview. The
+   page says what the stops are and what showing one does; this owns the track,
+   the ticks, the drag, and the caption.
+
+     VSScrub.mount({ onPick: id => showThat(id) })
+     VSScrub.set({ items: [{ id, cap, label, sub }], active: id })
+
+   `cap` is the label under the tick (v3, P2), `label` names the stop, and
+   `sub` is the line beneath it — both are escaped here, so a page never has to
+   remember to. */
+window.VSScrub = (function () {
+  const $ = s => document.querySelector(s);
+  const esc = s => window.VSShell.esc(s ?? '');
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+  let items = [];
+  let active = null;
+  let onPick = () => {};
+  let wired = false;
+
+  const index = () => Math.max(0, items.findIndex(i => i.id === active));
+  const pct = i => items.length < 2 ? 100 : (i / (items.length - 1)) * 100;
+
+  function pickAt (clientX) {
+    const track = $('#tlTrack');
+    if (!track || !items.length) return null;
+    const r = track.getBoundingClientRect();
+    return items[Math.round(clamp((clientX - r.left) / r.width, 0, 1) * (items.length - 1))]?.id;
+  }
+  function pick (id) {
+    if (id == null || id === active) return;
+    active = id;
+    paint();
+    onPick(id);
+  }
+  const step = d => { const n = items[index() + d]; if (n) pick(n.id) };
+
+  function paint () {
+    const track = $('#tlTrack');
+    if (!track) return;
+    const i = index();
+    track.querySelectorAll('.tick').forEach(t => t.remove());
+    items.forEach((it, k) => {
+      const t = document.createElement('div');
+      t.className = 'tick' + (k <= i ? ' past' : '');
+      t.style.left = pct(k) + '%';
+      t.innerHTML = `<span class="cap">${esc(it.cap)}</span>`;
+      if (it.label) t.title = it.label;
+      t.onclick = e => { e.stopPropagation(); pick(it.id) };
+      track.appendChild(t);
+    });
+    $('#tlHandle').style.left = pct(i) + '%';
+    $('#tlFill').style.width = pct(i) + '%';
+    const cur = items[i];
+    $('#tlMeta').innerHTML = cur
+      ? `<div class="row"><b>${esc(cur.cap)}</b> <span class="lab">${esc(cur.label)}</span></div>` +
+        `<div class="row">${esc(cur.sub)}</div>`
+      : '';
+    $('#tlPrev').disabled = i === 0;
+    $('#tlNext').disabled = i >= items.length - 1;
+  }
+
+  function mount (opts = {}) {
+    if (opts.onPick) onPick = opts.onPick;
+    if (wired || !$('#tlTrack')) return api;
+    wired = true;
+    $('#tlPrev').onclick = () => step(-1);
+    $('#tlNext').onclick = () => step(1);
+    $('#tlHandle').addEventListener('pointerdown', e => {
+      e.preventDefault();
+      const mv = ev => pick(pickAt(ev.clientX));
+      const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up) };
+      addEventListener('pointermove', mv); addEventListener('pointerup', up);
+    });
+    $('#tlTrack').addEventListener('pointerdown', e => {
+      if (e.target.closest('#tlHandle, .tick')) return;
+      pick(pickAt(e.clientX));
+    });
+    return api;
+  }
+
+  const api = {
+    mount,
+    set ({ items: list, active: a }) {
+      if (list) items = list;
+      if (a !== undefined) active = a;
+      if (active == null && items.length) active = items[items.length - 1].id;
+      paint();
+      return api;
+    },
+    /** Move one stop back or forward — what arrow keys and the ‹ › buttons do. */
+    step,
+    get active () { return active },
+    get items () { return items },
+  };
+  return api;
+})();
+/* /vstack:shell js */
+</script>
 
 <script>
 (function () {
-  var wipe = document.getElementById('wipe'), input = document.getElementById('wipe-input');
-  if (wipe && input) input.addEventListener('input', function () { wipe.style.setProperty('--pos', input.value + '%'); });
-
-  /* Decisions. They go to the review's one comment list, so the agent hears about
-     them the way it hears about anything else, and one send is one round. */
-  var root = document.documentElement;
-  var storageKey = 'vstack-report:' + document.title;
+  'use strict'
+  /* Served by lib/json-bridge.mjs, the page saves its decisions to the JSON
+     document the agent watches, and hears back when the agent has revised a
+     section. Opened off disk or as an Artifact there is no bridge, and the
+     decisions are copied for pasting instead. */
+  var BRIDGE = window.__VSTACK_BRIDGE__ || null
+  var root = document.documentElement
+  var $ = function (selector, scope) { return (scope || document).querySelector(selector) }
+  var $$ = function (selector, scope) { return Array.prototype.slice.call((scope || document).querySelectorAll(selector)) }
+  var esc = function (text) { return window.VSShell.esc(text) }
+  var agentName = function () { return (window.__VSTACK_HOST__ && window.__VSTACK_HOST__.name) || 'your agent' }
+  var CHOICES = ['approve', 'reject', 'steer']
+  var KEYS = { a: 'approve', r: 'reject', s: 'steer' }
   var ICONS = {
     approve: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>',
     reject: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
     steer: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-4L16 5l3 3L8 19l-4 1z"/></svg>'
-  };
-  var items = Array.prototype.slice.call(document.querySelectorAll('[data-decide]'));
-  var decisions = {};
-  var finishArmed = false, finished = false;
+  }
+  var sections = $$('[data-decide]')
+  var overallBox = $('#overall')
+  var sendBtn = $('#sendBtn'), moreBtn = $('#moreBtn'), moreMenu = $('#moreMenu')
+  var restBtn = $('#restBtn'), finishBtn = $('#finishBtn'), closingSend = $('#closingSend')
+  var storageKey = 'vstack-report:' + document.title
 
-  // Only the current version, framed by the workspace, can send. A timeline version or a file on disk is a still.
-  if (window.parent === window || location.pathname !== '/page') return;
-  root.classList.add('live');
+  var titles = {}
+  sections.forEach(function (el) {
+    var heading = $('h2', el)
+    var copy = heading ? heading.cloneNode(true) : null
+    if (copy) $$('.call', copy).forEach(function (call) { call.remove() })
+    titles[el.id] = copy ? copy.textContent.trim() : el.id
+  })
 
-  var readStored = function () { try { return JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch (e) { return {}; } };
-  var store = function () {
-    var unsent = {};
-    Object.keys(decisions).forEach(function (id) { if (!decisions[id].sent) unsent[id] = decisions[id]; });
-    unsent['steer-all'] = { note: steerAll.value };
-    try { localStorage.setItem(storageKey, JSON.stringify(unsent)); } catch (e) {}
-  };
-  var steerAll = document.getElementById('steer-all');
-  var titles = {};
-  items.forEach(function (el) { var h = el.querySelector('h3') || el.querySelector('a'); var copy = h ? h.cloneNode(true) : null; if (copy) copy.querySelectorAll('.call').forEach(function (c) { c.remove(); }); titles[el.id] = copy ? copy.textContent.trim() : el.id; });
-  var titleOf = function (el) { return titles[el.id]; };
-  var unsentIds = function () {
-    return Object.keys(decisions).filter(function (id) {
-      var d = decisions[id];
-      return !d.sent && (d.choice !== 'steer' || (d.note || '').trim());
-    });
-  };
-  var hasUnsent = function () { return unsentIds().length > 0 || steerAll.value.trim().length > 0; };
+  /* `held` is what the agent has; `drafts` is what the owner changed since.
+     A draft of null clears a decision the agent already holds. */
+  var held = { decisions: {}, overall: '', revised: {} }
+  var drafts = {}
+  var finished = false
+  var finishArmed = false
+  var pendingPush = null
 
-  var paintItem = function (el) {
-    var d = decisions[el.id], choice = d ? d.choice : null;
-    ['approve', 'reject', 'steer'].forEach(function (c) { el.classList.toggle('is-' + c, choice === c); });
-    el.querySelectorAll('.dcb').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.d === choice)); });
-    var box = el.querySelector('.dbar textarea');
-    box.hidden = choice !== 'steer';
-    document.querySelectorAll('[data-ref="' + el.id + '"]').forEach(function (ref) { ['approve', 'reject', 'steer'].forEach(function (c) { ref.classList.toggle(c, choice === c); }); });
-  };
-  var say = function (text) { document.querySelectorAll('[data-msg]').forEach(function (m) { m.textContent = text; }); };
-  var paintTotals = function () {
-    var counts = { approve: 0, reject: 0, steer: 0 };
-    var cells = items.map(function (el) {
-      var d = decisions[el.id];
-      if (d) counts[d.choice]++;
-      return '<i' + (d ? ' class="' + d.choice + '"' : '') + '></i>';
-    }).join('');
-    var open = items.length - counts.approve - counts.reject - counts.steer;
-    var text = counts.approve + ' approved · ' + counts.reject + ' rejected · ' + counts.steer + ' steered · ' + open + ' left';
-    document.querySelectorAll('[data-tally-bar]').forEach(function (b) { b.innerHTML = cells; });
-    document.querySelectorAll('[data-tally-text]').forEach(function (t) { t.textContent = text; });
-    var pending = unsentIds().length + (steerAll.value.trim() ? 1 : 0);
-    document.querySelectorAll('[data-send]').forEach(function (b) {
-      b.disabled = !pending || finished;
-      b.textContent = pending ? 'Send ' + pending + (pending === 1 ? ' decision' : ' decisions') : 'Send decisions';
-    });
-    document.querySelectorAll('[data-rest]').forEach(function (b) { b.disabled = !open || finished; });
-    document.querySelectorAll('.dc-send').forEach(function (row) {
-      row.classList.toggle('show', pending > 0);
-      row.querySelector('span').textContent = pending + ' unsent';
-    });
-  };
-  var choose = function (el, choice) {
-    var current = decisions[el.id];
-    if (current && current.choice === choice && !current.sent) delete decisions[el.id];
-    else decisions[el.id] = { choice: choice, note: current && choice === 'steer' ? current.note : '' };
-    document.querySelectorAll('.dc.last').forEach(function (dc) { dc.classList.remove('last'); });
-    el.querySelector('.dc').classList.add('last');
-    finishArmed = false;
-    paintFinish();
-    paintItem(el); paintTotals(); store();
-    if (decisions[el.id] && choice === 'steer') el.querySelector('.dbar textarea').focus();
-  };
+  var choiceOf = function (decision) { return decision ? decision.choice : null }
+  var sameDecision = function (a, b) {
+    return choiceOf(a) === choiceOf(b) && (choiceOf(a) !== 'steer' || (a.note || '').trim() === (b.note || '').trim())
+  }
+  var decisionOf = function (id) { return (id in drafts ? drafts[id] : held.decisions[id]) || null }
+  var sendable = function (draft) { return draft === null || draft.choice !== 'steer' || (draft.note || '').trim().length > 0 }
+  var unsentIds = function () { return Object.keys(drafts).filter(function (id) { return sendable(drafts[id]) }) }
+  var pendingCount = function () { return unsentIds().length + (overallBox.value.trim() ? 1 : 0) }
 
-  items.forEach(function (el) {
-    var yes = el.dataset.yes || 'Approve', no = el.dataset.no || 'Reject';
-    var bar = document.createElement('div');
-    bar.className = 'dbar';
-    var left = document.createElement('div');
-    left.className = 'dbar-left';
-    // The bar takes over what labels the section, so title and answer read as one line.
-    var labels = el.querySelector('.fh');
-    while (labels.firstChild) left.appendChild(labels.firstChild);
-    labels.remove();
-    bar.appendChild(left);
-    var dc = document.createElement('div');
-    dc.className = 'dc';
-    dc.setAttribute('data-vstack-control', '');
-    dc.innerHTML = '<span class="dc-send"><span></span><button type="button" data-send-inline>Send</button></span>' +
-      '<div class="dc-row" role="group" aria-label="Decision on ' + titleOf(el).replace(/"/g, '&quot;') + '">' +
-      '<button class="dcb" type="button" data-d="approve" aria-pressed="false">' + ICONS.approve + yes + '</button>' +
-      '<button class="dcb" type="button" data-d="reject" aria-pressed="false">' + ICONS.reject + no + '</button>' +
-      '<button class="dcb" type="button" data-d="steer" aria-pressed="false">' + ICONS.steer + 'Steer</button></div>';
-    bar.appendChild(dc);
-    var box = document.createElement('textarea');
-    box.rows = 2; box.hidden = true;
-    box.setAttribute('aria-label', 'How should this change?');
-    box.setAttribute('placeholder', 'How should this change?');
-    box.setAttribute('data-vstack-control', '');
-    bar.appendChild(box);
-    el.insertBefore(bar, el.firstChild);
-    dc.querySelectorAll('.dcb').forEach(function (b) { b.addEventListener('click', function () { choose(el, b.dataset.d); }); });
-    dc.querySelector('[data-send-inline]').addEventListener('click', function () { send(); });
+  var normalize = function (doc) {
+    var clean = { decisions: {}, overall: '', revised: {} }
+    if (!doc || typeof doc !== 'object') return clean
+    Object.keys(doc.decisions || {}).forEach(function (id) {
+      var decision = doc.decisions[id]
+      if (decision && CHOICES.indexOf(decision.choice) !== -1) clean.decisions[id] = { choice: decision.choice, note: decision.note || '' }
+    })
+    Object.keys(doc.revised || {}).forEach(function (id) { clean.revised[id] = String(doc.revised[id] || '') })
+    clean.overall = typeof doc.overall === 'string' ? doc.overall : ''
+    return clean
+  }
+  /* Off the bridge, a version the agent saved carries its statuses in the markup. */
+  var heldFromMarkup = function () {
+    var doc = { decisions: {}, revised: {} }
+    sections.forEach(function (el) {
+      if (el.dataset.decision) doc.decisions[el.id] = { choice: el.dataset.decision }
+      if (el.dataset.revised !== undefined) doc.revised[el.id] = el.dataset.revised
+    })
+    return normalize(doc)
+  }
+
+  var save = function () {
+    try { localStorage.setItem(storageKey, JSON.stringify({ drafts: drafts, overall: overallBox.value })) } catch (e) {}
+  }
+  /* A draft made against an earlier proposal answers something that is no
+     longer on the page, so a revision drops it. */
+  var restore = function () {
+    var stored
+    try { stored = JSON.parse(localStorage.getItem(storageKey) || '{}') } catch (e) { stored = {} }
+    Object.keys(stored.drafts || {}).forEach(function (id) {
+      var draft = stored.drafts[id]
+      if (!document.getElementById(id) || id in held.revised) return
+      if (draft !== null && CHOICES.indexOf(draft && draft.choice) === -1) return
+      if (!sameDecision(draft, held.decisions[id] || null)) drafts[id] = draft
+    })
+    if (typeof stored.overall === 'string') overallBox.value = stored.overall
+  }
+
+  /* ── building the page from its sections ── */
+  var number = function (index) { return String(index + 1).padStart(2, '0') }
+  var tocItems = sections.map(function (el, index) {
+    var sev = $('.sev', el)
+    return '<li><a href="#' + el.id + '" data-ref="' + el.id + '"><span class="n">' + number(index) + '</span>' +
+      (sev ? sev.outerHTML : '') + '<span class="t">' + esc(titles[el.id]) + '</span><i class="dot"></i></a></li>'
+  }).join('')
+  $('#toc').innerHTML = tocItems
+  $('#index').innerHTML = tocItems
+
+  var severities = {}
+  sections.forEach(function (el) { var sev = $('.sev', el); if (sev) severities[sev.textContent.trim()] = (severities[sev.textContent.trim()] || []).concat(sev) })
+  $('#counts').innerHTML = Object.keys(severities).sort().map(function (label) {
+    return '<span>' + severities[label][0].outerHTML + ' ' + severities[label].length + '</span>'
+  }).join('')
+  $$('[data-total]').forEach(function (el) { el.textContent = sections.length })
+
+  sections.forEach(function (el, index) {
+    var bar = $('.fh', el)
+    var label = document.createElement('div')
+    label.className = 'label'
+    while (bar.firstChild) label.appendChild(bar.firstChild)
+    label.insertAdjacentHTML('afterbegin', '<span class="num">' + number(index) + '</span>')
+    bar.appendChild(label)
+    var names = { approve: el.dataset.yes || 'Approve', reject: el.dataset.no || 'Reject', steer: 'Steer' }
+    var group = document.createElement('div')
+    group.className = 'decide'
+    group.setAttribute('role', 'group')
+    group.setAttribute('aria-label', 'Decision on ' + titles[el.id])
+    group.innerHTML = CHOICES.map(function (choice) {
+      return '<button type="button" data-d="' + choice + '" aria-pressed="false" title="' + names[choice] + ' (' + choice[0].toUpperCase() + ')">' +
+        ICONS[choice] + '<span>' + esc(names[choice]) + '</span></button>'
+    }).join('')
+    bar.appendChild(group)
+    bar.insertAdjacentHTML('afterend',
+      '<div class="steer" inert><div><div class="steer-box">' +
+      '<label for="steer-' + el.id + '">What should change?</label>' +
+      '<textarea class="field" id="steer-' + el.id + '" rows="2" placeholder="What to keep, change, or try instead."></textarea>' +
+      '<div class="steer-foot"><span data-steer-state></span><span><kbd>⌘</kbd> <kbd>⏎</kbd> send · <kbd>esc</kbd> done</span></div>' +
+      '</div></div></div><p class="status" aria-live="polite"></p>')
+    $$('.decide button', el).forEach(function (button) {
+      button.addEventListener('click', function () { choose(el, button.dataset.d) })
+    })
+    var box = $('.steer textarea', el)
     box.addEventListener('input', function () {
-      if (decisions[el.id]) { decisions[el.id].note = box.value; decisions[el.id].sent = false; }
-      paintTotals(); store();
-    });
-    // A version the agent has published carries its statuses in the markup.
-    if (el.dataset.decision) decisions[el.id] = { choice: el.dataset.decision, note: '', sent: true };
-  });
+      setDraft(el.id, { choice: 'steer', note: box.value })
+    })
+  })
 
-  var stored = readStored();
-  Object.keys(stored).forEach(function (id) {
-    if (id === 'steer-all') steerAll.value = stored[id].note || '';
-    else if (document.getElementById(id)) {
-      decisions[id] = stored[id];
-      var box = document.getElementById(id).querySelector('.dbar textarea');
-      if (box) box.value = stored[id].note || '';
-    }
-  });
-  steerAll.addEventListener('input', function () { paintTotals(); store(); });
+  $$('.cmp .shot').forEach(function (shot) { if ($('img', shot)) shot.classList.add('zoom') })
+  $$('.wipe').forEach(function (wipe) {
+    var input = $('input', wipe)
+    input.addEventListener('input', function () { wipe.style.setProperty('--pos', input.value + '%') })
+  })
 
-  var noteFor = function () {
-    var ids = unsentIds(), lines = ['Decisions from the report.'];
-    var byChoice = function (c) { return ids.filter(function (id) { return decisions[id].choice === c; }); };
-    var name = function (id) { return id + ' (' + titleOf(document.getElementById(id)) + ')'; };
-    if (byChoice('approve').length) lines.push('Approved: ' + byChoice('approve').map(name).join('; '));
-    if (byChoice('reject').length) lines.push('Rejected: ' + byChoice('reject').map(name).join('; '));
-    byChoice('steer').forEach(function (id) { lines.push('Steer ' + name(id) + ': ' + decisions[id].note.trim()); });
-    if (steerAll.value.trim()) lines.push('Steer the whole report: ' + steerAll.value.trim());
-    var undecided = items.filter(function (el) { return !decisions[el.id]; }).map(function (el) { return el.id; });
-    lines.push('Undecided: ' + (undecided.length ? undecided.join(', ') : 'none'));
-    return lines.join('\n');
-  };
-  var sizeNow = function () {
-    var w = window.innerWidth;
-    return w >= 2000 ? 'ultrawide' : w >= 1000 ? 'desktop' : w >= 600 ? 'tablet' : 'phone';
-  };
-  var send = async function () {
-    if (!hasUnsent()) return true;
-    document.querySelectorAll('[data-send]').forEach(function (b) { b.disabled = true; });
-    try {
-      var now = new Date().toISOString();
-      var response = await fetch('/api/comments', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ comments: [{ id: 'decisions-' + Date.now().toString(36), kind: 'general', size: sizeNow(), note: noteFor(), sentAt: now, createdAt: now }] })
-      });
-      if (!response.ok) throw new Error(String(response.status));
-      unsentIds().forEach(function (id) { decisions[id].sent = true; });
-      steerAll.value = '';
-      store();
-      say('Sent.');
-      paintTotals();
-      return true;
-    } catch (e) {
-      say('Not sent. Your decisions are kept. Try again.');
-      paintTotals();
-      return false;
-    }
-  };
-  var paintFinish = function () {
-    document.querySelectorAll('[data-finish]').forEach(function (b) {
-      if (finished) { b.textContent = 'Approved'; b.disabled = true; return; }
-      b.textContent = finishArmed ? 'Confirm: end review' : 'Approve & finish';
-    });
-    if (finishArmed) {
-      var open = items.filter(function (el) { return !decisions[el.id]; }).length;
-      var built = decisions['oc-silence'] && decisions['oc-silence'].choice === 'approve';
-      say(open ? open + ' undecided: ' + (built ? 'built as proposed.' : 'I will ask first.') : 'All decided.');
-    }
-  };
-  var finish = async function () {
-    if (!finishArmed) { finishArmed = true; paintFinish(); return; }
-    finishArmed = false;
-    if (!(await send())) return;
-    try {
-      var response = await fetch('/api/approve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
-      if (!response.ok) throw new Error(String(response.status));
-      finished = true;
-      window.parent.postMessage({ type: 'vstack:approved' }, location.origin);
-      paintFinish(); paintTotals();
-      say('Approved. Building now.');
-    } catch (e) {
-      paintFinish();
-      say('Failed. Use Approve & finish beside Send.');
-    }
-  };
-  document.querySelectorAll('[data-send]').forEach(function (b) { b.addEventListener('click', function () { send(); }); });
-  document.querySelectorAll('[data-finish]').forEach(function (b) { b.addEventListener('click', finish); });
-  document.querySelectorAll('[data-rest]').forEach(function (b) {
-    b.addEventListener('click', function () {
-      items.forEach(function (el) { if (!decisions[el.id]) { decisions[el.id] = { choice: 'approve', note: '' }; paintItem(el); } });
-      paintTotals(); store();
-    });
-  });
+  /* ── painting ── */
+  var paintSection = function (el) {
+    var decision = decisionOf(el.id), choice = choiceOf(decision)
+    CHOICES.forEach(function (c) { el.classList.toggle('is-' + c, choice === c) })
+    $$('.decide button', el).forEach(function (button) { button.setAttribute('aria-pressed', String(button.dataset.d === choice)) })
+    var steer = $('.steer', el), box = $('textarea', steer)
+    el.classList.toggle('steer-open', choice === 'steer')
+    steer.inert = choice !== 'steer'
+    if (choice === 'steer' && document.activeElement !== box) box.value = decision.note || ''
+    var unsent = el.id in drafts
+    $('[data-steer-state]', el).textContent = !unsent ? 'Sent.' : (decision && (decision.note || '').trim()) ? 'Included in your next send.' : 'Describe what should change, then send.'
 
-  items.forEach(paintItem);
-  paintTotals();
+    var status = $('.status', el)
+    var heldSteer = !unsent && choiceOf(held.decisions[el.id]) === 'steer'
+    var revisedNote = held.revised[el.id]
+    var html = ''
+    if (revisedNote !== undefined && !decision) {
+      html = '<span class="revised-tag">Revised</span><span>' +
+        (revisedNote ? 'You asked: <q>' + esc(revisedNote) + '</q> ' : '') + 'Review again.</span>'
+    } else if (heldSteer && BRIDGE && !finished) {
+      html = '<span class="pulse" aria-hidden="true"></span><span>' + esc(agentName()) + ' is revising this section.</span>'
+    }
+    status.innerHTML = html
+    status.classList.toggle('on', !!html)
 
-})();
+    $$('[data-ref="' + el.id + '"]').forEach(function (ref) {
+      CHOICES.forEach(function (c) { ref.classList.toggle(c, choice === c) })
+      ref.classList.toggle('revised', revisedNote !== undefined && !decision)
+      ref.classList.toggle('unsent', unsent)
+    })
+  }
+
+  var paintTotals = function () {
+    var counts = { approve: 0, reject: 0, steer: 0 }
+    var cells = sections.map(function (el) {
+      var choice = choiceOf(decisionOf(el.id))
+      if (choice) counts[choice]++
+      return '<i' + (choice ? ' class="' + choice + '"' : '') + '></i>'
+    }).join('')
+    var decided = counts.approve + counts.reject + counts.steer
+    var open = sections.length - decided
+    $$('[data-segs]').forEach(function (segs) { segs.innerHTML = cells })
+    $$('[data-decided]').forEach(function (el) { el.textContent = decided })
+    $$('[data-tally-text]').forEach(function (el) { el.textContent = decided + ' / ' + sections.length + ' ANSWERED' })
+
+    var pending = pendingCount()
+    var label = !BRIDGE ? 'Copy decisions'
+      : pending ? 'Send ' + pending + ' to ' + agentName() : 'Send to ' + agentName()
+    var kbd = ' <span class="kbd">⌘⏎</span>'
+    sendBtn.innerHTML = esc(label) + kbd
+    closingSend.textContent = label
+    var disabled = finished || (BRIDGE ? !pending : decided === 0 && !overallBox.value.trim())
+    sendBtn.disabled = disabled
+    closingSend.disabled = disabled
+    $('[data-closing-text]').textContent = finished ? 'This review is finished.'
+      : open ? open + ' of ' + sections.length + ' still unanswered.' : 'Every section is answered.'
+    restBtn.disabled = finished || open === 0
+    paintFinish(counts.approve, open)
+  }
+  var paintFinish = function (approved, open) {
+    if (approved === undefined) {
+      approved = sections.filter(function (el) { return choiceOf(decisionOf(el.id)) === 'approve' }).length
+      open = sections.filter(function (el) { return !decisionOf(el.id) }).length
+    }
+    $('.t', finishBtn).textContent = finished ? 'Finished' : finishArmed ? 'Press again to finish' : 'Approve & finish'
+    $('.d', finishBtn).textContent = finished ? '' : 'Ends the review. Builds the ' + approved + ' approved' +
+      (open ? ' and skips the ' + open + ' unanswered.' : '.')
+    finishBtn.disabled = finished
+  }
+  var paintAll = function () { sections.forEach(paintSection); paintTotals() }
+
+  /* ── deciding ── */
+  var setDraft = function (id, next) {
+    if (sameDecision(next, held.decisions[id] || null)) delete drafts[id]
+    else drafts[id] = next
+    save()
+    paintSection(document.getElementById(id))
+    paintTotals()
+  }
+  var choose = function (el, choice) {
+    if (finished) return
+    var current = decisionOf(el.id)
+    var box = $('.steer textarea', el)
+    var next = choiceOf(current) === choice ? null : { choice: choice, note: choice === 'steer' ? box.value : '' }
+    if (next === null && !held.decisions[el.id]) next = undefined
+    if (next === undefined) { delete drafts[el.id]; save(); paintSection(el); paintTotals() } else setDraft(el.id, next)
+    setCurrent(el)
+    if (next && choice === 'steer') setTimeout(function () { box.focus({ preventScroll: true }) }, 60)
+  }
+
+  var summary = function (ids) {
+    var lines = ['Decisions from the design review.']
+    var name = function (id) { return id + ' (' + titles[id] + ')' }
+    var all = ids.map(function (id) { return { id: id, decision: decisionOf(id) } })
+    var named = function (choice) { return all.filter(function (item) { return choiceOf(item.decision) === choice }).map(function (item) { return name(item.id) }) }
+    if (named('approve').length) lines.push('Approved: ' + named('approve').join('; '))
+    if (named('reject').length) lines.push('Rejected: ' + named('reject').join('; '))
+    all.forEach(function (item) { if (choiceOf(item.decision) === 'steer') lines.push('Steer ' + name(item.id) + ': ' + (item.decision.note || '').trim()) })
+    if (overallBox.value.trim()) lines.push('About the whole review: ' + overallBox.value.trim())
+    var open = sections.filter(function (el) { return !decisionOf(el.id) }).map(function (el) { return el.id })
+    lines.push('Unanswered: ' + (open.length ? open.join(', ') : 'none'))
+    return lines.join('\n')
+  }
+
+  var copyDecisions = function () {
+    var text = summary(sections.map(function (el) { return el.id }))
+    var done = function () { window.VSShell.toast('Copied. Paste it to ' + agentName() + '.') }
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () { window.prompt('Copy your decisions', text) })
+    else window.prompt('Copy your decisions', text)
+  }
+
+  var post = function (path, body) {
+    return fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-VSTACK-Token': BRIDGE.token }, body: JSON.stringify(body) })
+      .then(function (response) { if (!response.ok) throw new Error(String(response.status)); return response.json() })
+  }
+  var send = function () {
+    if (finished) return Promise.resolve(false)
+    if (!BRIDGE) { copyDecisions(); return Promise.resolve(true) }
+    var ids = unsentIds(), overall = overallBox.value.trim()
+    if (!ids.length && !overall) return Promise.resolve(true)
+    var next = { decisions: Object.assign({}, held.decisions), overall: overall, revised: Object.assign({}, held.revised) }
+    ids.forEach(function (id) {
+      var draft = drafts[id]
+      if (draft === null) delete next.decisions[id]
+      else next.decisions[id] = draft.choice === 'steer' ? { choice: 'steer', note: draft.note.trim() } : { choice: draft.choice }
+      delete next.revised[id]
+    })
+    sendBtn.disabled = true
+    return post(BRIDGE.save, next).then(function () {
+      held = normalize(next)
+      ids.forEach(function (id) { delete drafts[id] })
+      overallBox.value = ''
+      save()
+      paintAll()
+      window.VSShell.toast('Sent to ' + agentName() + '.')
+      return true
+    }, function () {
+      window.VSShell.toast('Not sent. Your answers are kept here. Try again.')
+      paintTotals()
+      return false
+    })
+  }
+
+  var closeMenu = function () { moreMenu.hidden = true; moreBtn.setAttribute('aria-expanded', 'false') }
+  var finish = function () {
+    closeMenu()
+    send().then(function (sent) {
+      if (!sent) return
+      return post(BRIDGE.approve, { note: summary(sections.map(function (el) { return el.id })) }).then(function () {
+        finished = true
+        root.classList.add('finished')
+        window.VSShell.hideLink()
+        var approved = sections.filter(function (el) { return choiceOf(held.decisions[el.id]) === 'approve' }).length
+        $('[data-done-text]').textContent = 'Review finished. ' + agentName() + ' is building the ' + approved + ' approved.'
+        $('#donebar').classList.add('on')
+        paintAll()
+      }, function () { window.VSShell.toast('Not finished. Try again.') })
+    })
+  }
+
+  sendBtn.addEventListener('click', function () { send() })
+  closingSend.addEventListener('click', function () { send() })
+  overallBox.addEventListener('input', function () { save(); paintTotals() })
+  moreBtn.addEventListener('click', function (event) {
+    event.stopPropagation()
+    moreMenu.hidden = !moreMenu.hidden
+    moreBtn.setAttribute('aria-expanded', String(!moreMenu.hidden))
+  })
+  document.addEventListener('pointerdown', function (event) { if (!moreMenu.hidden && !event.target.closest('#sendSplit')) closeMenu() })
+  restBtn.addEventListener('click', function () {
+    sections.forEach(function (el) { if (!decisionOf(el.id)) drafts[el.id] = { choice: 'approve', note: '' } })
+    save(); paintAll(); closeMenu()
+  })
+  if (BRIDGE) {
+    window.VSShell.armConfirm(finishBtn, {
+      arm: function () { finishArmed = true; paintFinish() },
+      disarm: function () { finishArmed = false; paintFinish() },
+      onConfirm: function () { finishArmed = false; finish() }
+    })
+  } else finishBtn.hidden = true
+
+  /* ── where the reader is ── */
+  var current = null
+  var setCurrent = function (el) {
+    if (current) current.classList.remove('current')
+    current = el
+    if (el) el.classList.add('current')
+    $$('#toc a').forEach(function (link) { link.setAttribute('aria-current', String(!!el && link.dataset.ref === el.id)) })
+  }
+  var inView = function () {
+    var atEnd = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4
+    if (atEnd) return sections[sections.length - 1]
+    var line = 46 + window.innerHeight * 0.45
+    return sections.filter(function (el) { return el.getBoundingClientRect().top <= line }).pop() || sections[0]
+  }
+  var ticking = false
+  window.addEventListener('scroll', function () {
+    if (ticking) return
+    ticking = true
+    requestAnimationFrame(function () { ticking = false; setCurrent(inView()) })
+  }, { passive: true })
+  var move = function (step) {
+    var index = Math.max(0, Math.min(sections.length - 1, sections.indexOf(current || inView()) + step))
+    root.classList.add('kbd-nav')
+    sections[index].scrollIntoView({ block: 'start' })
+    setCurrent(sections[index])
+  }
+
+  document.addEventListener('keydown', function (event) {
+    if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') { event.preventDefault(); send(); return }
+    if (event.target.closest('textarea, input, [contenteditable]')) {
+      if (event.key === 'Escape') event.target.blur()
+      return
+    }
+    if (event.metaKey || event.ctrlKey || event.altKey || lightbox.open) return
+    var key = event.key.toLowerCase()
+    if (key === 'j' || key === 'k') { event.preventDefault(); move(key === 'j' ? 1 : -1) }
+    else if (KEYS[key]) {
+      event.preventDefault()
+      root.classList.add('kbd-nav')
+      choose(current || inView(), KEYS[key])
+    }
+  })
+  document.addEventListener('pointerdown', function () { root.classList.remove('kbd-nav') })
+
+  /* ── full size, flipping between the pair ── */
+  var lightbox = $('#lightbox')
+  var showing = { figures: [], index: 0 }
+  var paintLightbox = function () {
+    var figure = showing.figures[showing.index]
+    var img = $('img', figure)
+    $('[data-lb-img]').src = img.src
+    $('[data-lb-img]').alt = img.alt
+    $$('[data-lb-seg] button').forEach(function (button, index) { button.setAttribute('aria-pressed', String(index === showing.index)) })
+  }
+  document.addEventListener('click', function (event) {
+    var shot = event.target.closest('.shot.zoom')
+    if (!shot) return
+    var pair = shot.closest('.cmp')
+    showing.figures = $$('.side', pair).filter(function (side) { return $('.shot img', side) })
+    showing.index = showing.figures.indexOf(shot.closest('.side'))
+    var section = shot.closest('[data-decide]')
+    $('[data-lb-title]').textContent = section ? titles[section.id] : ''
+    $('[data-lb-seg]').innerHTML = showing.figures.map(function (side, index) {
+      var tag = $('figcaption b', side)
+      return '<button type="button" data-i="' + index + '">' + esc(tag ? tag.textContent : 'Picture ' + (index + 1)) + '</button>'
+    }).join('')
+    $('.hint', lightbox).hidden = showing.figures.length < 2
+    paintLightbox()
+    lightbox.showModal()
+  })
+  lightbox.addEventListener('click', function (event) {
+    var pick = event.target.closest('[data-lb-seg] button')
+    if (pick) { showing.index = Number(pick.dataset.i); paintLightbox(); return }
+    if (event.target.closest('[data-lb-close]') || event.target === lightbox) lightbox.close()
+  })
+  lightbox.addEventListener('keydown', function (event) {
+    if (showing.figures.length < 2) return
+    if (event.key === ' ' || event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      event.preventDefault()
+      showing.index = (showing.index + 1) % showing.figures.length
+      paintLightbox()
+    }
+  })
+
+  /* ── the agent's side of the link ── */
+  var pushbar = $('#pushbar')
+  $('#pushShow').addEventListener('click', function () {
+    save()
+    var target = pendingPush && pendingPush.fresh[0]
+    history.replaceState(null, '', location.pathname + location.search + (target ? '#' + target : ''))
+    location.reload()
+  })
+  $('#pushLater').addEventListener('click', function () { pushbar.classList.remove('on') })
+  var onPush = function (doc) {
+    var next = normalize(doc)
+    var fresh = Object.keys(next.revised).filter(function (id) { return held.revised[id] !== next.revised[id] })
+    pendingPush = { fresh: fresh }
+    $('[data-push-text]').textContent = fresh.length
+      ? agentName() + ' revised ' + fresh.length + (fresh.length === 1 ? ' section.' : ' sections.')
+      : agentName() + ' updated the review.'
+    pushbar.classList.add('on')
+  }
+
+  var start = function () {
+    window.VSShell.init({ name: 'Design review' })
+    restore()
+    paintAll()
+    setCurrent(inView())
+    if (BRIDGE) {
+      window.VSShell.setLink(false, null, BRIDGE.watching)
+      window.VSShell.connect({
+        url: BRIDGE.events + '?t=' + encodeURIComponent(BRIDGE.token),
+        on: { push: function (event) { try { onPush(JSON.parse(event.data)) } catch (e) {} } }
+      })
+    } else window.VSShell.hideLink()
+  }
+  if (BRIDGE) {
+    fetch(BRIDGE.doc + '?t=' + encodeURIComponent(BRIDGE.token))
+      .then(function (response) { return response.json() })
+      .then(function (doc) { held = normalize(doc) }, function () {})
+      .then(start)
+  } else {
+    held = heldFromMarkup()
+    start()
+  }
+})()
 </script>
 </body>
 </html>

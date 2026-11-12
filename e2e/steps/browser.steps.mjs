@@ -491,50 +491,74 @@ Then('the server records {string} as handed out', async function (note) {
   }, `"${note}" is handed out`)
 })
 
-/* ── a design review report with controls of its own ── */
+/* ── a design review report, answered in its own tab ── */
 
-Given('a design review report is under review', async function () {
-  await this.startFileReview(this.hostId, fs.readFileSync(REPORT_TEMPLATE, 'utf8'))
+Given('a design review report is served on its own', async function () {
+  await this.startReportServer(fs.readFileSync(REPORT_TEMPLATE, 'utf8'))
 })
 
-/** A press on the framed page goes through the mouse at the element's on-screen
-    box. Playwright's own click would refuse, because the overlay is over it, and
-    the overlay standing aside for the pointer is what is under test. */
-async function pressInFrame (world, selector) {
-  const target = world.browserPage.frameLocator('#frame').locator(selector)
-  await target.waitFor()
-  const box = await target.boundingBox()
-  await world.browserPage.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
-  await world.browserPage.mouse.down()
-  await world.browserPage.mouse.up()
-}
-
-When('the reviewer presses Approve on the section {string} without leaving Annotate mode', async function (id) {
-  assert.equal(await this.browserPage.locator('#modeSwitch [data-mode="annotate"]').getAttribute('aria-pressed'), 'true')
-  await pressInFrame(this, `#${id} .dcb[data-d="approve"]`)
+When('the reviewer opens the report', async function () {
+  await this.browserPage.goto(this.reportUrl)
+  await this.browserPage.locator('#f-example .decide').waitFor()
 })
 
-When('the reviewer presses Send decisions on the page', async function () {
-  await pressInFrame(this, '#deck [data-send]')
+When('the reviewer approves the section {string}', async function (id) {
+  await this.browserPage.locator(`#${id} .decide [data-d="approve"]`).click()
 })
 
-When('the reviewer presses Approve & finish on the page twice', async function () {
-  await pressInFrame(this, '#deck [data-finish]')
-  await pressInFrame(this, '#deck [data-finish]')
+When('the reviewer steers the section {string} with {string}', async function (id, note) {
+  await this.browserPage.locator(`#${id} .decide [data-d="steer"]`).click()
+  await this.browserPage.locator(`#${id} .steer textarea`).fill(note)
 })
 
-Then('the review holds a comment that says {string}', async function (text) {
+When('the reviewer sends the answers', async function () {
+  await this.browserPage.locator('#sendBtn').click()
+  await this.browserPage.locator('.vs-toast.on').waitFor()
+})
+
+When('the agent revises the section {string}', async function (id) {
+  const sent = this.answers()
+  fs.writeFileSync(this.reportPage, fs.readFileSync(this.reportPage, 'utf8').replace('<h2>Drag to compare</h2>', '<h2>Drag the bigger handle</h2>'))
+  const note = sent.decisions[id].note
+  delete sent.decisions[id]
+  sent.revised = { ...sent.revised, [id]: note }
+  fs.writeFileSync(this.answersFile, JSON.stringify(sent, null, 2))
+})
+
+When('the reviewer shows the revision', async function () {
+  await this.browserPage.locator('#pushbar.on').waitFor({ timeout: 5000 })
+  await this.browserPage.locator('#pushShow').click()
+  await this.browserPage.waitForLoadState('load')
+})
+
+When('the reviewer presses Approve & finish twice', async function () {
+  await this.browserPage.locator('#moreBtn').click()
+  await this.browserPage.locator('#finishBtn').click()
+  await this.browserPage.locator('#finishBtn').click()
+})
+
+Then('the answers file approves {string}', async function (id) {
   await eventually(() => {
-    assert.ok(this.stored().some(item => (item.note || '').includes(text)), `a comment says "${text}"`)
-  }, `a comment says ${text}`)
+    assert.equal(this.answers().decisions[id]?.choice, 'approve')
+  }, `${id} is approved in the answers file`)
 })
 
-Then('the workspace shows its closing screen', async function () {
+Then('the answers file steers {string} with {string}', async function (id, note) {
+  await eventually(() => {
+    assert.deepEqual(this.answers().decisions[id], { choice: 'steer', note })
+  }, `${id} is steered in the answers file`)
+})
+
+Then('the section {string} shows the revision, quoting {string}', async function (id, note) {
+  const section = this.browserPage.locator(`#${id}`)
   await eventually(async () => {
-    assert.ok(await this.browserPage.locator('#doneTitle').isVisible(), 'the closing screen is up')
-  }, 'the closing screen appears')
+    assert.equal((await section.locator('h2').textContent()).trim(), 'Drag the bigger handle')
+    const status = await section.locator('.status').textContent()
+    assert.ok(status.includes('Revised') && status.includes(note), `the status says "${status}"`)
+    assert.equal(await section.locator('[aria-pressed="true"]').count(), 0, 'it waits for a fresh answer')
+  }, `${id} shows the revision`)
 })
 
-Then('the review is closed', async function () {
-  assert.ok(await this.waitForServerExit(), 'approval closes the server')
+Then('the report server has closed', async function () {
+  assert.ok(await this.waitForServerExit(), 'Approve & finish closes the server')
 })
