@@ -32,6 +32,7 @@ export const TOOL = {
   storyMap: 'user-story-map',
   phaseBuild: 'phase-build',
   proofread: 'proofread',
+  designReview: 'design-review',
   /* Fallback for a JSON document opened outside any of the skills above. */
   documents: 'documents',
 }

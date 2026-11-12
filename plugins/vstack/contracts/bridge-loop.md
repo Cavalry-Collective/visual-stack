@@ -1,7 +1,7 @@
 # Contract: Bridge loop
 
 How a session stays linked to a page served by `lib/json-bridge.mjs` — the
-shared engine behind `spec`, `user-story-map` and `phase-build`. Host-independent:
+shared engine behind `user-story-map`, `design-review`, `spec` and `phase-build`. Host-independent:
 each skill's SKILL.md names the host mechanism that fulfills the two roles here
 (a background process for `serve`, a persistent stream for `watch`).
 

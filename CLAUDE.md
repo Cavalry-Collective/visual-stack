@@ -177,7 +177,7 @@ The layering rule that everything else follows (`plugins/vstack/contracts/README
   subcommands (`serve`, `watch`, `publish`, `reply`, `ack`, `share`, `status`,
   `unanswered`, `reset`) drive the protocol; sentinels and round records live on disk.
 - `lib/json-bridge.mjs` — the live link for JSON-document pages (user-story-map,
-  plus the experimental spec and phase-build tools): the page POSTs saves and
+  the design-review report, and the experimental spec and phase-build tools): the page POSTs saves and
   bumps a seq counter the agent's watcher wakes on; agent edits are pushed back
   over SSE.
 
@@ -225,7 +225,7 @@ back. Review's rounds sat in `local/wireframe/` before the tool was renamed.
 
 Each skill is `plugins/vstack/skills/<name>/SKILL.md` plus `assets/` (the pages
 and servers it runs). `review` is the primary tool and `user-story-map` ships
-alongside it; `design-review` audits a UI, opens its proposals in `review` for comments, and builds what the owner approves; `proofread` passes user-facing copy to ChatGPT in the user's browser and
+alongside it; `design-review` audits a UI, opens its proposals as a report page the owner answers over the JSON bridge, and builds what the owner approves; `proofread` passes user-facing copy to ChatGPT in the user's browser and
 runs only on a host whose adapter provides `user_browser`; `wireframe` is a compatibility entry that reads `review/SKILL.md`
 and nothing else — it is what `review` used to be called. Engine
 assets (`workspace.html`,

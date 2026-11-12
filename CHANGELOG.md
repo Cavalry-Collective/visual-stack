@@ -8,6 +8,33 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.12.0 — 2026-11-12
+
+**Changed**
+
+- **A design review opens in its own tab.** Reports no longer appear at 70% inside
+  the review workspace. They open at full size in your browser and reach your agent
+  through the same live link as the story map.
+- **Steering gets a response.** After you send a steer, the section shows that your
+  agent is revising it. When the new proposal arrives, the page offers to show it,
+  marks the section Revised, quotes your note, and asks for a fresh answer.
+- **One Send button.** Send sits in the top bar with a count of unsent answers.
+  Approve the rest and Approve & finish sit under the ▾ beside it. Approve & finish
+  shows how many approved sections will be built.
+- **The report looks like the rest of Visual Stack.** It wears the shared top bar,
+  theme switch and link status. An index and your progress stay in view as you
+  scroll.
+- **Pictures show at full height.** Click any picture to see it full size, and press
+  Space to flip between Today and Proposed.
+- **Answer from the keyboard.** J and K move between sections. A, R and S approve,
+  reject and steer.
+- **The report's words are proofread.** `/vstack:design-review` now runs the
+  report's titles and captions through `/vstack:proofread`, and removes text that
+  repeats what a picture already shows.
+
+When a report is opened from disk or as an Artifact, Send becomes Copy decisions,
+so you can paste your answers into chat.
+
 ## 6.11.0 — 2026-11-10
 
 **Changed**
