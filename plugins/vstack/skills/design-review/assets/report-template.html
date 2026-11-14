@@ -315,7 +315,7 @@ kbd { display: inline-block; min-width: 1.4em; padding: .1em .35em; border: 1px 
 .segs i { flex: 1; height: 6px; border-radius: 2px; background: var(--line-2); transition: background 250ms var(--ease); }
 .segs i.approve { background: var(--ok); }
 .segs i.reject { background: var(--ink-3); }
-.segs i.steer { background: var(--warn); }
+.segs i.steer, .segs i.vary { background: var(--warn); }
 .btn .kbd { font: 500 10px/1 var(--mono); opacity: .6; }
 /* The workspace's ▾ menu, item for item: a title, then what pressing it does. */
 .splitmenu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 60; width: 266px; padding: 5px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: var(--shadow-pop); animation: menu-in 150ms var(--ease-in); }
@@ -348,7 +348,7 @@ main { min-width: 0; padding: 2.5rem clamp(1rem, 4vw, 3.5rem) 0; }
 .dot { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--line-2); transition: background 250ms var(--ease), border-color 250ms var(--ease), transform 250ms var(--ease); }
 .approve > .dot { background: var(--ok); border-color: var(--ok); }
 .reject > .dot { background: var(--ink-3); border-color: var(--ink-3); }
-.steer > .dot { background: var(--warn); border-color: var(--warn); }
+.steer > .dot, .vary > .dot { background: var(--warn); border-color: var(--warn); }
 .revised > .dot { border-color: var(--brand); background: var(--brand-soft); }
 .unsent > .dot { transform: scale(1.25); }
 .rail-plan { display: block; margin-top: .75rem; padding: .4rem .5rem; border-top: 1px solid var(--line); font-size: 14px; color: var(--ink-2); }
@@ -401,10 +401,10 @@ h2 { font-size: 1.25rem; line-height: 1.25; font-weight: 700; letter-spacing: -.
 .decide [aria-pressed=true] svg { animation: pop 300ms var(--ease-in); }
 .decide [data-d=approve][aria-pressed=true] { background: var(--ok); color: var(--surface); }
 .decide [data-d=reject][aria-pressed=true] { background: var(--ink-2); color: var(--surface); }
-.decide [data-d=steer][aria-pressed=true] { background: var(--warn); color: var(--surface); }
+.decide [data-d=steer][aria-pressed=true], .decide [data-d=vary][aria-pressed=true] { background: var(--warn); color: var(--surface); }
 @keyframes pop { 0% { transform: scale(.5); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
 
-/* The steer box opens in place, under the bar it answers. */
+/* The steer box opens in place, under the bar it answers, and closes once its note is sent. */
 .steer { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 250ms var(--ease); }
 .steer > div { overflow: hidden; }
 .steer-open .steer { grid-template-rows: 1fr; }
@@ -431,15 +431,26 @@ h2 { font-size: 1.25rem; line-height: 1.25; font-weight: 700; letter-spacing: -.
 .shot img { width: 100%; }
 .shot.zoom { cursor: zoom-in; }
 .shot.zoom:hover { transform: translateY(-2px); box-shadow: var(--shadow-pop); }
-.is-approve .side.prop .shot { box-shadow: 0 0 0 2px var(--ok), var(--shadow-pop); }
-.is-steer .side.prop .shot { box-shadow: 0 0 0 2px var(--warn), var(--shadow); }
+.is-approve .side.prop.chosen .shot { box-shadow: 0 0 0 2px var(--ok), var(--shadow-pop); }
+.is-steer .side.prop .shot, .is-vary .side.prop .shot { box-shadow: 0 0 0 2px var(--warn), var(--shadow); }
 .side.prop .shot::after { content: ""; position: absolute; top: .625rem; right: .625rem; width: 1.75rem; height: 1.75rem; border-radius: 50%; background: var(--ok) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 13l4 4L19 7'/%3E%3C/svg%3E") center / 60% no-repeat; box-shadow: var(--shadow-pop); opacity: 0; transform: scale(.4); transition: opacity 250ms var(--ease), transform 300ms var(--ease-in); }
-.is-approve .side.prop .shot::after { opacity: 1; transform: scale(1); }
+.is-approve .side.prop.chosen .shot::after { opacity: 1; transform: scale(1); }
 .cmp.fixed .shot { aspect-ratio: 16 / 10; }
 .cmp.fixed .shot img { height: 100%; object-fit: cover; object-position: top; }
 .cmp.phone { grid-template-columns: repeat(2, minmax(0, 20rem)); justify-content: center; }
 .shot.draw { min-height: 9rem; padding: 1rem; display: grid; align-content: center; gap: .75rem; }
 .box { position: absolute; border: 2px solid var(--brand); border-radius: 4px; pointer-events: none; }
+
+/* Variations: several proposals for one problem, one shown at a time beside Today. */
+.variants { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: .375rem; }
+.variants-h { margin-right: .25rem; font: 700 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); }
+.variants button { display: inline-flex; align-items: center; gap: .375rem; height: 2rem; padding: 0 .75rem 0 .3rem; border: 1px solid var(--line-2); border-radius: 999px; background: var(--surface); color: var(--ink-2); font-size: 14px; font-weight: 600; cursor: pointer; transition: background 150ms var(--ease), border-color 150ms var(--ease), color 150ms var(--ease); }
+.variants button:hover { border-color: var(--ink-3); color: var(--ink); }
+.variants button[aria-pressed=true] { background: var(--ink-2); border-color: var(--ink-2); color: var(--surface); }
+.variants .vl { display: grid; place-items: center; width: 1.375rem; height: 1.375rem; border-radius: 50%; background: var(--surface-2); color: var(--ink-2); font: 700 11px/1 var(--mono); transition: background 250ms var(--ease), color 250ms var(--ease); }
+.variants button.chosen .vl { background: var(--ok); color: #fff; }
+.variants .new { font: 700 10px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--brand); }
+.variants [aria-pressed=true] .new { color: var(--surface); }
 
 /* A wipe, for two pictures of one size. */
 .wipe { --pos: 50%; position: relative; margin-top: 1.25rem; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow); touch-action: pan-y; transition: opacity 250ms var(--ease), filter 250ms var(--ease); }
@@ -499,6 +510,8 @@ footer { margin-top: 3rem; padding: 1.25rem 0 2.5rem; border-top: 1px solid var(
   .label { flex-basis: 100%; }
   .decide { width: 100%; }
   .decide button { flex: 1; padding: 0 .5rem; }
+  .decide svg { display: none; }
+  .cmp > .side:not(.prop) { order: -1; }
   .kbd-nav .finding.current::before { left: -.75rem; }
 }
 @media (max-width: 720px) {
@@ -617,7 +630,7 @@ footer { margin-top: 3rem; padding: 1.25rem 0 2.5rem; border-top: 1px solid var(
   <div class="rail-progress"><b data-decided>0</b> of <span data-total>0</span> answered<span class="segs" data-segs></span></div>
   <ol class="toc" id="toc"></ol>
   <a class="rail-plan" href="#plan">Plan</a>
-  <div class="keys"><span><kbd>J</kbd> <kbd>K</kbd> next / previous</span><span><kbd>A</kbd> <kbd>R</kbd> <kbd>S</kbd> approve / reject / steer</span><span><kbd>⌘</kbd> <kbd>⏎</kbd> send</span></div>
+  <div class="keys"><span><kbd>J</kbd> <kbd>K</kbd> next / previous</span><span><kbd>A</kbd> <kbd>R</kbd> <kbd>S</kbd> <kbd>V</kbd> approve / reject / steer / variations</span><span><kbd>⌘</kbd> <kbd>⏎</kbd> send</span></div>
 </aside>
 
 <main>
@@ -645,6 +658,18 @@ footer { margin-top: 3rem; padding: 1.25rem 0 2.5rem; border-top: 1px solid var(
   </div>
 </article>
 
+<!-- Two or more ways to fix one problem are variations of one section, never sections of their
+     own. Give each Proposed figure a short data-variant name and put your pick first. The script
+     shows one at a time behind A, B, C tabs, and Approve records the one on show. -->
+<article class="finding" id="f-variants" data-decide>
+  <div class="fh"><span class="sev p2">P2</span><h2>Two ways to fix one problem</h2></div>
+  <div class="cmp">
+    <figure class="side"><figcaption><b>Today</b> One short detail</figcaption><div class="shot"><img alt="What it looks like today" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100'%3E%3Crect width='160' height='100' fill='%23f6f4f8'/%3E%3C/svg%3E"></div></figure>
+    <figure class="side prop" data-variant="Lanes"><figcaption><b>Proposed</b> One short detail</figcaption><div class="shot"><img alt="Lanes" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100'%3E%3Crect width='160' height='100' fill='%23e9f9f2'/%3E%3C/svg%3E"></div></figure>
+    <figure class="side prop" data-variant="Band"><figcaption><b>Proposed</b> One short detail</figcaption><div class="shot"><img alt="Band" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100'%3E%3Crect width='160' height='100' fill='%23fef5e6'/%3E%3C/svg%3E"></div></figure>
+  </div>
+</article>
+
 <h2 class="area-title" id="extras">Optional</h2>
 <article class="finding" id="f-slider" data-decide>
   <div class="fh"><span class="sev p3">P3</span><h2>Drag to compare</h2></div>
@@ -660,7 +685,7 @@ footer { margin-top: 3rem; padding: 1.25rem 0 2.5rem; border-top: 1px solid var(
 <h2 class="area-title" id="plan">Plan</h2>
 <ol class="slices">
   <!-- FILL: one slice per outcome. A chip names a section by data-ref and takes its decision. -->
-  <li class="slice" id="plan-1"><div class="slice-body"><h3>Slice name</h3><span class="refs"><a class="ref" data-ref="f-example" href="#f-example"><i class="dot"></i>Example finding</a></span></div></li>
+  <li class="slice" id="plan-1"><div class="slice-body"><h3>Slice name</h3><span class="refs"><a class="ref" data-ref="f-example" href="#f-example"><i class="dot"></i>Example finding</a><a class="ref" data-ref="f-variants" href="#f-variants"><i class="dot"></i>Two ways to fix one problem</a></span></div></li>
   <li class="stop" id="plan-stop">I would stop here</li>
   <li class="slice" id="plan-2"><div class="slice-body"><h3>After the stop</h3><span class="refs"><a class="ref" data-ref="f-slider" href="#f-slider"><i class="dot"></i>Drag to compare</a></span></div></li>
 </ol>
@@ -1147,13 +1172,17 @@ window.VSScrub = (function () {
   var $$ = function (selector, scope) { return Array.prototype.slice.call((scope || document).querySelectorAll(selector)) }
   var esc = function (text) { return window.VSShell.esc(text) }
   var agentName = function () { return (window.__VSTACK_HOST__ && window.__VSTACK_HOST__.name) || 'your agent' }
-  var CHOICES = ['approve', 'reject', 'steer']
-  var KEYS = { a: 'approve', r: 'reject', s: 'steer' }
+  /* Steer and vary are requests: the agent answers them with a revised section. */
+  var CHOICES = ['approve', 'reject', 'steer', 'vary']
+  var REQUESTS = ['steer', 'vary']
+  var KEYS = { a: 'approve', r: 'reject', s: 'steer', v: 'vary' }
   var ICONS = {
     approve: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>',
     reject: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
-    steer: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-4L16 5l3 3L8 19l-4 1z"/></svg>'
+    steer: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-4L16 5l3 3L8 19l-4 1z"/></svg>',
+    vary: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 9h11v11H9z"/><path d="M5 15H4V4h11v1"/></svg>'
   }
+  var isRequest = function (choice) { return REQUESTS.indexOf(choice) !== -1 }
   var sections = $$('[data-decide]')
   var overallBox = $('#overall')
   var sendBtn = $('#sendBtn'), moreBtn = $('#moreBtn'), moreMenu = $('#moreMenu')
@@ -1172,13 +1201,17 @@ window.VSScrub = (function () {
      A draft of null clears a decision the agent already holds. */
   var held = { decisions: {}, overall: '', revised: {} }
   var drafts = {}
+  /* A sent request reopens its box only while the owner edits its note. */
+  var editing = {}
   var finished = false
   var finishArmed = false
   var pendingPush = null
 
   var choiceOf = function (decision) { return decision ? decision.choice : null }
   var sameDecision = function (a, b) {
-    return choiceOf(a) === choiceOf(b) && (choiceOf(a) !== 'steer' || (a.note || '').trim() === (b.note || '').trim())
+    if (!a || !b) return !a && !b
+    return a.choice === b.choice && (a.variant || '') === (b.variant || '') &&
+      (!isRequest(a.choice) || (a.note || '').trim() === (b.note || '').trim())
   }
   var decisionOf = function (id) { return (id in drafts ? drafts[id] : held.decisions[id]) || null }
   var sendable = function (draft) { return draft === null || draft.choice !== 'steer' || (draft.note || '').trim().length > 0 }
@@ -1190,7 +1223,9 @@ window.VSScrub = (function () {
     if (!doc || typeof doc !== 'object') return clean
     Object.keys(doc.decisions || {}).forEach(function (id) {
       var decision = doc.decisions[id]
-      if (decision && CHOICES.indexOf(decision.choice) !== -1) clean.decisions[id] = { choice: decision.choice, note: decision.note || '' }
+      if (!decision || CHOICES.indexOf(decision.choice) === -1) return
+      clean.decisions[id] = { choice: decision.choice, note: decision.note || '' }
+      if (typeof decision.variant === 'string') clean.decisions[id].variant = decision.variant
     })
     Object.keys(doc.revised || {}).forEach(function (id) { clean.revised[id] = String(doc.revised[id] || '') })
     clean.overall = typeof doc.overall === 'string' ? doc.overall : ''
@@ -1218,6 +1253,7 @@ window.VSScrub = (function () {
       var draft = stored.drafts[id]
       if (!document.getElementById(id) || id in held.revised) return
       if (draft !== null && CHOICES.indexOf(draft && draft.choice) === -1) return
+      if (draft && draft.variant && !variantNamed(id, draft.variant)) return
       if (!sameDecision(draft, held.decisions[id] || null)) drafts[id] = draft
     })
     if (typeof stored.overall === 'string') overallBox.value = stored.overall
@@ -1247,20 +1283,22 @@ window.VSScrub = (function () {
     while (bar.firstChild) label.appendChild(bar.firstChild)
     label.insertAdjacentHTML('afterbegin', '<span class="num">' + number(index) + '</span>')
     bar.appendChild(label)
-    var names = { approve: el.dataset.yes || 'Approve', reject: el.dataset.no || 'Reject', steer: 'Steer' }
+    var names = { approve: el.dataset.yes || 'Approve', reject: el.dataset.no || 'Reject', steer: 'Steer', vary: 'Variations' }
+    var hints = { vary: 'More variations' }
     var group = document.createElement('div')
     group.className = 'decide'
     group.setAttribute('role', 'group')
     group.setAttribute('aria-label', 'Decision on ' + titles[el.id])
     group.innerHTML = CHOICES.map(function (choice) {
-      return '<button type="button" data-d="' + choice + '" aria-pressed="false" title="' + names[choice] + ' (' + choice[0].toUpperCase() + ')">' +
+      return '<button type="button" data-d="' + choice + '" aria-pressed="false" title="' + esc(hints[choice] || names[choice]) + ' (' + choice[0].toUpperCase() + ')">' +
         ICONS[choice] + '<span>' + esc(names[choice]) + '</span></button>'
     }).join('')
+    el.dataset.approveName = names.approve
     bar.appendChild(group)
     bar.insertAdjacentHTML('afterend',
       '<div class="steer" inert><div><div class="steer-box">' +
-      '<label for="steer-' + el.id + '">What should change?</label>' +
-      '<textarea class="field" id="steer-' + el.id + '" rows="2" placeholder="What to keep, change, or try instead."></textarea>' +
+      '<label for="steer-' + el.id + '"></label>' +
+      '<textarea class="field" id="steer-' + el.id + '" rows="2"></textarea>' +
       '<div class="steer-foot"><span data-steer-state></span><span><kbd>⌘</kbd> <kbd>⏎</kbd> send · <kbd>esc</kbd> done</span></div>' +
       '</div></div></div><p class="status" aria-live="polite"></p>')
     $$('.decide button', el).forEach(function (button) {
@@ -1268,9 +1306,52 @@ window.VSScrub = (function () {
     })
     var box = $('.steer textarea', el)
     box.addEventListener('input', function () {
-      setDraft(el.id, { choice: 'steer', note: box.value })
+      setDraft(el.id, { choice: choiceOf(decisionOf(el.id)), note: box.value })
     })
   })
+
+  /* Variations: each Proposed figure past the first is another answer to the
+     same problem. One shows at a time; the tabs name them A, B, C. */
+  var variantsOf = {}, shownOf = {}
+  var variantNamed = function (id, name) {
+    return (variantsOf[id] || []).filter(function (variant) { return variant.name === name })[0] || null
+  }
+  sections.forEach(function (el) {
+    var cmp = $('.cmp', el)
+    var figures = cmp ? $$('.side.prop', cmp) : []
+    if (figures.length === 1) figures[0].classList.add('chosen')
+    if (figures.length < 2) return
+    variantsOf[el.id] = figures.map(function (figure, index) {
+      var letter = String.fromCharCode(65 + index)
+      return { figure: figure, letter: letter, name: figure.dataset.variant || letter, fresh: figure.hasAttribute('data-new') }
+    })
+    var strip = document.createElement('div')
+    strip.className = 'variants'
+    strip.setAttribute('role', 'group')
+    strip.setAttribute('aria-label', 'Variations of ' + titles[el.id])
+    strip.innerHTML = '<span class="variants-h">' + figures.length + ' variations</span>' +
+      variantsOf[el.id].map(function (variant) {
+        return '<button type="button" aria-pressed="false" data-v="' + esc(variant.name) + '"><span class="vl">' + variant.letter + '</span>' +
+          (variant.name !== variant.letter ? esc(variant.name) : '') + (variant.fresh ? '<span class="new">New</span>' : '') + '</button>'
+      }).join('')
+    cmp.insertBefore(strip, cmp.firstChild)
+    $$('button', strip).forEach(function (button) {
+      button.addEventListener('click', function () { showVariant(el, button.dataset.v); setCurrent(el) })
+    })
+  })
+  var showVariant = function (el, name) {
+    shownOf[el.id] = name
+    variantsOf[el.id].forEach(function (variant) { variant.figure.hidden = variant.name !== name })
+    $$('.variants button', el).forEach(function (button) { button.setAttribute('aria-pressed', String(button.dataset.v === name)) })
+    paintSection(el)
+  }
+  /* The owner first sees the variant they approved, then the agent's newest, then its pick. */
+  var firstVariant = function (id) {
+    var decision = decisionOf(id)
+    var approved = choiceOf(decision) === 'approve' && variantNamed(id, decision.variant)
+    var fresh = variantsOf[id].filter(function (variant) { return variant.fresh })[0]
+    return (approved || fresh || variantsOf[id][0]).name
+  }
 
   $$('.cmp .shot').forEach(function (shot) { if ($('img', shot)) shot.classList.add('zoom') })
   $$('.wipe').forEach(function (wipe) {
@@ -1279,26 +1360,48 @@ window.VSScrub = (function () {
   })
 
   /* ── painting ── */
+  var boxOpen = function (el) {
+    return isRequest(choiceOf(decisionOf(el.id))) && (el.id in drafts || !!editing[el.id])
+  }
   var paintSection = function (el) {
     var decision = decisionOf(el.id), choice = choiceOf(decision)
+    var variants = variantsOf[el.id], shown = shownOf[el.id]
+    var approvedVariant = choice === 'approve' && variants ? decision.variant : null
     CHOICES.forEach(function (c) { el.classList.toggle('is-' + c, choice === c) })
-    $$('.decide button', el).forEach(function (button) { button.setAttribute('aria-pressed', String(button.dataset.d === choice)) })
-    var steer = $('.steer', el), box = $('textarea', steer)
-    el.classList.toggle('steer-open', choice === 'steer')
-    steer.inert = choice !== 'steer'
-    if (choice === 'steer' && document.activeElement !== box) box.value = decision.note || ''
+    $$('.decide button', el).forEach(function (button) {
+      var pressed = button.dataset.d === choice && (!approvedVariant || approvedVariant === shown)
+      button.setAttribute('aria-pressed', String(pressed))
+    })
+    if (variants) {
+      var letter = variantNamed(el.id, shown).letter
+      $('.decide [data-d=approve] span', el).textContent = el.dataset.approveName + ' ' + letter
+      variants.forEach(function (variant) { variant.figure.classList.toggle('chosen', variant.name === approvedVariant) })
+      $$('.variants button', el).forEach(function (button) { button.classList.toggle('chosen', button.dataset.v === approvedVariant) })
+    }
+
+    var steer = $('.steer', el), box = $('textarea', steer), open = boxOpen(el)
+    el.classList.toggle('steer-open', open)
+    steer.inert = !open
+    if (!open && steer.contains(document.activeElement)) document.activeElement.blur()
+    if (isRequest(choice) && document.activeElement !== box) box.value = decision.note || ''
+    $('label', steer).textContent = choice === 'vary' ? 'What should the variations explore?' : 'What should change?'
+    box.placeholder = choice === 'vary' ? 'Optional. A direction to try.' : 'What to keep, change, or try instead.'
     var unsent = el.id in drafts
-    $('[data-steer-state]', el).textContent = !unsent ? 'Sent.' : (decision && (decision.note || '').trim()) ? 'Included in your next send.' : 'Describe what should change, then send.'
+    var noteNeeded = choice === 'steer' && !(decision.note || '').trim()
+    $('[data-steer-state]', el).textContent = !unsent ? 'Sent.' : noteNeeded ? 'Describe what should change, then send.' : 'Included in your next send.'
 
     var status = $('.status', el)
-    var heldSteer = !unsent && choiceOf(held.decisions[el.id]) === 'steer'
+    var heldDecision = held.decisions[el.id]
+    var heldRequest = !unsent && isRequest(choiceOf(heldDecision))
     var revisedNote = held.revised[el.id]
     var html = ''
     if (revisedNote !== undefined && !decision) {
       html = '<span class="revised-tag">Revised</span><span>' +
         (revisedNote ? 'You asked: <q>' + esc(revisedNote) + '</q> ' : '') + 'Review again.</span>'
-    } else if (heldSteer && BRIDGE && !finished) {
-      html = '<span class="pulse" aria-hidden="true"></span><span>' + esc(agentName()) + ' is revising this section.</span>'
+    } else if (heldRequest && BRIDGE && !finished) {
+      var asked = heldDecision.note ? ' You asked: <q>' + esc(heldDecision.note) + '</q>' : ''
+      html = '<span class="pulse" aria-hidden="true"></span><span>' + esc(agentName()) +
+        (heldDecision.choice === 'vary' ? ' is drawing more variations.' : ' is revising this section.') + asked + '</span>'
     }
     status.innerHTML = html
     status.classList.toggle('on', !!html)
@@ -1311,13 +1414,13 @@ window.VSScrub = (function () {
   }
 
   var paintTotals = function () {
-    var counts = { approve: 0, reject: 0, steer: 0 }
+    var counts = { approve: 0, reject: 0, steer: 0, vary: 0 }
     var cells = sections.map(function (el) {
       var choice = choiceOf(decisionOf(el.id))
       if (choice) counts[choice]++
       return '<i' + (choice ? ' class="' + choice + '"' : '') + '></i>'
     }).join('')
-    var decided = counts.approve + counts.reject + counts.steer
+    var decided = counts.approve + counts.reject + counts.steer + counts.vary
     var open = sections.length - decided
     $$('[data-segs]').forEach(function (segs) { segs.innerHTML = cells })
     $$('[data-decided]').forEach(function (el) { el.textContent = decided })
@@ -1357,25 +1460,48 @@ window.VSScrub = (function () {
     paintSection(document.getElementById(id))
     paintTotals()
   }
+  var focusBox = function (el) {
+    var box = $('.steer textarea', el)
+    setTimeout(function () { box.focus({ preventScroll: true }) }, 60)
+  }
   var choose = function (el, choice) {
     if (finished) return
     var current = decisionOf(el.id)
     var box = $('.steer textarea', el)
-    var next = choiceOf(current) === choice ? null : { choice: choice, note: choice === 'steer' ? box.value : '' }
-    if (next === null && !held.decisions[el.id]) next = undefined
-    if (next === undefined) { delete drafts[el.id]; save(); paintSection(el); paintTotals() } else setDraft(el.id, next)
+    var shown = shownOf[el.id]
     setCurrent(el)
-    if (next && choice === 'steer') setTimeout(function () { box.focus({ preventScroll: true }) }, 60)
+    /* Pressing a sent request again opens its note for editing rather than clearing it. */
+    if (choiceOf(current) === choice && isRequest(choice) && !boxOpen(el)) {
+      editing[el.id] = true
+      paintSection(el)
+      focusBox(el)
+      return
+    }
+    var same = choiceOf(current) === choice && (choice !== 'approve' || !shown || current.variant === shown)
+    var next = same ? null : { choice: choice, note: isRequest(choice) ? box.value : '' }
+    if (next && choice === 'approve' && shown) next.variant = shown
+    if (next === null && !held.decisions[el.id]) next = undefined
+    if (!next) delete editing[el.id]
+    if (next === undefined) { delete drafts[el.id]; save(); paintSection(el); paintTotals() } else setDraft(el.id, next)
+    if (next && isRequest(choice)) focusBox(el)
   }
 
   var summary = function (ids) {
     var lines = ['Decisions from the design review.']
     var name = function (id) { return id + ' (' + titles[id] + ')' }
     var all = ids.map(function (id) { return { id: id, decision: decisionOf(id) } })
-    var named = function (choice) { return all.filter(function (item) { return choiceOf(item.decision) === choice }).map(function (item) { return name(item.id) }) }
+    var named = function (choice) {
+      return all.filter(function (item) { return choiceOf(item.decision) === choice }).map(function (item) {
+        return name(item.id) + (item.decision.variant ? ', variation ' + item.decision.variant : '')
+      })
+    }
     if (named('approve').length) lines.push('Approved: ' + named('approve').join('; '))
     if (named('reject').length) lines.push('Rejected: ' + named('reject').join('; '))
-    all.forEach(function (item) { if (choiceOf(item.decision) === 'steer') lines.push('Steer ' + name(item.id) + ': ' + (item.decision.note || '').trim()) })
+    all.forEach(function (item) {
+      var note = (item.decision && item.decision.note || '').trim()
+      if (choiceOf(item.decision) === 'steer') lines.push('Steer ' + name(item.id) + ': ' + note)
+      if (choiceOf(item.decision) === 'vary') lines.push('More variations of ' + name(item.id) + (note ? ': ' + note : ''))
+    })
     if (overallBox.value.trim()) lines.push('About the whole review: ' + overallBox.value.trim())
     var open = sections.filter(function (el) { return !decisionOf(el.id) }).map(function (el) { return el.id })
     lines.push('Unanswered: ' + (open.length ? open.join(', ') : 'none'))
@@ -1401,14 +1527,17 @@ window.VSScrub = (function () {
     var next = { decisions: Object.assign({}, held.decisions), overall: overall, revised: Object.assign({}, held.revised) }
     ids.forEach(function (id) {
       var draft = drafts[id]
+      var note = (draft && draft.note || '').trim()
       if (draft === null) delete next.decisions[id]
-      else next.decisions[id] = draft.choice === 'steer' ? { choice: 'steer', note: draft.note.trim() } : { choice: draft.choice }
+      else next.decisions[id] = { choice: draft.choice }
+      if (draft && isRequest(draft.choice) && (note || draft.choice === 'steer')) next.decisions[id].note = note
+      if (draft && draft.variant) next.decisions[id].variant = draft.variant
       delete next.revised[id]
     })
     sendBtn.disabled = true
     return post(BRIDGE.save, next).then(function () {
       held = normalize(next)
-      ids.forEach(function (id) { delete drafts[id] })
+      ids.forEach(function (id) { delete drafts[id]; delete editing[id] })
       overallBox.value = ''
       save()
       paintAll()
@@ -1448,7 +1577,11 @@ window.VSScrub = (function () {
   })
   document.addEventListener('pointerdown', function (event) { if (!moreMenu.hidden && !event.target.closest('#sendSplit')) closeMenu() })
   restBtn.addEventListener('click', function () {
-    sections.forEach(function (el) { if (!decisionOf(el.id)) drafts[el.id] = { choice: 'approve', note: '' } })
+    sections.forEach(function (el) {
+      if (decisionOf(el.id)) return
+      drafts[el.id] = { choice: 'approve', note: '' }
+      if (shownOf[el.id]) drafts[el.id].variant = shownOf[el.id]
+    })
     save(); paintAll(); closeMenu()
   })
   if (BRIDGE) {
@@ -1489,7 +1622,10 @@ window.VSScrub = (function () {
   document.addEventListener('keydown', function (event) {
     if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') { event.preventDefault(); send(); return }
     if (event.target.closest('textarea, input, [contenteditable]')) {
-      if (event.key === 'Escape') event.target.blur()
+      if (event.key !== 'Escape') return
+      var section = event.target.closest('[data-decide]')
+      event.target.blur()
+      if (section && editing[section.id] && !(section.id in drafts)) { delete editing[section.id]; paintSection(section) }
       return
     }
     if (event.metaKey || event.ctrlKey || event.altKey || lightbox.open) return
@@ -1521,9 +1657,12 @@ window.VSScrub = (function () {
     showing.index = showing.figures.indexOf(shot.closest('.side'))
     var section = shot.closest('[data-decide]')
     $('[data-lb-title]').textContent = section ? titles[section.id] : ''
+    var variants = section ? variantsOf[section.id] || [] : []
     $('[data-lb-seg]').innerHTML = showing.figures.map(function (side, index) {
+      var variant = variants.filter(function (each) { return each.figure === side })[0]
       var tag = $('figcaption b', side)
-      return '<button type="button" data-i="' + index + '">' + esc(tag ? tag.textContent : 'Picture ' + (index + 1)) + '</button>'
+      var text = variant ? variant.letter + (variant.name !== variant.letter ? ' ' + variant.name : '') : tag ? tag.textContent : 'Picture ' + (index + 1)
+      return '<button type="button" data-i="' + index + '">' + esc(text) + '</button>'
     }).join('')
     $('.hint', lightbox).hidden = showing.figures.length < 2
     paintLightbox()
@@ -1565,6 +1704,7 @@ window.VSScrub = (function () {
   var start = function () {
     window.VSShell.init({ name: 'Design review' })
     restore()
+    Object.keys(variantsOf).forEach(function (id) { showVariant(document.getElementById(id), firstVariant(id)) })
     paintAll()
     setCurrent(inView())
     if (BRIDGE) {
