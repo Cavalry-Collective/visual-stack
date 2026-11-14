@@ -53,6 +53,7 @@ Collect evidence:
    - Propose a concrete change with values, such as "13.5px, weight 600, two-line clamp".
    - Show every finding as a before and after picture pair, with one short title. See `report.md`.
    - Report one finding per kind of defect.
+   - Show two or more ways to fix one problem as variations of one section. See *Variations* in `report.md`.
    - Mark **Owner's call** on any change to something the owner clearly chose. Offer a way to keep the idea.
 2. Build the review as one self-contained HTML page. Copy `assets/report-template.html` and fill it, in the format in `report.md`. Save it as `.vstack/local/design-review/<target>-round-<n>.html`, from the project root.
    - Cut every word a picture already says. A title, a delta and one detail per picture are the whole text.
@@ -87,11 +88,11 @@ Answer each watcher event:
 
 | Event | Action |
 |---|---|
-| `SENT` | Read the answers file. Revise every steered section, as in *How the owner answers* in `report.md`. Do not build anything yet. |
+| `SENT` | Read the answers file. Revise every steered section and add variations to every `vary` section, as in *How the owner answers* in `report.md`. Do not build anything yet. |
 | `APPROVED` | Build the approved sections, in Step 5. |
 | `CLOSED` | Say the link is closed. The answers file keeps the last send. |
 
-Do not build a Rejected, a steered or an unanswered section.
+Do not build a Rejected, a steered, a `vary` or an unanswered section.
 
 ## Step 5: Build
 

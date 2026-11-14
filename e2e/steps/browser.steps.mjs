@@ -511,6 +511,15 @@ When('the reviewer steers the section {string} with {string}', async function (i
   await this.browserPage.locator(`#${id} .steer textarea`).fill(note)
 })
 
+When('the reviewer shows the variation {string} of {string}', async function (name, id) {
+  await this.browserPage.locator(`#${id} .variants button[data-v="${name}"]`).click()
+})
+
+When('the reviewer asks for more variations of {string} exploring {string}', async function (id, note) {
+  await this.browserPage.locator(`#${id} .decide [data-d="vary"]`).click()
+  await this.browserPage.locator(`#${id} .steer textarea`).fill(note)
+})
+
 When('the reviewer sends the answers', async function () {
   await this.browserPage.locator('#sendBtn').click()
   await this.browserPage.locator('.vs-toast.on').waitFor()
@@ -547,6 +556,29 @@ Then('the answers file steers {string} with {string}', async function (id, note)
   await eventually(() => {
     assert.deepEqual(this.answers().decisions[id], { choice: 'steer', note })
   }, `${id} is steered in the answers file`)
+})
+
+Then('the answers file approves {string} with the variation {string}', async function (id, name) {
+  await eventually(() => {
+    assert.deepEqual(this.answers().decisions[id], { choice: 'approve', variant: name })
+  }, `${id} is approved with ${name} in the answers file`)
+})
+
+Then('the answers file asks for more variations of {string} exploring {string}', async function (id, note) {
+  await eventually(() => {
+    assert.deepEqual(this.answers().decisions[id], { choice: 'vary', note })
+  }, `${id} asks for more variations in the answers file`)
+})
+
+Then('the steer box on {string} is closed, quoting {string}', async function (id, note) {
+  const section = this.browserPage.locator(`#${id}`)
+  await eventually(async () => {
+    // The box folds to a zero-height row rather than hiding, so read the fold.
+    const height = await section.locator('.steer').evaluate(steer => steer.getBoundingClientRect().height)
+    assert.equal(height, 0, 'the box is still open')
+    const status = await section.locator('.status').textContent()
+    assert.ok(status.includes(note), `the status says "${status}"`)
+  }, `the steer box on ${id} closes`)
 })
 
 Then('the section {string} shows the revision, quoting {string}', async function (id, note) {

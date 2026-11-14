@@ -8,6 +8,22 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.13.0 — 2026-11-14
+
+**Added**
+
+- **Variations live inside one section.** When there is more than one way to fix a
+  problem, the report shows them as A, B, C tabs beside Today, rather than as
+  separate sections. Approve records the variation on show.
+- **Ask for more variations.** Each section has a Variations button, or press V.
+  Add a direction if you want one. Your agent adds the new variations to the same
+  section and marks them New.
+
+**Fixed**
+
+- **A steer box closes once you send it.** The section then quotes your note while
+  your agent revises it. Press Steer again to edit the note.
+
 ## 6.12.0 — 2026-11-12
 
 **Changed**

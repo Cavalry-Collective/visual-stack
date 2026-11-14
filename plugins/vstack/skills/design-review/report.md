@@ -27,11 +27,24 @@ Do not add metric tiles, a verdict paragraph, a list of the top changes or a "wh
 
 Each section is a bar and a picture pair. It is about 20 words.
 
-1. **Bar.** Severity, a title of six words or fewer in an `h2`, and an optional delta such as `10.2 → 12.7 px`. The template adds the number and Approve, Reject and Steer, in the same place on every section.
+1. **Bar.** Severity, a title of six words or fewer in an `h2`, and an optional delta such as `10.2 → 12.7 px`. The template adds the number and Approve, Reject, Steer and Variations, in the same place on every section.
 2. **Before and after.** Every section has a Today picture and a Proposed picture, side by side, each with a tag and at most one short detail.
 3. **Nothing else.** Evidence, code locations and numbers go in the delta, in the picture, or in the chat reply. Put a code location in `data-loc` on the article if the build needs it.
 
 Make the Proposed picture from the real thing where you can: render the change in a copy of the product. Draw it in HTML with the product's tokens when you cannot. Name what a drawing leaves out in the footer.
+
+## Variations
+
+Show two or more ways to fix one problem as variations of one section. Never give each way a section of its own.
+
+- Put one Proposed figure in the `.cmp` for each variation.
+- Give each one a `data-variant` name of one or two words, such as `data-variant="Band"`.
+- Put your pick first.
+- Mark a variation you added after **More variations** with `data-new`, and remove `data-new` from the earlier ones.
+
+The template shows one variation at a time behind A, B, C tabs. Approve records the variation on show.
+
+## Owner's calls
 
 Mark **Owner's call** in the bar of any change to something the owner clearly chose, with `<span class="call">Owner's call</span>` inside the `h2`. Add `data-yes="Keep" data-no="Change"` or similar when the section is a question.
 
@@ -59,14 +72,16 @@ Colour carries urgency. P0 is filled red, P1 is a red tint, P2 is outlined and P
 
 ## How the owner answers
 
-The owner presses Approve, Reject or Steer on each section, then Send. A steer needs a note, written in the box that opens under the bar. The page saves every answer to the answers file, and the watcher reports `SENT`:
+The owner presses Approve, Reject, Steer or Variations on each section, then Send. A steer needs a note, written in the box that opens under the bar. A request for more variations takes an optional note in the same box. The box closes once the note is sent. The page saves every answer to the answers file, and the watcher reports `SENT`:
 
 ```json
 {
   "decisions": {
     "f-tokens": { "choice": "approve" },
+    "f-lanes": { "choice": "approve", "variant": "Band" },
     "f-size": { "choice": "reject" },
-    "f-nav": { "choice": "steer", "note": "Keep the hint too." }
+    "f-nav": { "choice": "steer", "note": "Keep the hint too." },
+    "f-card": { "choice": "vary", "note": "Try a denser row." }
   },
   "overall": "Keep it short.",
   "revised": {}
@@ -75,19 +90,19 @@ The owner presses Approve, Reject or Steer on each section, then Send. A steer n
 
 | Key | Meaning |
 |---|---|
-| `decisions` | Every answer the owner has sent, by section id. A section with no entry is unanswered. |
+| `decisions` | Every answer the owner has sent, by section id. A section with no entry is unanswered. `variant` names the approved variation. |
 | `overall` | A note about the whole review. It belongs to this send only. |
 | `revised` | Sections you changed after a steer, with the note each one answered. |
 
-Revise a steered section like this:
+Revise a steered section, or add variations to a `vary` section, like this:
 
-1. Change the section in the HTML page. Keep its id.
-2. Then write the answers file: delete the section from `decisions`, and set `revised["<id>"]` to the note it answered.
+1. Change the section in the HTML page. Keep its id. For `vary`, keep the existing variations and add one to three new ones that follow the note.
+2. Then write the answers file: delete the section from `decisions`, and set `revised["<id>"]` to the note it answered. For a `vary` with no note, use `"More variations"`.
 3. Write the HTML first. The page offers the owner the new version as soon as the answers file changes.
 
 The page then shows the section as **Revised**, quotes the note, and asks for a fresh answer. A steer you have not answered yet shows the owner that you are revising it.
 
-**Approve & finish**, under the ▾ beside Send, sends any answers left, then ends the review. The watcher reports `APPROVED` and the server closes. Build only what `decisions` approves.
+**Approve & finish**, under the ▾ beside Send, sends any answers left, then ends the review. The watcher reports `APPROVED` and the server closes. Build only what `decisions` approves, and only the variation it names.
 
 | Status | Meaning |
 |---|---|
@@ -95,6 +110,7 @@ The page then shows the section as **Revised**, quotes the note, and asks for a 
 | Approved | The owner said yes. Build it. |
 | Rejected | The owner said no. Do not build it. |
 | Steer | The owner asked for a change. Revise the proposal. |
+| Variations | The owner asked for more variations. Add them to the section. |
 | Revised | You changed it after a steer. It waits for a fresh answer. |
 | Landed | Shipped as intended. Later rounds only. |
 | Landed, broken | Shipped with a fault. List it first. Later rounds only. |
