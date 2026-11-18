@@ -8,6 +8,81 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.15.0 — 2026-11-18
+
+**Changed**
+
+- **Design reviews follow a checklist.** Your agent reviews as a senior UI/UX
+  designer would, against named checks such as C2 Spacing or R8 Loading. Each
+  finding names the check it failed.
+- **Clean finds what looks wrong.** It checks hierarchy, spacing, alignment,
+  type, colour, components, responsive layout at six widths, and copy.
+- **Refined finds what behaves wrong.** It drives every flow with a slow
+  network. It checks that links are real links, that forms validate at the
+  right moment, and that only the button you pressed shows a loader. It also
+  checks that nothing loads in a jarring way, and that no library default, such
+  as Ant Design's spinner, ships.
+- **Showcase adds flair.** It no longer checks anything. Your agent names a
+  creative idea taken from your brand, proposes four to six enhancements, and
+  offers one major change in a bold and a restrained version.
+- **Website or web app.** Each level has extra checks for a website, such as
+  the first screen and conversion, and for a web app, such as URL state, data
+  states and recovering from failures. Your agent picks the mode for each flow
+  and says which one it chose. Sign-in and checkout count as web app even on a
+  marketing site.
+- **One section at a time.** The report shows each finding on its own, like a
+  slide. Move with Previous and Next or the arrow keys. Approve and Reject take
+  you to the next section with no answer, and the decision buttons stay in view
+  while you scroll. The Done group is gone, since nothing needs folding away.
+- **Findings are grouped by check.** The report lists every finding under the
+  check it failed. Severity tags, before-and-after number pills, the plan, the
+  date line, the answered counter and the keyboard hints are gone.
+- **A livelier wait.** While your agent prepares the review, the start page
+  shows a mock page being scanned and marked up, and ticks each step as it
+  finishes. The level panels' text is shorter.
+- **One language switch.** Change language in the page's settings. The extra
+  中文 button in the top bar is gone.
+- **Clearer pages on a phone.** The progress page shows the status before the
+  mock page. The level previews sit under their text. Buttons in the report
+  and the top bar are 44px tall on touch screens.
+- **Type from the design guide.** The review pages use only 12, 14, 20 and
+  28px text. A finding's title now outranks its category.
+- **Send rests neutral.** With nothing to send, both halves of the Send button
+  look the same, in every Visual Stack page.
+- **No proofread step.** A design review no longer sends the report's words or
+  new UI copy to ChatGPT. Run `/vstack:proofread` yourself when you want it.
+
+**Added**
+
+- **A recommended level.** While you read the level panels, your agent takes a
+  quick look at the site and marks one level Recommended, with the reason.
+- **Build or report.** The start page shows whether your agent will build the
+  approved changes in this repo, or write a report of them for a site whose
+  code you don't have. You can switch before you pick. The report shows every
+  approved change in one page you can share.
+- **Retry.** When your agent stops with a problem, such as a site that needs a
+  sign-in, the page shows it with a Retry button. Sign in, press Retry, and your
+  agent tries that step again.
+- **Sites behind a sign-in.** For a target behind Google sign-in, IAP or SSO,
+  your agent opens it in your own browser and asks you to sign in there. It
+  never types a password.
+- **Finishing files the review.** After Approve & finish, the approved screens
+  settle into a stack under an Approved stamp. Approving a section presses the
+  same stamp onto its proposal.
+- **Small moments of motion.** The three levels deal out from one stack when
+  the start page opens, and each red box draws itself when its slide opens.
+  Reduced motion turns these off.
+
+**Fixed**
+
+- **A report with nothing to change** now says so, where it used to break.
+- **Send with an empty Steer** opens that section and asks for the note. It
+  used to say Sent and hold the Steer back.
+- **Back** closes a full-size picture rather than leaving the report.
+- **Esc** closes the ▾ menu beside Send.
+- **The Refined preview** shows working controls, without the depth that
+  Showcase owns.
+
 ## 6.14.0 — 2026-11-18
 
 **Added**

@@ -151,6 +151,11 @@
 .split > .btn:first-child{border-radius:7px 0 0 7px}
 .split > .caret{border-radius:0 7px 7px 0;width:28px;padding:0 8px;justify-content:center;
   border-left:1px solid color-mix(in srgb,#fff 28%,transparent)}
+/* With nothing to send, both halves rest neutral. The ▾ still opens its menu, so
+   it cannot fade, and a red half beside a faded one reads as broken. */
+.split:has(> .btn.primary[disabled]) > .btn.primary{background:var(--surface);border-color:var(--line-2);
+  color:var(--ink-2);opacity:1}
+.split > .btn.primary[disabled]{color:var(--ink-3)}
 
 /* segmented control — modes, sizes, language, theme */
 .seg{display:inline-flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;
@@ -274,6 +279,10 @@
 @media (prefers-color-scheme:dark){.vs-update .v{color:#e2b567}}
 :root[data-theme=dark] .vs-update .v{color:#e2b567}
 
+@media (pointer:coarse){
+  .vs-topbar .btn,.cog{height:44px}
+  .cog{width:44px}
+}
 @media (max-width:720px){
   .brand .eyebrow,.wip{display:none}
   .vs-topbar{gap:8px;padding:0 8px}
@@ -299,49 +308,59 @@
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; min-height: 100dvh; display: flex; flex-direction: column; background: var(--paper); color: var(--ink); font: 400 .875rem/1.5 var(--font); -webkit-font-smoothing: antialiased; }
-.vs-topbar { font-size: 13px; }
+.vs-topbar { font-size: 14px; }
 h1, h2, p, ul { margin: 0; padding: 0; }
 ul { list-style: none; }
 button { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.langflip { height: 30px; padding: 0 10px; border: 1px solid var(--line-2); border-radius: 7px; background: var(--surface); color: var(--ink-2); font-size: 12px; font-weight: 600; cursor: pointer; }
-.langflip:hover { background: var(--surface-2); color: var(--ink); }
 
 main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .view[hidden] { display: none !important; }
-.eyebrow-line { display: inline-flex; align-items: center; gap: .5rem; font: 700 11px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--brand); }
+.eyebrow-line { display: inline-flex; align-items: center; gap: .5rem; font: 700 12px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--brand); }
 .eyebrow-line::before { content: ""; width: 1.4rem; height: 2px; border-radius: 2px; background: var(--brand); }
 
 /* ── the chooser ── */
 .choose { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 1.25rem; width: 100%; max-width: 78rem; margin-inline: auto; padding: 2rem clamp(1rem, 3vw, 2rem); }
+.choose header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1rem 2rem; }
+.rec-line { min-height: 1.5em; margin-top: .5rem; color: var(--ink-2); }
+.rec-line b { color: var(--ink); }
+.rec-line .spin { display: inline-block; vertical-align: -1px; margin-right: .5rem; width: 12px; height: 12px; border: 2px solid var(--line-2); border-top-color: var(--brand); border-radius: 50%; animation: spin 900ms linear infinite; }
+.delivery { display: grid; justify-items: end; gap: .375rem; }
+.delivery .seg button { height: 34px; padding: 0 14px; font-size: 14px; }
+.delivery .seg button[disabled] { opacity: .45; cursor: default; }
+.delivery-hint { font-size: 12px; color: var(--ink-3); }
+.p-rec { position: absolute; top: 1.25rem; right: 1.25rem; padding: 4px 8px; border-radius: 999px; background: var(--brand); color: #fff; font: 700 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+.panel > .p-rec[hidden] { display: none; }
+.panel.rec { border-color: var(--brand-line); }
+@media (pointer: coarse) { .delivery .seg button { height: 2.75rem; } }
 .choose h1 { margin-top: .625rem; font-size: 1.75rem; line-height: 1.15; font-weight: 750; letter-spacing: -.02em; }
 .choose .sub { margin-top: .375rem; color: var(--ink-3); }
-.panels { flex: 1; min-height: 26rem; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.panels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
 
 .panel { position: relative; isolation: isolate; display: flex; flex-direction: column; gap: 1rem; min-height: 0; padding: 1.5rem; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); text-align: left; cursor: pointer; overflow: hidden; -webkit-tap-highlight-color: transparent; }
 .panel:focus-visible { outline: none; }
 .panel > span { display: block; }
-.p-num { font: 600 11px/1 var(--mono); letter-spacing: .08em; color: var(--ink-3); }
-.p-name { font-size: 1.375rem; line-height: 1.2; font-weight: 750; letter-spacing: -.015em; }
-.p-aim { color: var(--ink-2); max-width: 30ch; min-height: 4.5em; }
-.p-adds { font-size: 12.5px; color: var(--ink-3); }
-.p-go { display: inline-flex !important; align-items: center; gap: .4rem; font-size: 13px; font-weight: 650; color: var(--ink-3); }
+.p-num { font: 600 12px/1 var(--mono); letter-spacing: .08em; color: var(--ink-3); }
+.p-name { font-size: 1.25rem; line-height: 1.2; font-weight: 750; letter-spacing: -.015em; }
+.p-aim { color: var(--ink-2); max-width: 30ch; }
+.p-adds { font-size: 12px; color: var(--ink-3); }
+.p-go { display: inline-flex !important; align-items: center; margin-top: .5rem; gap: .4rem; font-size: 14px; font-weight: 650; color: var(--ink-3); }
 .p-go svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .panel.on .p-go { color: var(--ink); }
 
 /* The specimen: one small card, drawn the same in every panel, that each level then handles its own way. */
-.spec { position: relative; display: grid !important; gap: .625rem; margin-block: auto; padding: 1rem; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
+.spec { position: relative; display: grid !important; gap: .625rem; margin-block: .5rem 0; padding: 1rem; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
 .spec > span { display: flex; align-items: center; gap: .625rem; }
-.sp-head { font-weight: 700; font-size: 13px; }
+.sp-head { font-weight: 700; font-size: 14px; }
 .sp-dot { width: 1.5rem; height: 1.5rem; flex: none; border-radius: 50%; background: var(--line-2); }
-.sp-row { padding: .5rem .625rem; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 12.5px; color: var(--ink-2); }
+.sp-row { padding: .5rem .625rem; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 12px; color: var(--ink-2); }
 .sp-box { position: relative; width: 14px; height: 14px; flex: none; border: 1.5px solid var(--line-2); border-radius: 4px; }
 .sp-box::after { content: ""; position: absolute; left: 3.5px; top: .5px; width: 4px; height: 8px; border: solid var(--surface); border-width: 0 2px 2px 0; transform: rotate(45deg); opacity: 0; }
 .sp-foot { justify-content: space-between; }
-.sp-toggle { display: inline-flex; align-items: center; gap: .5rem; font-size: 12.5px; color: var(--ink-2); }
+.sp-toggle { display: inline-flex; align-items: center; gap: .5rem; font-size: 12px; color: var(--ink-2); }
 .sp-track { position: relative; width: 28px; height: 16px; border-radius: 999px; background: var(--line-2); }
 .sp-knob { position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 2px rgba(0,0,0,.3); }
-.sp-btn { position: relative; padding: .375rem .875rem; border: 1px solid var(--line-2); border-radius: 7px; background: var(--surface); font-size: 12.5px; font-weight: 650; }
+.sp-btn { position: relative; padding: .375rem .875rem; border: 1px solid var(--line-2); border-radius: 7px; background: var(--surface); font-size: 12px; font-weight: 650; }
 .spark { position: absolute; width: 8px; height: 8px; opacity: 0; pointer-events: none; background: var(--brand); clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); }
 .spark.s1 { top: -6px; right: -5px; }
 .spark.s2 { bottom: -5px; left: -6px; width: 6px; height: 6px; }
@@ -354,6 +373,14 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .panel.on .sp-btn { background: var(--ink); border-color: var(--ink); color: var(--surface); }
 
 /* The panel being previewed takes the stage; the other two step back. */
+/* On first load the levels deal out from one stack, like the logo's bars. */
+@media (min-width: 721px) {
+  .panel { animation: deal 360ms var(--ease) backwards; }
+  .panel.clean { --deal: translateX(calc(100% + 1rem)) rotate(-5deg); }
+  .panel.refined { --deal: rotate(2deg); z-index: 1; }
+  .panel.showcase { --deal: translateX(calc(-100% - 1rem)) rotate(6deg); }
+}
+@keyframes deal { from { transform: var(--deal); } }
 .panels:has(.panel.on) .panel:not(.on) { opacity: .45; filter: saturate(.4); }
 .panel { transition: opacity 200ms var(--ease), filter 200ms var(--ease); }
 
@@ -367,7 +394,7 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .clean.on .sp-row { border-color: var(--ink); }
 
 /* Refined: soft depth at rest. On preview the card lifts well clear of the page, the toggle slides and the rows settle in turn. */
-.refined .spec { border-color: transparent; border-radius: 14px; background: linear-gradient(180deg, var(--surface), var(--surface-2)); box-shadow: 0 1px 2px rgba(23,19,32,.06), 0 6px 16px rgba(23,19,32,.08); }
+.refined .spec { border-color: var(--line); border-radius: 12px; background: var(--surface); }
 .refined .sp-row { border-color: transparent; border-radius: 10px; box-shadow: 0 1px 2px rgba(23,19,32,.08), 0 2px 6px rgba(23,19,32,.05); }
 .refined .sp-btn { border-radius: 9px; }
 .refined .sp-dot { background: linear-gradient(135deg, var(--line-2), var(--ink-3)); }
@@ -376,8 +403,7 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .refined .sp-box, .refined .sp-track, .refined .sp-knob, .refined .sp-btn,
 .showcase .sp-box, .showcase .sp-track, .showcase .sp-knob, .showcase .sp-btn { transition: transform 200ms var(--ease), background 200ms var(--ease), border-color 200ms var(--ease), color 200ms var(--ease), box-shadow 200ms var(--ease); }
 .refined.on { transform: translateY(-10px); border-color: transparent; box-shadow: 0 2px 4px rgba(23,19,32,.06), 0 14px 32px rgba(23,19,32,.12), 0 36px 72px rgba(23,19,32,.16); }
-.refined.on .spec { transform: scale(1.04); box-shadow: 0 2px 4px rgba(23,19,32,.06), 0 14px 30px rgba(23,19,32,.14); }
-.refined.on .sp-btn { box-shadow: 0 1px 0 color-mix(in srgb, #fff 18%, transparent) inset, 0 4px 10px rgba(23,19,32,.25); }
+.refined.on .sp-btn { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--brand); }
 .refined:active .sp-btn { transform: translateY(1px); }
 .refined:active { transform: translateY(-6px) scale(.995); }
 .refined.on .sp-row { animation: settle 280ms var(--ease) both; }
@@ -433,41 +459,108 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 @keyframes twinkle { 0%, 100% { opacity: 0; transform: scale(.3) rotate(0); } 40% { opacity: 1; transform: scale(1.2) rotate(45deg); } 70% { opacity: 0; transform: scale(.5) rotate(90deg); } }
 
 /* ── progress ── */
-.progress { flex: 1; display: flex; justify-content: center; padding: clamp(2rem, 8vh, 5rem) 1rem 3rem; }
-.progress-in { width: 100%; max-width: 32rem; }
+/* A small browser window being audited: a beam scans it and annotation boxes land on what it finds. Decorative only. */
+.progress { flex: 1; display: flex; align-items: center; justify-content: center; padding: clamp(1.5rem, 6vh, 4rem) clamp(1rem, 3vw, 2rem) 3rem; }
+.progress-in { width: 100%; max-width: 64rem; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: clamp(2rem, 5vw, 4rem); align-items: center; }
 .progress h1 { margin-top: .625rem; font-size: 1.75rem; line-height: 1.15; font-weight: 750; letter-spacing: -.02em; }
 .progress .sub { margin-top: .5rem; color: var(--ink-3); }
-.problem { margin-top: 1.25rem; padding: .75rem 1rem; border: 1px solid var(--warn-line); border-radius: 10px; background: var(--warn-soft); color: var(--ink); }
+
+.stage { --beam: var(--brand); position: relative; aspect-ratio: 4 / 3; }
+.win { position: absolute; inset: 0; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: 0 2px 4px rgba(23,19,32,.05), 0 24px 60px rgba(23,19,32,.12); overflow: hidden; animation: hover-win 6s ease-in-out infinite; }
+@keyframes hover-win { 50% { transform: translateY(-6px); } }
+.win-bar { display: flex; align-items: center; gap: 6px; height: 2.25rem; padding: 0 .875rem; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+.win-bar i { width: 9px; height: 9px; border-radius: 50%; background: var(--line-2); }
+.win-url { flex: 1; height: 1rem; margin-left: .75rem; border-radius: 999px; background: var(--line); max-width: 55%; }
+.win-body { position: relative; flex: 1; display: grid; grid-template-rows: auto 1fr auto auto auto; gap: 7%; padding: 6% 7%; }
+.sk { display: block; border-radius: 6px; background: var(--line); }
+.sk-nav { height: 7%; min-height: 10px; width: 100%; background: linear-gradient(90deg, var(--line-2) 0 14%, transparent 14% 60%, var(--line) 60% 70%, transparent 70% 74%, var(--line) 74% 84%, transparent 84% 88%, var(--line) 88%); }
+.sk-hero { min-height: 0; background: linear-gradient(135deg, var(--line), var(--surface-2)); }
+.sk-line { height: 9px; }
+.sk-line.w80 { width: 80%; } .sk-line.w55 { width: 55%; }
+.sk-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6%; height: 18%; min-height: 26px; }
+.sk-cards .sk { height: 100%; }
+.mark { position: absolute; border: 2px solid var(--brand); border-radius: 4px; opacity: 0; animation: mark 7.2s var(--ease) infinite; }
+.mark b { position: absolute; top: -1.35rem; left: -2px; padding: 1px 6px; border-radius: 4px; background: var(--brand); color: #fff; font: 600 12px/1.4 var(--mono); white-space: nowrap; }
+.mark.m1 { left: 5%; top: 7%; width: 16%; height: 9%; animation-delay: .4s; }
+.mark.m2 { left: 6%; top: 24%; width: 88%; height: 33%; animation-delay: 1.8s; }
+.mark.m3 { left: 6%; top: 63%; width: 58%; height: 7%; animation-delay: 3.2s; }
+.mark.m4 { left: 36%; top: 78%; width: 28%; height: 17%; animation-delay: 4.6s; }
+.mark.m4 b { top: auto; bottom: -1.35rem; }
+@keyframes mark { 0% { opacity: 0; transform: scale(1.18); } 6% { opacity: 1; transform: scale(1); } 55% { opacity: 1; transform: scale(1); } 62%, 100% { opacity: 0; transform: scale(1); } }
+.beam { position: absolute; left: 0; right: 0; top: 0; height: 22%; pointer-events: none; background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--beam) 14%, transparent)); border-bottom: 2px solid var(--beam); box-shadow: 0 6px 18px -4px color-mix(in srgb, var(--beam) 70%, transparent); animation: scan 3.6s cubic-bezier(.45,.05,.55,.95) infinite alternate; }
+@keyframes scan { from { transform: translateY(-100%); } to { transform: translateY(455%); } }
+.cursor { position: absolute; inset: 0; pointer-events: none; }
+.cursor svg { position: absolute; left: 60%; top: 40%; width: 18px; height: 18px; fill: var(--ink); stroke: var(--surface); stroke-width: 1.5; filter: drop-shadow(0 2px 3px rgba(0,0,0,.25)); animation: roam 7.2s var(--ease) infinite; }
+@keyframes roam { 8% { left: 20%; top: 14%; } 25% { left: 82%; top: 45%; } 45% { left: 58%; top: 66%; } 65% { left: 50%; top: 88%; } 85% { left: 85%; top: 22%; } }
+.stage-done { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; transform: scale(.6); transition: opacity 300ms var(--ease), transform 500ms var(--spring); }
+.stage-done svg { width: 34%; max-width: 8rem; fill: none; stroke: var(--ok); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 8px 24px color-mix(in srgb, var(--ok) 40%, transparent)); }
+.stage.ready .stage-done { opacity: 1; transform: none; }
+.stage.ready .win-body > *:not(.stage-done) { opacity: .25; }
+.stage.ready .beam, .stage.ready .mark, .stage.ready .cursor { display: none; }
+.stage.halt .win { filter: grayscale(1); animation-play-state: paused; }
+.stage.halt .beam, .stage.halt .mark, .stage.halt .cursor svg { animation-play-state: paused; }
+/* The scene takes the level the owner picked. */
+.stage.lv-clean { --beam: var(--ink-2); }
+.stage.lv-clean .beam { box-shadow: none; background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--ink) 6%, transparent)); }
+.stage.lv-clean .win { animation: none; }
+.stage.lv-showcase .beam { border-image: linear-gradient(90deg, var(--brand), #ff9a5c, #ffd36b, #7c5cff) 1; box-shadow: 0 8px 26px -2px color-mix(in srgb, var(--brand) 80%, transparent); }
+.stage.lv-showcase .win { box-shadow: 0 2px 4px rgba(23,19,32,.05), 0 24px 60px color-mix(in srgb, var(--brand) 25%, transparent); }
+
+.problem { display: flex; align-items: center; gap: 1rem; margin-top: 1.25rem; padding: .75rem 1rem; border: 1px solid var(--warn-line); border-radius: 10px; background: var(--warn-soft); color: var(--ink); }
+.problem[hidden] { display: none; }
+.problem p { flex: 1; min-width: 0; }
 .problem b { color: var(--warn); margin-right: .375rem; }
+.retry { flex: none; height: 2rem; padding: 0 .875rem; }
+@media (pointer: coarse) { .retry { height: 2.75rem; } }
 .tasks { margin-top: 1.5rem; display: grid; gap: .25rem; }
-.tasks li { display: flex; align-items: center; gap: .75rem; padding: .625rem .75rem; border-radius: 8px; color: var(--ink-2); }
+.tasks li { position: relative; display: flex; align-items: center; gap: .75rem; padding: .625rem .75rem; border-radius: 10px; color: var(--ink-2); transition: background 240ms var(--ease), color 240ms var(--ease); }
 .tasks li.done { color: var(--ink-3); }
 .tasks li.now { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
-.tasks input { width: 16px; height: 16px; margin: 0; flex: none; accent-color: var(--ok); }
-.tasks .pulse { margin-left: auto; width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--brand); animation: ping 1.6s var(--ease) infinite; }
-@keyframes ping { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 55%, transparent); } 100% { box-shadow: 0 0 0 9px transparent; } }
-.count { margin-top: 1rem; font: 500 12px/1 var(--mono); color: var(--ink-3); }
+.tasks li.now span:last-child { background: linear-gradient(100deg, var(--ink) 40%, var(--brand) 50%, var(--ink) 60%); background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: read 2.2s linear infinite; }
+@keyframes read { from { background-position: 100% 0; } to { background-position: -50% 0; } }
+.tasks input { position: absolute; opacity: 0; pointer-events: none; }
+.tick { position: relative; width: 20px; height: 20px; flex: none; }
+.tick svg { width: 100%; height: 100%; overflow: visible; }
+.tick circle { fill: none; stroke: var(--line-2); stroke-width: 1.6; }
+.tick path { fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 14; stroke-dashoffset: 14; }
+.done .tick circle { fill: var(--ok); stroke: var(--ok); }
+.done .tick path { stroke-dashoffset: 0; }
+.just .tick circle { animation: tick-fill 360ms var(--spring) both; }
+.just .tick path { animation: tick-draw 320ms var(--ease) 160ms both; }
+.just .tick::after { content: ""; position: absolute; inset: -2px; border-radius: 50%; border: 2px solid var(--ok); animation: tick-ring 600ms var(--ease) both; }
+@keyframes tick-fill { from { transform: scale(.4); transform-origin: center; } }
+@keyframes tick-draw { from { stroke-dashoffset: 14; } }
+@keyframes tick-ring { from { opacity: .8; transform: scale(.8); } to { opacity: 0; transform: scale(2); } }
+.now .tick circle { stroke: var(--brand); stroke-dasharray: 20 40; animation: spin 900ms linear infinite; transform-origin: center; }
+.bar { margin-top: 1.25rem; height: 6px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, var(--brand), #ff9a5c, var(--brand)); background-size: 200% 100%; transition: width 600ms var(--spring); animation: flow 2s linear infinite; }
+@keyframes flow { to { background-position: -200% 0; } }
+.count { margin-top: .625rem; font: 500 12px/1 var(--mono); color: var(--ink-3); }
 .waiting { margin-top: 1.5rem; display: flex; align-items: center; gap: .625rem; color: var(--ink-2); }
 .spin { width: 1rem; height: 1rem; flex: none; border-radius: 50%; border: 2px solid var(--line-2); border-top-color: var(--brand); animation: spin 900ms linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .open-report { margin-top: 1.5rem; height: 2.25rem; padding: 0 1rem; }
 
 @media (max-width: 720px) {
+  .progress { align-items: flex-start; }
+  .progress-in { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+  .progress-text { order: -1; }
+  .stage { max-width: 16rem; width: 100%; margin-inline: auto; }
+  .progress h1 { font-size: 1.25rem; }
   .choose { gap: .75rem; padding: 1rem 1rem; }
   .choose h1 { font-size: 1.25rem; margin-top: .375rem; }
-  .choose .sub { font-size: 13px; margin-top: .25rem; }
-  .panels { min-height: 0; grid-template-columns: minmax(0, 1fr); grid-template-rows: repeat(3, minmax(0, 1fr)); gap: .625rem; }
-  .panel { display: grid; grid-template-columns: minmax(0, 1fr) 9.5rem; grid-template-rows: auto auto 1fr auto; column-gap: .875rem; row-gap: .25rem; padding: .875rem 1rem; border-radius: 14px; }
-  .panel > span { grid-column: 1; }
+  .choose .sub { font-size: 14px; margin-top: .25rem; }
+  .delivery { justify-items: start; }
+  .p-rec { top: .875rem; right: .875rem; }
+  .panels { grid-template-columns: minmax(0, 1fr); gap: .75rem; }
+  .panel { gap: .25rem; padding: 1rem; border-radius: 14px; }
   .p-num { display: none !important; }
-  .p-name { font-size: 1.125rem; }
-  .p-aim { font-size: 12.5px; line-height: 1.4; min-height: 0; }
-  .p-adds { font-size: 11.5px; }
+  .p-name { font-size: 1.25rem; }
+  .p-aim { font-size: 12px; line-height: 1.4; min-height: 0; }
+  .p-adds { font-size: 12px; }
   .p-go { margin-top: 0; font-size: 12px; }
-  .panel > .spec { grid-column: 2; grid-row: 1 / -1; align-self: center; margin-block: 0; gap: .375rem; padding: .625rem; }
+  .panel > .spec { margin-block: .5rem; gap: .5rem; padding: .75rem; }
   .spec .sp-head, .spec .sp-row + .sp-row { display: none; }
-  .sp-foot { flex-direction: column; align-items: stretch !important; gap: .375rem !important; }
-  .sp-btn { text-align: center; }
   .refined.on { transform: translateY(-3px); }
   .showcase.on { transform: translateY(-4px); }
   .refined.on .spec, .showcase.on .spec { transform: none; animation: none; }
@@ -503,7 +596,6 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
   <!-- The page's own controls: `tools` sits before the shared switches,
        `actions` after them, where the primary action belongs. -->
   <!-- vstack:slot tools -->
-  <button class="langflip" id="langFlip" type="button"></button>
   <!-- /vstack:slot tools -->
   <!-- How you like the page, rather than anything about the work: two segmented
        controls sat in the bar all day for a choice made once. They live behind
@@ -573,23 +665,52 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 <main>
 <section class="view choose" id="choose" hidden>
   <header>
-    <p class="eyebrow-line" data-t="eyebrow"></p>
-    <h1 id="pickTitle" data-t="pickTitle"></h1>
-    <p class="sub" id="pickSub"></p>
+    <div>
+      <p class="eyebrow-line" data-t="eyebrow"></p>
+      <h1 id="pickTitle" data-t="pickTitle"></h1>
+      <p class="sub" id="pickSub"></p>
+      <p class="rec-line" id="recLine" aria-live="polite"></p>
+    </div>
+    <div class="delivery">
+      <div class="seg" role="group" data-t-label="deliveryLabel"><button type="button" data-delivery="build" data-t="deliveryBuild"></button><button type="button" data-delivery="report" data-t="deliveryReport"></button></div>
+      <p class="delivery-hint" id="deliveryHint"></p>
+    </div>
   </header>
   <div class="panels" id="panels" role="group" aria-labelledby="pickTitle"></div>
 </section>
 
 <section class="view progress" id="progress" hidden>
   <div class="progress-in">
+  <div class="stage" id="stage" aria-hidden="true">
+    <div class="win">
+      <div class="win-bar"><i></i><i></i><i></i><span class="win-url"></span></div>
+      <div class="win-body">
+        <span class="sk sk-nav"></span>
+        <span class="sk sk-hero"></span>
+        <span class="sk sk-line w80"></span>
+        <span class="sk sk-line w55"></span>
+        <span class="sk-cards"><span class="sk"></span><span class="sk"></span><span class="sk"></span></span>
+        <span class="mark m1"><b>logo 28px</b></span>
+        <span class="mark m2"><b>contrast 3.1:1</b></span>
+        <span class="mark m3"><b>16 → 18px</b></span>
+        <span class="mark m4"><b>tap 44px</b></span>
+        <span class="beam"></span>
+        <span class="cursor"><svg viewBox="0 0 24 24"><path d="M4 2l15 11-6.5 1.2L16 21l-3 1.4-3.4-6.8L4 20z"/></svg></span>
+        <span class="stage-done"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="21"/><path d="M14 25l7 7 13-15"/></svg></span>
+      </div>
+    </div>
+  </div>
+  <div class="progress-text">
     <p class="eyebrow-line" data-t="eyebrow"></p>
     <h1 id="progressTitle"></h1>
     <p class="sub" id="progressSub"></p>
-    <p class="problem" id="problem" hidden><b data-t="stopped"></b><span></span></p>
+    <div class="problem" id="problem" hidden><p><b data-t="stopped"></b><span></span></p><button class="btn primary retry" id="retry" type="button" data-t="retry"></button></div>
     <p class="waiting" id="waiting" hidden><span class="spin" aria-hidden="true"></span><span></span></p>
     <ul class="tasks" id="tasks" role="status" aria-live="polite"></ul>
+    <div class="bar" id="bar" hidden><i id="barFill"></i></div>
     <p class="count" id="count"></p>
     <button class="btn primary open-report" id="openReport" type="button" hidden></button>
+  </div>
   </div>
 </section>
 </main>
@@ -1061,21 +1182,29 @@ window.VSScrub = (function () {
   var STR = {
     tool: ['Design review', '设计评审'],
     eyebrow: ['Design review', '设计评审'],
-    flip: ['中文', 'EN'],
-    pickTitle: ['Pick a level of polish', '选择打磨程度'],
-    pickSub: ['Point at a level to preview it. Click to start the review.', '将指针移到某个级别上预览，点击即开始评审。'],
-    pickSubTouch: ['Tap a level to preview it. Tap it again to start.', '轻点某个级别预览，再点一次开始评审。'],
-    go: ['Start this review', '开始这个评审'],
-    goTouch: ['Tap again to start', '再点一次开始'],
+    pickTitle: ['Pick a polish level', '选择打磨程度'],
+    recommended: ['Recommended', '推荐'],
+    recChecking: ['{agent} is checking the site to recommend a level.', '{agent} 正在检查网站，稍后推荐一个级别。'],
+    deliveryLabel: ['Delivery', '交付方式'],
+    deliveryBuild: ['Build in this repo', '在此仓库修改'],
+    deliveryReport: ['Report only', '只出报告'],
+    deliveryBuildHint: ['Approved changes are made in this repo.', '批准的修改会直接在此仓库中完成。'],
+    deliveryReportHint: ['Approved changes become a report you can share.', '批准的修改会整理成一份可分享的报告。'],
+    noCode: ['This site’s code is not in this repo.', '这个网站的代码不在此仓库中。'],
+    pickSub: ['Hover to preview. Click to start.', '悬停预览，点击开始。'],
+    pickSubTouch: ['Tap to preview. Tap again to start.', '轻点预览，再点开始。'],
+    go: ['Start', '开始'],
+    goTouch: ['Tap again to start', '再点开始'],
     title: ['{level} review', '{level}评审'],
-    preparing: ['{agent} is preparing the review. This page becomes the report when it is ready.', '{agent} 正在准备评审。准备好后，此页面会变成评审报告。'],
+    preparing: ['{agent} is preparing the review. This page becomes the report.', '{agent} 正在准备评审，完成后此页即为报告。'],
     waiting: ['Waiting for {agent}…', '正在等待 {agent}…'],
     count: ['{done} of {total} done', '已完成 {done}/{total}'],
     stopped: ['Stopped.', '已停止。'],
-    ready: ['The report is ready.', '报告已准备好。'],
+    ready: ['The report is ready.', '报告已就绪。'],
     openReport: ['Open the report', '打开报告'],
-    offline: ['Start the review from {agent} to pick a level.', '请先让 {agent} 开始评审，再选择级别。'],
+    offline: ['Start the review from {agent} first.', '请先在 {agent} 中开始评审。'],
     notSent: ['Not sent. Try again.', '未发送，请重试。'],
+    retry: ['Retry', '重试'],
     specTitle: ['Weekly report', '周报'],
     specRow1: ['Review the layout', '检查布局'],
     specRow2: ['Check every state', '检查每种状态'],
@@ -1087,14 +1216,14 @@ window.VSScrub = (function () {
   /* The aims come from the level table in SKILL.md, Step 1. */
   var LEVELS = [
     { id: 'clean', name: ['Clean', '简洁'],
-      aim: ['Consistent and easy to use. Clear hierarchy, spacing and type, and every state handled.', '一致、易用。层级、间距和字体清晰，每种状态都处理到位。'],
-      adds: ['Follows the design system. No new effects.', '遵循设计系统，不加新效果。'] },
+      aim: ['Looks right.', '看起来对。'],
+      adds: ['Hierarchy, spacing, type and layout at every width.', '各宽度下的层级、间距、字体和布局。'] },
     { id: 'refined', name: ['Refined', '精致'],
-      aim: ['Clean, plus a premium feel: considered depth and small interactions.', '在简洁之上加入高级感：有分寸的层次和细小的交互。'],
-      adds: ['Adds a transition on every state change.', '每次状态变化都加上过渡。'] },
+      aim: ['Clean, plus works right.', '简洁之上，用起来也对。'],
+      adds: ['Links, forms, loading and controls.', '链接、表单、加载和控件。'] },
     { id: 'showcase', name: ['Showcase', '惊艳'],
-      aim: ['Refined, plus thoughtful animation and moments of delight.', '在精致之上加入用心的动画和惊喜时刻。'],
-      adds: ['Adds special effects.', '加入特效。'] }
+      aim: ['Refined, plus flair.', '精致之上，锦上添花。'],
+      adds: ['A signature idea, depth, motion and delight.', '标志性创意、层次、动效和惊喜。'] }
   ]
   var pick = function (pair) { return pair[lang() === 'zh' ? 1 : 0] }
   var levelOf = function (id) { return LEVELS.filter(function (level) { return level.id === id })[0] || null }
@@ -1108,6 +1237,7 @@ window.VSScrub = (function () {
   panels.innerHTML = LEVELS.map(function (level, index) {
     return '<button class="panel ' + level.id + '" type="button" data-level="' + level.id + '">' +
       '<span class="p-num">0' + (index + 1) + '</span>' +
+      '<span class="p-rec" data-t="recommended" hidden></span>' +
       '<span class="p-name" data-l="name"></span>' +
       '<span class="p-aim" data-l="aim"></span>' +
       '<span class="p-adds" data-l="adds"></span>' +
@@ -1191,7 +1321,7 @@ window.VSScrub = (function () {
     if (!BRIDGE) { window.VSShell.toast(t('offline'), 3200); return }
     if (choosing) return
     choosing = true
-    var next = Object.assign({}, doc, { level: id, lang: lang() })
+    var next = Object.assign({}, doc, { level: id, lang: lang(), delivery: deliveryOf() })
     post(BRIDGE.save, next).then(function () {
       doc = next
       render()
@@ -1206,6 +1336,7 @@ window.VSScrub = (function () {
     if (text && typeof text === 'object') return text[lang()] || text.en || text.zh || ''
     return String(text || task.id || '')
   }
+  var seenDone = null
   var paintProgress = function () {
     var level = levelOf(doc.level)
     $('#progressTitle').textContent = t('title').replace('{level}', level ? pick(level.name) : '')
@@ -1214,18 +1345,26 @@ window.VSScrub = (function () {
     var isReport = doc.stage === 'report'
     $('#progressSub').textContent = isReport ? t('ready') : t('preparing')
     $('#problem').hidden = !problem
-    $('#problem span').textContent = problem
+    $('#problem p span').textContent = problem
     $('#waiting').hidden = isReport || !!tasks.length || !!problem
     $('#waiting span:last-child').textContent = t('waiting')
     var current = problem || isReport ? -1 : tasks.findIndex(function (task) { return !task.done })
     $('#tasks').innerHTML = tasks.map(function (task, index) {
       var done = !!task.done
-      return '<li class="' + (done ? 'done' : '') + (index === current ? ' now' : '') + '">' +
+      /* Only a tick that arrived since the last paint plays its animation. */
+      var fresh = done && seenDone !== null && !seenDone[task.id]
+      return '<li class="' + (done ? 'done' : '') + (fresh ? ' just' : '') + (index === current ? ' now' : '') + '">' +
         '<input type="checkbox" disabled' + (done ? ' checked' : '') + ' aria-label="' + esc(taskText(task)) + '">' +
-        '<span>' + esc(taskText(task)) + '</span>' +
-        (index === current ? '<i class="pulse" aria-hidden="true"></i>' : '') + '</li>'
+        '<span class="tick" aria-hidden="true"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="9"/><path d="M6 10.5l2.6 2.6L14 7.5"/></svg></span>' +
+        '<span>' + esc(taskText(task)) + '</span></li>'
     }).join('')
+    seenDone = {}
+    tasks.forEach(function (task) { if (task.done) seenDone[task.id] = true })
     var finished = tasks.filter(function (task) { return task.done }).length
+    $('#bar').hidden = !tasks.length
+    $('#barFill').style.width = (tasks.length ? (isReport ? 100 : finished / tasks.length * 100) : 0) + '%'
+    var stage = $('#stage')
+    stage.className = 'stage' + (level ? ' lv-' + level.id : '') + (problem ? ' halt' : '') + (isReport ? ' ready' : '')
     $('#count').textContent = tasks.length ? t('count').replace('{done}', finished).replace('{total}', tasks.length) : ''
     $('#openReport').hidden = !isReport
     $('#openReport').textContent = t('openReport')
@@ -1236,8 +1375,46 @@ window.VSScrub = (function () {
       $('[data-go]', panel).textContent = touchUI && active === panel ? t('goTouch') : t('go')
     })
   }
+  var textOf = function (text) {
+    if (text && typeof text === 'object') return text[lang()] || text.en || text.zh || ''
+    return String(text || '')
+  }
+  /* The agent's quick look at the site, written as `recommend` while the owner reads the panels. */
+  var paintRecommendation = function () {
+    var rec = doc.recommend && levelOf(doc.recommend.level) ? doc.recommend : null
+    panelList.forEach(function (panel) {
+      var on = !!rec && rec.level === panel.dataset.level
+      $('.p-rec', panel).hidden = !on
+      panel.classList.toggle('rec', on)
+    })
+    var line = $('#recLine')
+    if (rec) line.innerHTML = '<b>' + esc(t('recommended') + ': ' + pick(levelOf(rec.level).name) + '.') + '</b> ' + esc(textOf(rec.reason))
+    else line.innerHTML = BRIDGE && doc.recommend === undefined ? '<span class="spin" aria-hidden="true"></span>' + esc(t('recChecking')) : ''
+  }
+  /* Build in this repo, or report only. The agent sets the default; the owner may change it before picking. */
+  var chosenDelivery = null
+  var deliveryOf = function () {
+    if (doc.canBuild === false) return 'report'
+    return chosenDelivery || (doc.delivery === 'report' ? 'report' : 'build')
+  }
+  var paintDelivery = function () {
+    var delivery = deliveryOf()
+    $$('[data-delivery]').forEach(function (button) {
+      button.setAttribute('aria-pressed', String(button.dataset.delivery === delivery))
+      if (button.dataset.delivery === 'build') {
+        button.disabled = doc.canBuild === false
+        button.title = doc.canBuild === false ? t('noCode') : ''
+      }
+    })
+    $('#deliveryHint').textContent = (doc.canBuild === false ? t('noCode') + ' ' : '') + t(delivery === 'report' ? 'deliveryReportHint' : 'deliveryBuildHint')
+  }
+  $$('[data-delivery]').forEach(function (button) {
+    button.addEventListener('click', function () { chosenDelivery = button.dataset.delivery; paintDelivery() })
+  })
   var paintChooser = function () {
     $('#pickSub').textContent = touchUI ? t('pickSubTouch') : t('pickSub')
+    paintRecommendation()
+    paintDelivery()
     panelList.forEach(function (panel) {
       var level = levelOf(panel.dataset.level)
       $$('[data-l]', panel).forEach(function (el) { el.textContent = pick(level[el.dataset.l]) })
@@ -1248,7 +1425,6 @@ window.VSScrub = (function () {
 
   var render = function () {
     $$('[data-t]').forEach(function (el) { el.textContent = t(el.dataset.t) })
-    $('#langFlip').textContent = t('flip')
     window.VSShell.name(t('tool'))
     document.title = t('tool')
     var choosingView = !doc.level
@@ -1258,8 +1434,21 @@ window.VSScrub = (function () {
     else paintProgress()
   }
 
-  $('#langFlip').addEventListener('click', function () { window.VSShell.setLang(lang() === 'zh' ? 'en' : 'zh') })
   $('#openReport').addEventListener('click', function () { location.reload() })
+  /* Retry hands the problem back to the agent: it clears the problem and asks for another attempt. */
+  var retrying = false
+  $('#retry').addEventListener('click', function () {
+    if (!BRIDGE) { window.VSShell.toast(t('offline'), 3200); return }
+    if (retrying) return
+    retrying = true
+    var next = Object.assign({}, doc, { problem: '', retry: true })
+    post(BRIDGE.save, next).then(function () {
+      doc = next
+      render()
+    }, function () {
+      window.VSShell.toast(t('notSent'))
+    }).then(function () { retrying = false })
+  })
 
   /* The agent moves the review on by writing the answers file: tasks, ticks, then the report. */
   var onPush = function (next) {

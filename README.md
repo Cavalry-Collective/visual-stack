@@ -78,7 +78,7 @@ $vstack:review Wireframe a desktop personal task manager with minimal aesthetics
 - Preview desktop, tablet, and mobile layouts before production does it for you.
 - Compare revisions and identify the exact moment things went wrong.
 - Replace “you know what I mean” with actual context.
-- Run `/vstack:design-review` to audit a UI. You pick the polish level in the page, in English or 中文, and watch the audit progress. Your agent then shows each proposed change as a before and after picture in its own browser tab. You approve, reject or steer each one, and it builds only what you approve. It sends new UI copy through `/vstack:proofread`.
+- Run `/vstack:design-review` to audit a UI. You pick the polish level in the page, in English or 中文, and watch the audit progress. Your agent then shows each proposed change as a before and after picture in its own browser tab. You approve, reject or steer each one, and it builds only what you approve. For a site whose code isn't in your repo, it writes a report of the approved changes for you to share instead. The page recommends a level after a quick look at the site.
 - Run `/vstack:proofread` to pass the copy your agent is writing to ChatGPT in your own browser. Your agent uses the reply to remove AI-sounding phrasing. This needs Claude Code with Claude in Chrome, and a ChatGPT sign-in.
 
 ## Why Visual Stack?

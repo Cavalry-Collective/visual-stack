@@ -164,6 +164,11 @@
 .split > .btn:first-child{border-radius:7px 0 0 7px}
 .split > .caret{border-radius:0 7px 7px 0;width:28px;padding:0 8px;justify-content:center;
   border-left:1px solid color-mix(in srgb,#fff 28%,transparent)}
+/* With nothing to send, both halves rest neutral. The ▾ still opens its menu, so
+   it cannot fade, and a red half beside a faded one reads as broken. */
+.split:has(> .btn.primary[disabled]) > .btn.primary{background:var(--surface);border-color:var(--line-2);
+  color:var(--ink-2);opacity:1}
+.split > .btn.primary[disabled]{color:var(--ink-3)}
 
 /* segmented control — modes, sizes, language, theme */
 .seg{display:inline-flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;
@@ -287,6 +292,10 @@
 @media (prefers-color-scheme:dark){.vs-update .v{color:#e2b567}}
 :root[data-theme=dark] .vs-update .v{color:#e2b567}
 
+@media (pointer:coarse){
+  .vs-topbar .btn,.cog{height:44px}
+  .cog{width:44px}
+}
 @media (max-width:720px){
   .brand .eyebrow,.wip{display:none}
   .vs-topbar{gap:8px;padding:0 8px}

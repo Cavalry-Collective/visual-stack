@@ -152,6 +152,11 @@
 .split > .btn:first-child{border-radius:7px 0 0 7px}
 .split > .caret{border-radius:0 7px 7px 0;width:28px;padding:0 8px;justify-content:center;
   border-left:1px solid color-mix(in srgb,#fff 28%,transparent)}
+/* With nothing to send, both halves rest neutral. The ▾ still opens its menu, so
+   it cannot fade, and a red half beside a faded one reads as broken. */
+.split:has(> .btn.primary[disabled]) > .btn.primary{background:var(--surface);border-color:var(--line-2);
+  color:var(--ink-2);opacity:1}
+.split > .btn.primary[disabled]{color:var(--ink-3)}
 
 /* segmented control — modes, sizes, language, theme */
 .seg{display:inline-flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;
@@ -275,6 +280,10 @@
 @media (prefers-color-scheme:dark){.vs-update .v{color:#e2b567}}
 :root[data-theme=dark] .vs-update .v{color:#e2b567}
 
+@media (pointer:coarse){
+  .vs-topbar .btn,.cog{height:44px}
+  .cog{width:44px}
+}
 @media (max-width:720px){
   .brand .eyebrow,.wip{display:none}
   .vs-topbar{gap:8px;padding:0 8px}
@@ -300,33 +309,25 @@ html { font-size: 16px; scroll-padding-top: calc(var(--bar-h) + 1.5rem); -webkit
 @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--surface); color: var(--ink); font: 400 .875rem/1.5 var(--font); font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; }
-.vs-topbar { font-size: 13px; }
+.vs-topbar { font-size: 14px; }
 h1, h2, h3, p, ol, ul, figure { margin: 0; padding: 0; }
 ol, ul { list-style: none; }
 img { display: block; max-width: 100%; height: auto; }
 a { color: inherit; text-decoration: none; }
 button { font: inherit; }
 :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-kbd { display: inline-block; min-width: 1.4em; padding: .1em .35em; border: 1px solid var(--line-2); border-bottom-width: 2px; border-radius: 4px; background: var(--surface); font: 600 11px/1.2 var(--mono); color: var(--ink-2); text-align: center; }
 
 /* The agent writes its words twice, as data-l pairs; the shell's language picks one. */
 :root:not([lang^=zh]) [data-l=zh], :root[lang^=zh] [data-l=en] { display: none !important; }
 
-/* ── top bar: progress and the split action ── */
-.tally { display: flex; align-items: center; gap: 8px; font: 600 10.5px/1 var(--mono); letter-spacing: .03em; color: var(--ink-3); white-space: nowrap; }
-.segs { display: flex; gap: 2px; width: 96px; }
-.segs i { flex: 1; height: 6px; border-radius: 2px; background: var(--line-2); transition: background 250ms var(--ease); }
-.segs i.approve { background: var(--ok); }
-.segs i.reject { background: var(--ink-3); }
-.segs i.steer, .segs i.vary { background: var(--warn); }
-.btn .kbd { font: 500 10px/1 var(--mono); opacity: .6; }
+/* ── top bar: the split action ── */
 /* The workspace's ▾ menu, item for item: a title, then what pressing it does. */
 .splitmenu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 60; width: 266px; padding: 5px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: var(--shadow-pop); animation: menu-in 150ms var(--ease-in); }
 .splitmenu button { display: block; width: 100%; padding: 8px 9px; border: 0; border-radius: 7px; background: none; color: var(--ink); text-align: left; cursor: pointer; }
 .splitmenu button:hover { background: var(--surface-2); }
 .splitmenu button[disabled] { opacity: .45; pointer-events: none; }
-.splitmenu .t { display: block; font-weight: 500; font-size: 12.5px; }
-.splitmenu .d { display: block; margin-top: 3px; font-size: 11.5px; line-height: 1.35; color: var(--ink-3); }
+.splitmenu .t { display: block; font-weight: 500; font-size: 12px; }
+.splitmenu .d { display: block; margin-top: 3px; font-size: 12px; line-height: 1.35; color: var(--ink-3); }
 .splitmenu .d:empty { display: none; }
 .splitmenu button.armed { background: var(--brand-soft); }
 .splitmenu button.armed .t { color: var(--brand); }
@@ -336,12 +337,13 @@ kbd { display: inline-block; min-width: 1.4em; padding: .1em .35em; border: 1px 
 .layout { display: grid; grid-template-columns: 16rem minmax(0, 1fr); max-width: 94rem; margin-inline: auto; }
 .rail { position: sticky; top: var(--bar-h); align-self: start; height: calc(100vh - var(--bar-h)); overflow: auto; padding: 2rem .75rem 2rem 1rem; border-right: 1px solid var(--line); }
 main { min-width: 0; padding: 2rem clamp(1rem, 4vw, 3rem) 4rem; }
-.toc a { display: grid; grid-template-columns: 1.5rem auto minmax(0, 1fr) .5rem; align-items: center; gap: .5rem; padding: .35rem .5rem; border-radius: 6px; font-size: 13px; line-height: 1.3; color: var(--ink-2); transition: background 150ms var(--ease), color 150ms var(--ease); }
+.toc a { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr) .5rem; align-items: center; gap: .5rem; padding: .35rem .5rem; border-radius: 6px; font-size: 14px; line-height: 1.3; color: var(--ink-2); transition: background 150ms var(--ease), color 150ms var(--ease); }
 .toc a:hover { background: var(--surface-2); color: var(--ink); }
 .toc a[aria-current=true] { background: var(--surface-2); color: var(--ink); box-shadow: inset 2px 0 0 var(--brand); }
-.toc .n { font: 500 11px/1 var(--mono); color: var(--ink-3); }
+.toc .n { font: 500 12px/1 var(--mono); color: var(--ink-3); }
 .toc .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.toc .sev { font-size: 11px; }
+.toc .cat-label { padding: .875rem .5rem .25rem; font: 600 12px/1.2 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
+.toc .cat-label:first-child { padding-top: .25rem; }
 .toc a.reject .t { color: var(--ink-3); text-decoration: line-through; }
 .dot { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--line-2); transition: background 250ms var(--ease), border-color 250ms var(--ease), transform 250ms var(--ease); }
 .approve > .dot { background: var(--ok); border-color: var(--ok); }
@@ -349,46 +351,32 @@ main { min-width: 0; padding: 2rem clamp(1rem, 4vw, 3rem) 4rem; }
 .steer > .dot, .vary > .dot { background: var(--warn); border-color: var(--warn); }
 .revised > .dot { border-color: var(--brand); background: var(--brand-soft); }
 .unsent > .dot { transform: scale(1.25); }
-.rail-plan { display: block; margin-top: .75rem; padding: .4rem .5rem; border-top: 1px solid var(--line); font-size: 13px; color: var(--ink-2); }
-.rail-plan:hover { color: var(--ink); }
-.keys { margin-top: 1.5rem; display: grid; gap: .5rem; font-size: 11px; color: var(--ink-3); }
 
 /* ── masthead ── */
-.head .eyebrow { display: inline-flex; align-items: center; gap: .5rem; font: 700 11px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--brand); }
+.head .eyebrow { display: inline-flex; align-items: center; gap: .5rem; font: 700 12px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--brand); }
 .head .eyebrow::before { content: ""; width: 1.4rem; height: 2px; border-radius: 2px; background: var(--brand); }
 h1 { margin-top: .75rem; font-size: 1.75rem; line-height: 1.15; font-weight: 750; letter-spacing: -.02em; text-wrap: balance; }
-.meta { margin-top: .5rem; font: 500 12px/1.5 var(--mono); color: var(--ink-3); }
 .index { display: none; flex-wrap: wrap; gap: .375rem; margin-top: 1rem; }
-.index li a { display: inline-flex; align-items: center; gap: .375rem; padding: .25rem .625rem .25rem .3rem; border: 1px solid var(--line); border-radius: 999px; font-size: 13px; }
-.index .n { display: none; }
+.index li a { display: inline-flex; align-items: center; gap: .375rem; padding: .25rem .625rem .25rem .3rem; border: 1px solid var(--line); border-radius: 999px; font-size: 14px; }
+.index .n, .index .cat-label { display: none; }
 .index a.reject .t { text-decoration: line-through; color: var(--ink-3); }
 
 /* Severity escalates by degree. Only P0 and P1 carry colour. */
-.sev { display: inline-block; padding: .05rem .4rem; border-radius: 5px; border: 1px solid var(--line-2); background: var(--surface-2); font: 700 11px/1.45 var(--mono); color: var(--ink); white-space: nowrap; }
-.sev.p0 { background: var(--brand); border-color: var(--brand); color: #fff; }
-.sev.p1 { background: var(--brand-soft); border-color: var(--brand-line); color: var(--p1-ink); }
-.sev.p3 { background: none; border-color: transparent; padding-inline: .1rem; color: var(--ink-3); }
 
 /* ── a section: its bar, the steer box, then the pictures ── */
-.area-title { padding: 2.5rem 0 .25rem; font-size: 1.25rem; line-height: 1.2; font-weight: 750; letter-spacing: -.015em; }
-.finding { position: relative; margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--line); }
-.area-title + .finding { margin-top: 0; }
-.fh { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; margin: -.5rem; padding: .5rem; border-radius: 12px; }
-.finding:target > .fh { animation: arrive 1.4s var(--ease-in); }
-@keyframes arrive { from { background: var(--brand-soft); } to { background: transparent; } }
+.area-title { padding: 2rem 0 .375rem; font: 600 12px/1.2 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
+.finding { position: relative; padding-top: 1.25rem; }
+/* The bar stays in view while the owner scrolls a tall pair of pictures. */
+.fh { position: sticky; top: var(--bar-h); z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; margin: -.5rem; padding: .5rem; border-radius: 12px; background: var(--surface); }
 .label { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; flex: 1 1 22rem; min-width: 0; }
-.num { font: 500 12px/1 var(--mono); color: var(--ink-3); transition: color 150ms var(--ease); }
-.kbd-nav .finding.current .num { color: var(--brand); }
-.kbd-nav .finding.current::before { content: ""; position: absolute; left: -1.25rem; top: 2.25rem; width: 3px; height: 1.5rem; border-radius: 2px; background: var(--brand); }
-h2 { font-size: 1rem; line-height: 1.3; font-weight: 700; letter-spacing: -.005em; transition: color 250ms var(--ease); }
+h2 { font-size: 1.25rem; line-height: 1.3; font-weight: 700; letter-spacing: -.01em; transition: color 250ms var(--ease); }
 .is-reject h2 { color: var(--ink-3); text-decoration: line-through; text-decoration-thickness: 1.5px; }
-.delta { padding: .125rem .5rem; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); font: 600 11px/1.5 var(--mono); color: var(--ink-2); white-space: nowrap; }
-.call { padding: .125rem .5rem; border: 1px solid var(--ink-3); border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.5; color: var(--ink-2); white-space: nowrap; }
+.call { padding: .125rem .5rem; border: 1px solid var(--ink-3); border-radius: 999px; font-size: 12px; font-weight: 700; line-height: 1.5; color: var(--ink-2); white-space: nowrap; }
 
 /* Approve, Reject, Steer: the shell's segmented control, sized for a decision
    and coloured by what was decided. */
 .decide { display: inline-flex; flex: none; border: 1px solid var(--line-2); border-radius: 9px; background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }
-.decide button { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; height: 2.125rem; padding: 0 .875rem; border: 0; border-right: 1px solid var(--line-2); background: none; color: var(--ink-2); font-size: 13px; font-weight: 600; cursor: pointer; transition: background 150ms var(--ease), color 150ms var(--ease); }
+.decide button { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; height: 2.125rem; padding: 0 .875rem; border: 0; border-right: 1px solid var(--line-2); background: none; color: var(--ink-2); font-size: 14px; font-weight: 600; cursor: pointer; transition: background 150ms var(--ease), color 150ms var(--ease); }
 .decide button:last-child { border-right: 0; }
 .decide button:hover { background: var(--surface-2); color: var(--ink); }
 .decide button:active { background: var(--line); }
@@ -404,21 +392,22 @@ h2 { font-size: 1rem; line-height: 1.3; font-weight: 700; letter-spacing: -.005e
 .steer > div { overflow: hidden; }
 .steer-open .steer { grid-template-rows: 1fr; }
 .steer-box { margin-top: 1rem; padding: .875rem; border: 1px solid var(--warn-line); border-radius: 12px; background: var(--warn-soft); }
-.steer-box label { font-size: 13px; font-weight: 700; color: var(--warn); }
+.steer-box label { font-size: 14px; font-weight: 700; color: var(--warn); }
 .field { display: block; width: 100%; min-height: 4.5rem; max-height: 16rem; margin-top: .5rem; padding: .625rem .75rem; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface); color: var(--ink); font: 400 .875rem/1.45 var(--font); resize: vertical; field-sizing: content; transition: border-color 150ms var(--ease), box-shadow 150ms var(--ease); }
 .field::placeholder { color: var(--ink-3); }
 .field:focus { outline: none; border-color: var(--warn); box-shadow: 0 0 0 3px var(--warn-line); }
-.steer-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .25rem 1rem; margin-top: .5rem; font-size: 11px; color: var(--ink-3); }
-.status { display: none; align-items: center; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; font-size: 13px; color: var(--ink-2); }
+.steer-foot .needed { color: var(--warn); font-weight: 700; }
+.steer-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .25rem 1rem; margin-top: .5rem; font-size: 12px; color: var(--ink-3); }
+.status { display: none; align-items: center; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; font-size: 14px; color: var(--ink-2); }
 .status.on { display: flex; animation: menu-in 250ms var(--ease-in); }
 .status q { color: var(--ink-3); font-style: italic; }
-.revised-tag { padding: .125rem .5rem; border: 1px solid var(--brand-line); border-radius: 999px; background: var(--brand-soft); font: 700 11px/1.5 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--brand); }
+.revised-tag { padding: .125rem .5rem; border: 1px solid var(--brand-line); border-radius: 999px; background: var(--brand-soft); font: 700 12px/1.5 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--brand); }
 
 /* ── before and after ── */
 .cmp { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; margin-top: 1.25rem; align-items: start; transition: opacity 250ms var(--ease), filter 250ms var(--ease); }
 .is-reject .cmp, .is-reject .wipe { opacity: .35; filter: grayscale(1); }
-.side figcaption { display: flex; align-items: baseline; gap: .5rem; min-height: 1.25rem; margin-bottom: .5rem; font-size: 13px; color: var(--ink-3); }
-.side figcaption b { font: 700 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); }
+.side figcaption { display: flex; align-items: baseline; gap: .5rem; min-height: 1.25rem; margin-bottom: .5rem; font-size: 14px; color: var(--ink-3); }
+.side figcaption b { font: 700 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); }
 .side.prop figcaption b { color: var(--ok); }
 .shot { position: relative; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface-2); box-shadow: var(--shadow); transition: box-shadow 250ms var(--ease), transform 250ms var(--ease); }
 .shot img { width: 100%; }
@@ -426,65 +415,76 @@ h2 { font-size: 1rem; line-height: 1.3; font-weight: 700; letter-spacing: -.005e
 .shot.zoom:hover { transform: translateY(-2px); box-shadow: var(--shadow-pop); }
 .is-approve .side.prop.chosen .shot { box-shadow: 0 0 0 2px var(--ok), var(--shadow-pop); }
 .is-steer .side.prop .shot, .is-vary .side.prop .shot { box-shadow: 0 0 0 2px var(--warn), var(--shadow); }
-.side.prop .shot::after { content: ""; position: absolute; top: .625rem; right: .625rem; width: 1.75rem; height: 1.75rem; border-radius: 50%; background: var(--ok) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 13l4 4L19 7'/%3E%3C/svg%3E") center / 60% no-repeat; box-shadow: var(--shadow-pop); opacity: 0; transform: scale(.4); transition: opacity 250ms var(--ease), transform 300ms var(--ease-in); }
-.is-approve .side.prop.chosen .shot::after { opacity: 1; transform: scale(1); }
+.side.prop .shot::after { content: attr(data-stamp); position: absolute; top: .875rem; right: .875rem; padding: 6px 10px; border: 2px solid var(--ok); border-radius: 6px; background: var(--surface); color: var(--ok); font: 700 12px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; box-shadow: var(--shadow-pop); opacity: 0; transform: rotate(-6deg); pointer-events: none; }
+.is-approve .side.prop.chosen .shot::after { opacity: 1; animation: stamp 250ms var(--ease-in) both; }
+@keyframes stamp { 0% { opacity: 0; transform: rotate(-6deg) scale(1.6); } 50% { opacity: 1; transform: rotate(-6deg) scale(.92); } 100% { transform: rotate(-6deg); } }
 .cmp.fixed .shot { aspect-ratio: 16 / 10; }
 .cmp.fixed .shot img { height: 100%; object-fit: cover; object-position: top; }
 .cmp.phone { grid-template-columns: repeat(2, minmax(0, 20rem)); justify-content: center; }
 .shot.draw { min-height: 9rem; padding: 1rem; display: grid; align-content: center; gap: .75rem; }
 .box { position: absolute; border: 2px solid var(--brand); border-radius: 4px; pointer-events: none; }
+.finding.current .box { animation: pen 400ms var(--ease-in) 150ms both; }
+@keyframes pen { 0% { clip-path: inset(0 100% 100% 0); } 50% { clip-path: inset(0 0 50% 0); } 100% { clip-path: inset(0); } }
 
 /* Variations: several proposals for one problem, one shown at a time beside Today. */
 .variants { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: .375rem; }
-.variants button { display: inline-flex; align-items: center; gap: .375rem; height: 2rem; padding: 0 .75rem 0 .3rem; border: 1px solid var(--line-2); border-radius: 999px; background: var(--surface); color: var(--ink-2); font-size: 13px; font-weight: 600; cursor: pointer; transition: background 150ms var(--ease), border-color 150ms var(--ease), color 150ms var(--ease); }
+.variants button { display: inline-flex; align-items: center; gap: .375rem; height: 2rem; padding: 0 .75rem 0 .3rem; border: 1px solid var(--line-2); border-radius: 999px; background: var(--surface); color: var(--ink-2); font-size: 14px; font-weight: 600; cursor: pointer; transition: background 150ms var(--ease), border-color 150ms var(--ease), color 150ms var(--ease); }
 .variants button:hover { border-color: var(--ink-3); color: var(--ink); }
 .variants button[aria-pressed=true] { background: var(--ink-2); border-color: var(--ink-2); color: var(--surface); }
-.variants .vl { display: grid; place-items: center; width: 1.375rem; height: 1.375rem; border-radius: 50%; background: var(--surface-2); color: var(--ink-2); font: 700 11px/1 var(--mono); transition: background 250ms var(--ease), color 250ms var(--ease); }
+.variants .vl { display: grid; place-items: center; width: 1.375rem; height: 1.375rem; border-radius: 50%; background: var(--surface-2); color: var(--ink-2); font: 700 12px/1 var(--mono); transition: background 250ms var(--ease), color 250ms var(--ease); }
 .variants button.chosen .vl { background: var(--ok); color: #fff; }
-.variants .new { font: 700 10px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--brand); }
+.variants .new { font: 700 12px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--brand); }
 .variants [aria-pressed=true] .new { color: var(--surface); }
 
 /* A wipe, for two pictures of one size. */
 .wipe { --pos: 50%; position: relative; margin-top: 1.25rem; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow); touch-action: pan-y; transition: opacity 250ms var(--ease), filter 250ms var(--ease); }
 .wipe img { width: 100%; }
 .wipe img.after { position: absolute; inset: 0; height: 100%; object-fit: cover; object-position: top; clip-path: inset(0 0 0 var(--pos)); }
-.wipe .tag { position: absolute; top: .625rem; padding: .25rem .5rem; border-radius: 6px; background: rgba(23,19,32,.82); color: #fff; font: 700 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+.wipe .tag { position: absolute; top: .625rem; padding: .25rem .5rem; border-radius: 6px; background: rgba(23,19,32,.82); color: #fff; font: 700 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
 .wipe .tag.l { left: .625rem; }
 .wipe .tag.r { right: .625rem; background: #0b8157; }
 .wipe .handle { position: absolute; top: 0; bottom: 0; left: var(--pos); width: 2px; background: #fff; box-shadow: 0 0 0 1px rgba(23,19,32,.3); pointer-events: none; }
 .wipe .handle::after { content: "\2194"; position: absolute; top: 50%; left: 50%; display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: 50%; background: #fff; color: #171320; box-shadow: var(--shadow-pop); transform: translate(-50%, -50%); }
 .wipe input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize; }
 
-/* ── plan ── */
-.slices { display: grid; margin-top: .75rem; counter-reset: slice; }
-.slice { counter-increment: slice; display: grid; grid-template-columns: 2rem minmax(0, 1fr); align-items: center; gap: .75rem; padding-block: .75rem; border-top: 1px solid var(--line); }
-.slice::before { content: counter(slice); font: 700 1.25rem/1 var(--font); color: var(--ink-3); }
-.slice-body { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; }
-.slice h3 { font-size: .875rem; font-weight: 700; }
-.refs { display: flex; flex-wrap: wrap; gap: .375rem; }
-.ref { display: inline-flex; align-items: center; gap: .375rem; padding: .125rem .625rem .125rem .5rem; border: 1px solid var(--line); border-radius: 999px; font-size: 13px; color: var(--ink-2); transition: border-color 150ms var(--ease), color 150ms var(--ease); }
-.ref:hover { border-color: var(--ink-3); color: var(--ink); }
-.ref.reject { color: var(--ink-3); text-decoration: line-through; }
-.stop { display: flex; align-items: center; gap: .875rem; padding-block: .75rem; font: 700 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--brand); }
-.stop::before, .stop::after { content: ""; flex: 1; border-top: 2px dashed var(--brand-line); }
 
 /* ── the close: anything else, then send ── */
 .closing { margin-top: 2.5rem; padding: 1.25rem; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
 .closing label { font-size: .875rem; font-weight: 700; }
 .closing .field:focus { border-color: var(--ink-3); box-shadow: 0 0 0 3px var(--line); }
-.closing-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 1rem; margin-top: .75rem; font-size: 13px; color: var(--ink-3); }
-.closing .btn { height: 2.125rem; padding: 0 .875rem; font-size: 13px; }
+.closing-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 1rem; margin-top: .75rem; font-size: 14px; color: var(--ink-3); }
+.closing .btn { height: 2.125rem; padding: 0 .875rem; font-size: 14px; }
 
-/* A settled section folds to its bar, so what still needs an answer is what the owner scrolls through. */
-.finding.folded { margin-top: .25rem; padding-top: .25rem; border-top-color: transparent; }
-.finding.folded > :not(.fh) { display: none; }
-.finding.folded .label, .finding.unfolded .label { cursor: pointer; }
-.finding.folded h2 { font-weight: 600; color: var(--ink-2); }
-.finding.folded .decide { box-shadow: none; }
-.finding.folded .decide button { height: 1.75rem; padding: 0 .625rem; font-size: 12px; }
-.finding.unfolded > :not(.fh) { animation: menu-in 250ms var(--ease-in); }
-.done-group .area-title { display: flex; align-items: baseline; gap: .5rem; margin-bottom: .5rem; }
-.done-group .area-title span { font: 600 12px/1 var(--mono); color: var(--ink-3); }
+/* One section at a time, under its category, so the owner always knows where a section starts and ends. */
+main { display: flex; flex-direction: column; min-height: calc(100vh - var(--bar-h)); }
+.finding:not(.current), .closing:not(.current), .area-title.cat:not(.on) { display: none; }
+.current { animation: slide-in 250ms var(--ease-in); }
+@keyframes slide-in { from { opacity: 0; transform: translateX(var(--from, 12px)); } }
+/* After Approve & finish: the approved screens settle into one stack under a stamp. */
+.filed { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 1rem; background: color-mix(in srgb, var(--paper) 90%, transparent); backdrop-filter: blur(6px); text-align: center; animation: menu-in 250ms var(--ease-in); }
+.filed-stack { position: relative; width: min(440px, 86vw); aspect-ratio: 440 / 270; margin-inline: auto; }
+.filed-stack img { position: absolute; left: 50%; top: 50%; width: 82%; aspect-ratio: 360 / 220; object-fit: cover; object-position: top; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: var(--window-shadow); transform: translate(-50%, -50%) rotate(var(--tilt)) translateY(var(--drop)); animation: file-in 360ms var(--ease-in) both; }
+.filed-stack img:nth-child(1) { --tilt: -7deg; --drop: 12px; }
+.filed-stack img:nth-child(2) { --tilt: 4deg; --drop: 5px; animation-delay: 80ms; }
+.filed-stack img:nth-child(3) { --tilt: -1deg; --drop: 0px; animation-delay: 160ms; }
+@keyframes file-in { from { opacity: 0; transform: translate(-50%, -80%) rotate(0deg); } }
+.filed-stamp { position: absolute; right: -4px; top: -10px; z-index: 1; padding: 7px 12px; border: 2px solid var(--ok); border-radius: 6px; background: var(--surface); color: var(--ok); font: 700 14px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; box-shadow: var(--shadow-pop); transform: rotate(-8deg); animation: stamp 250ms var(--ease-in) 420ms both; }
+.filed h2 { margin-top: 2.25rem; font-size: 1.75rem; letter-spacing: -.02em; }
+.filed p { margin-top: .5rem; color: var(--ink-3); }
+.filed .btn { margin-top: 1.25rem; height: 2.125rem; padding: 0 .875rem; font-size: 14px; }
+/* The handoff report: approved sections only, one after another, nothing to answer. */
+[data-handoff] .finding, [data-handoff] .area-title.cat { display: block !important; }
+[data-handoff] .finding { padding-top: 2rem; animation: none; }
+[data-handoff] .fh { position: static; }
+[data-handoff] .call, [data-handoff] .decide, [data-handoff] .steer, [data-handoff] .status, [data-handoff] .slidenav, [data-handoff] .closing, [data-handoff] #sendSplit, [data-handoff] .linkdot { display: none !important; }
+.empty-note { padding-top: 2rem; }
+.empty-note p { margin-top: .375rem; color: var(--ink-3); }
+.empty-note svg { display: block; margin-bottom: 1rem; }
+.slidenav[hidden] { display: none; }
+.slidenav { position: sticky; bottom: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: auto; padding: .75rem 0; border-top: 1px solid var(--line); background: var(--surface); }
+.slidenav .btn { height: 2.125rem; padding: 0 .875rem; font-size: 14px; }
+.slidenav .btn[disabled] { opacity: .4; pointer-events: none; }
+.where { font: 500 12px/1 var(--mono); color: var(--ink-3); }
 
 /* A sent steer or request for variations: the section waits behind a blur until the agent answers. */
 .finding.waiting > .cmp, .finding.waiting > .wipe { filter: blur(6px) saturate(.6); opacity: .45; pointer-events: none; user-select: none; }
@@ -503,7 +503,7 @@ h2 { font-size: 1rem; line-height: 1.3; font-weight: 700; letter-spacing: -.005e
   30% { box-shadow: inset 0 0 0 3px var(--brand), inset 0 0 140px 16px color-mix(in srgb, var(--brand) 24%, transparent); }
   100% { box-shadow: inset 0 0 0 2px var(--brand-line), inset 0 0 60px 0 color-mix(in srgb, var(--brand) 6%, transparent); }
 }
-#pushbar.on { padding: 10px 10px 10px 16px; font-size: 13px; animation: drop-in 450ms var(--ease-in); }
+#pushbar.on { padding: 10px 10px 10px 16px; font-size: 14px; animation: drop-in 450ms var(--ease-in); }
 .ping { flex: none; width: .5rem; height: .5rem; border-radius: 50%; background: var(--brand); animation: ping 1.6s var(--ease) infinite; }
 @keyframes drop-in { from { opacity: 0; transform: translate(-50%, -12px) scale(.96); } }
 @keyframes ping { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 60%, transparent); } 100% { box-shadow: 0 0 0 10px transparent; } }
@@ -513,7 +513,7 @@ h2 { font-size: 1rem; line-height: 1.3; font-weight: 700; letter-spacing: -.005e
 .lightbox[open] { display: flex; flex-direction: column; animation: lb-in 250ms var(--ease-in); }
 .lightbox::backdrop { background: rgba(14,12,19,.6); backdrop-filter: blur(4px); }
 @keyframes lb-in { from { opacity: 0; transform: translateY(8px) scale(.98); } }
-.lb-bar { display: flex; align-items: center; gap: .75rem; padding: .625rem .75rem .625rem 1rem; border-bottom: 1px solid var(--line); font-size: 13px; }
+.lb-bar { display: flex; align-items: center; gap: .75rem; padding: .625rem .75rem .625rem 1rem; border-bottom: 1px solid var(--line); font-size: 14px; }
 .lb-bar b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
 .lb-bar .hint { color: var(--ink-3); white-space: nowrap; }
 .lb-body { overflow: auto; padding: 1rem; background: var(--surface-2); }
@@ -529,20 +529,16 @@ h2 { font-size: 1rem; line-height: 1.3; font-weight: 700; letter-spacing: -.005e
   .index { display: flex; }
 }
 @media (max-width: 760px) {
-  h1 { font-size: 1.375rem; }
+  h1 { font-size: 1.25rem; }
+  .index { display: none; }
   .cmp, .cmp.phone { grid-template-columns: minmax(0, 1fr); }
   .label { flex-basis: 100%; }
   .decide { width: 100%; }
   .decide button { flex: 1; padding: 0 .5rem; }
   .decide svg { display: none; }
   .cmp > .side:not(.prop) { order: -1; }
-  .kbd-nav .finding.current::before { left: -.75rem; }
 }
-@media (max-width: 720px) {
-  .tally .txt, .btn .kbd { display: none; }
-  .segs { width: 56px; }
-}
-@media (pointer: coarse) { .decide button { height: 2.75rem; } }
+@media (pointer: coarse) { .decide button, .slidenav .btn { height: 2.75rem; } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
@@ -573,7 +569,6 @@ h2 { font-size: 1rem; line-height: 1.3; font-weight: 700; letter-spacing: -.005e
   <!-- The page's own controls: `tools` sits before the shared switches,
        `actions` after them, where the primary action belongs. -->
   <!-- vstack:slot tools -->
-  <div class="tally" id="tally"><span class="segs" data-segs></span><span class="txt" data-tally-text></span></div>
   <!-- /vstack:slot tools -->
   <!-- How you like the page, rather than anything about the work: two segmented
        controls sat in the bar all day for a choice made once. They live behind
@@ -651,8 +646,6 @@ h2 { font-size: 1rem; line-height: 1.3; font-weight: 700; letter-spacing: -.005e
 <div class="layout">
 <aside class="rail" aria-label="Findings" data-t-label="findings">
   <ol class="toc" id="toc"></ol>
-  <a class="rail-plan" href="#plan" data-t="plan">Plan</a>
-  <div class="keys"><span><kbd>J</kbd> <kbd>K</kbd> <span data-t="keysMove">next / previous</span></span><span><kbd>A</kbd> <kbd>R</kbd> <kbd>S</kbd> <kbd>V</kbd> <span data-t="keysDecide">approve / reject / steer / variations</span></span><span><kbd>⌘</kbd> <kbd>⏎</kbd> <span data-t="keysSend">send</span></span></div>
 </aside>
 
 <main>
@@ -661,19 +654,19 @@ h2 { font-size: 1rem; line-height: 1.3; font-weight: 700; letter-spacing: -.005e
   <p class="eyebrow"><span data-l="en">Design review · Round 1 · Clean</span><span data-l="zh">设计审阅 · 第 1 轮 · 简洁</span></p>
   <!-- FILL: the target, by its own name -->
   <h1>Target</h1>
-  <!-- FILL: date, then the build or commit reviewed -->
-  <p class="meta">1 Jan 2027 · main at 0000000</p>
   <ol class="index toc" id="index" aria-label="Findings" data-t-label="findings"></ol>
 </header>
 
-<!-- A section is an article with data-decide and a stable id, worst first. Its .fh row holds the
-     severity, a title of six words or fewer and an optional delta. The script numbers it, adds it
-     to the index and builds Approve, Reject and Steer into the row. data-yes and data-no rename the
-     first two buttons for a question. -->
+<!-- Sections sit under a category heading: an h2.area-title.cat, one per lens with findings.
+     A section is an article with data-decide and a stable id. Its .fh row holds a title of six
+     words or fewer. The script numbers it, adds it to the index under its category and builds
+     Approve, Reject and Steer into the row. data-yes and data-no rename the first two buttons for
+     a question. -->
+<h2 class="area-title cat"><span data-l="en">Accessibility</span><span data-l="zh">无障碍</span></h2>
 <article class="finding" id="f-example" data-decide>
   <!-- Every word the agent writes comes as a pair: data-l="en" and data-l="zh". The page shows
        the one that matches the language switch. Today and Proposed are translated for you. -->
-  <div class="fh"><span class="sev p1">P1</span><h2><span data-l="en">Title in six words or fewer</span><span data-l="zh">六个词以内的标题</span></h2><span class="delta">12 → 44 px</span></div>
+  <div class="fh"><h2><span data-l="en">Title in six words or fewer</span><span data-l="zh">六个词以内的标题</span></h2></div>
   <div class="cmp">
     <!-- A .box takes data-rect="x,y,width,height" in the screenshot's own pixels: the element's
          getBoundingClientRect() less the capture's origin, times the device scale factor. -->
@@ -686,7 +679,7 @@ h2 { font-size: 1rem; line-height: 1.3; font-weight: 700; letter-spacing: -.005e
      own. Give each Proposed figure a short data-variant name and put your pick first. The script
      shows one at a time behind A, B, C tabs, and Approve records the one on show. -->
 <article class="finding" id="f-variants" data-decide>
-  <div class="fh"><span class="sev p2">P2</span><h2>Two ways to fix one problem</h2></div>
+  <div class="fh"><h2>Two ways to fix one problem</h2></div>
   <div class="cmp">
     <figure class="side"><figcaption><b>Today</b> One short detail</figcaption><div class="shot"><img alt="What it looks like today" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100'%3E%3Crect width='160' height='100' fill='%23f6f4f8'/%3E%3C/svg%3E"></div></figure>
     <figure class="side prop" data-variant="Lanes"><figcaption><b>Proposed</b> One short detail</figcaption><div class="shot"><img alt="Lanes" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100'%3E%3Crect width='160' height='100' fill='%23e9f9f2'/%3E%3C/svg%3E"></div></figure>
@@ -694,9 +687,9 @@ h2 { font-size: 1rem; line-height: 1.3; font-weight: 700; letter-spacing: -.005e
   </div>
 </article>
 
-<h2 class="area-title" id="extras">Optional</h2>
+<h2 class="area-title cat"><span data-l="en">Components</span><span data-l="zh">组件</span></h2>
 <article class="finding" id="f-slider" data-decide>
-  <div class="fh"><span class="sev p3">P3</span><h2>Drag to compare</h2></div>
+  <div class="fh"><h2>Drag to compare</h2></div>
   <!-- Use only when both images are the same size. -->
   <div class="wipe">
     <img class="before" alt="Today" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100'%3E%3Crect width='160' height='100' fill='%23f6f4f8'/%3E%3C/svg%3E">
@@ -706,23 +699,13 @@ h2 { font-size: 1rem; line-height: 1.3; font-weight: 700; letter-spacing: -.005e
   </div>
 </article>
 
-<!-- Approved and rejected sections fold into this group once sent. The script fills it. -->
-<section class="done-group" id="done" aria-labelledby="done-title" hidden><h2 class="area-title" id="done-title"><span data-t="done">Done</span> <span data-done-count></span></h2></section>
-
-<h2 class="area-title" id="plan" data-t="plan">Plan</h2>
-<ol class="slices">
-  <!-- FILL: one slice per outcome. A chip names a section by data-ref and takes its decision. -->
-  <li class="slice" id="plan-1"><div class="slice-body"><h3>Slice name</h3><span class="refs"><a class="ref" data-ref="f-example" href="#f-example"><i class="dot"></i>Example finding</a><a class="ref" data-ref="f-variants" href="#f-variants"><i class="dot"></i>Two ways to fix one problem</a></span></div></li>
-  <li class="stop" id="plan-stop" data-t="stop">I would stop here</li>
-  <li class="slice" id="plan-2"><div class="slice-body"><h3>After the stop</h3><span class="refs"><a class="ref" data-ref="f-slider" href="#f-slider"><i class="dot"></i>Drag to compare</a></span></div></li>
-</ol>
-
 <section class="closing" aria-labelledby="overall-label">
   <label id="overall-label" for="overall" data-t="overall">Anything about the review as a whole?</label>
   <textarea class="field" id="overall" rows="2" placeholder="Optional. Included in your next send." data-t-placeholder="overallHint"></textarea>
   <div class="closing-foot"><span data-closing-text></span><button class="btn primary" id="closingSend" type="button"></button></div>
 </section>
 
+<nav class="slidenav" aria-label="Sections" data-t-label="sections"><button class="btn" id="prevBtn" type="button"><span aria-hidden="true">←</span> <span data-t="prev">Previous</span></button><span class="where" data-where></span><button class="btn" id="nextBtn" type="button"><span data-t="next">Next</span> <span aria-hidden="true">→</span></button></nav>
 </main>
 </div>
 
@@ -1192,8 +1175,10 @@ window.VSScrub = (function () {
      document the agent watches, and hears back when the agent has revised a
      section. Opened off disk or as an Artifact there is no bridge, and the
      decisions are copied for pasting instead. */
-  var BRIDGE = window.__VSTACK_BRIDGE__ || null
   var root = document.documentElement
+  /* A handoff report is a record to share: no link, no answers, every section on show. */
+  var HANDOFF = root.hasAttribute('data-handoff')
+  var BRIDGE = HANDOFF ? null : window.__VSTACK_BRIDGE__ || null
   var $ = function (selector, scope) { return (scope || document).querySelector(selector) }
   var $$ = function (selector, scope) { return Array.prototype.slice.call((scope || document).querySelectorAll(selector)) }
   var esc = function (text) { return window.VSShell.esc(text) }
@@ -1214,7 +1199,7 @@ window.VSScrub = (function () {
      string, or a function of what it names. The agent's content is bilingual
      in the markup instead, as data-l="en" and data-l="zh" pairs. */
   var STR = {
-    pageName: ['Design review', '设计审阅'],
+    pageName: ['Design review', '设计评审'], reportName: ['Design report', '设计报告'],
     approve: ['Approve', '批准'], reject: ['Reject', '拒绝'], steer: ['Steer', '调整'], vary: ['Variations', '变体'],
     moreVariations: ['More variations', '更多变体'],
     decisionOn: [function (t) { return 'Decision on ' + t }, function (t) { return '对“' + t + '”的决定' }],
@@ -1227,18 +1212,15 @@ window.VSScrub = (function () {
     noteSent: ['Sent.', '已发送。'],
     noteNeeded: ['Describe what should change, then send.', '先写下要改什么，再发送。'],
     noteQueued: ['Included in your next send.', '会随下一次发送一起提交。'],
-    steerKeys: ['send', '发送'], steerDone: ['done', '完成'],
     revised: ['Revised', '已修改'], youAsked: ['You asked:', '你的要求：'], reviewAgain: ['Review again.', '请重新审阅。'],
     ready: ['Ready', '已就绪'],
     answered: [function (a) { return a + ' has answered.' }, function (a) { return a + ' 已回复。' }],
     revising: [function (a) { return a + ' is revising this section.' }, function (a) { return a + ' 正在修改这一部分。' }],
     drawing: [function (a) { return a + ' is drawing more variations.' }, function (a) { return a + ' 正在绘制更多变体。' }],
     show: ['Show', '查看'], later: ['Later', '稍后'],
-    unfold: ['Show the pictures', '展开图片'], fold: ['Fold away', '收起'],
     copy: ['Copy decisions', '复制决定'],
     sendCount: [function (n, a) { return 'Send ' + n + ' to ' + a }, function (n, a) { return '发送 ' + n + ' 项给 ' + a }],
     sendTo: [function (a) { return 'Send to ' + a }, function (a) { return '发送给 ' + a }],
-    tally: [function (d, n) { return d + ' / ' + n + ' ANSWERED' }, function (d, n) { return '已回答 ' + d + ' / ' + n }],
     isFinished: ['This review is finished.', '本次审阅已结束。'],
     finished: ['Finished', '已结束'], pressAgain: ['Press again to finish', '再按一次以结束'], finish: ['Approve & finish', '批准并结束'],
     finishWhat: [function (approved, open) { return 'Ends the review. Builds the ' + approved + ' approved' + (open ? ' and skips the ' + open + ' unanswered.' : '.') },
@@ -1255,13 +1237,20 @@ window.VSScrub = (function () {
     today: ['Today', '现状'], proposed: ['Proposed', '建议'],
     rest: ['Approve the rest', '批准其余'], restWhat: ['Approves all unanswered sections.', '批准所有未回答的部分。'],
     more: ['More', '更多'], findings: ['Findings', '发现'],
-    plan: ['Plan', '计划'], done: ['Done', '已完成'],
-    keysMove: ['next / previous', '下一个 / 上一个'], keysDecide: ['approve / reject / steer / variations', '批准 / 拒绝 / 调整 / 变体'], keysSend: ['send', '发送'],
+    stamp: ['Approved', '已批准'],
+    filedStamp: [function (n) { return n + ' approved' }, function (n) { return '已批准 ' + n }],
+    filedTitle: ['Filed for building', '已提交构建'],
+    filedReportTitle: ['Filed for the report', '已提交生成报告'],
+    filedReportText: [function (a, n) { return a + ' is writing a report of the ' + n + ' approved ' + (n === 1 ? 'change' : 'changes') + ' for you to share.' }, function (a, n) { return a + ' 正在把已批准的 ' + n + ' 项修改整理成可分享的报告。' }],
+    filedText: [function (a, n) { return a + ' is building the ' + n + ' approved ' + (n === 1 ? 'change' : 'changes') + '. You can close this tab.' }, function (a, n) { return a + ' 正在构建已批准的 ' + n + ' 项修改。你可以关闭这个标签页。' }],
+    viewReview: ['View the review', '查看评审'],
+    emptyTitle: ['Nothing to change at this level', '这个级别下没有需要修改的地方'], emptyHint: ['Send a note if you expected something here.', '如果你原本以为会有修改建议，请留言发送。'],
+    needsNote: ['One steer needs a note. Nothing was sent.', '有一项调整还没写说明，所以没有发送。'],
+    prev: ['Previous', '上一个'], next: ['Next', '下一个'], sections: ['Sections', '部分'], wrapUp: ['Wrap up', '收尾'],
     overall: ['Anything about the review as a whole?', '对整个审阅还有什么想说的？'],
     overallHint: ['Optional. Included in your next send.', '可选。会随下一次发送一起提交。'],
     flips: ['Space flips', '空格键切换'], close: ['Close', '关闭'], fullSize: ['Picture at full size', '原尺寸图片'],
-    wipe: ['Wipe between today and proposed', '在现状和建议之间拖动对比'],
-    stop: ['I would stop here', '建议到此为止']
+    wipe: ['Wipe between today and proposed', '在现状和建议之间拖动对比']
   }
   var zh = function () { return window.VSShell.lang === 'zh' }
   var t = function (key) {
@@ -1281,6 +1270,7 @@ window.VSScrub = (function () {
     $$('[data-t-placeholder]').forEach(function (el) { el.placeholder = t(el.dataset.tPlaceholder) })
     $$('[data-t-title]').forEach(function (el) { el.title = t(el.dataset.tTitle) })
     $$('[data-t-label]').forEach(function (el) { el.setAttribute('aria-label', t(el.dataset.tLabel)) })
+    $$('.side.prop .shot').forEach(function (shot) { shot.dataset.stamp = t('stamp') })
   }
   /* Today and Proposed are the template's words even where the agent typed them. */
   $$('.side figcaption b, .wipe .tag').forEach(function (tag) {
@@ -1302,8 +1292,6 @@ window.VSScrub = (function () {
   var drafts = {}
   /* A sent request reopens its box only while the owner edits its note. */
   var editing = {}
-  /* A settled section is folded unless the owner opened it, or has only just decided it. */
-  var opened = {}, lingering = {}
   /* Sections the agent has answered since this version of the page loaded. */
   var ready = {}
   var finished = false
@@ -1321,7 +1309,9 @@ window.VSScrub = (function () {
   var settled = function (el) { return isSettled(choiceOf(decisionOf(el.id))) }
   var sendable = function (draft) { return draft === null || draft.choice !== 'steer' || (draft.note || '').trim().length > 0 }
   var unsentIds = function () { return Object.keys(drafts).filter(function (id) { return sendable(drafts[id]) }) }
-  var pendingCount = function () { return unsentIds().length + (overallBox.value.trim() ? 1 : 0) }
+  var pendingCount = function () { return Object.keys(drafts).length + (overallBox.value.trim() ? 1 : 0) }
+  /* Steers the owner tried to send with no note: their hint turns into a request. */
+  var nudged = {}
 
   var normalize = function (doc) {
     var clean = { decisions: {}, overall: '', revised: {}, kept: {} }
@@ -1376,27 +1366,28 @@ window.VSScrub = (function () {
     $$('.call', copy).forEach(function (call) { call.remove() })
     return copy.innerHTML
   }
+  /* A section's category is the heading the agent put above it. */
+  var categoryOf = function (el) {
+    var node = el.previousElementSibling
+    while (node && !node.matches('h2.cat')) node = node.previousElementSibling
+    return node
+  }
+  var lastCategory = null
   var tocItems = sections.map(function (el, index) {
-    var sev = $('.sev', el)
-    return '<li><a href="#' + el.id + '" data-ref="' + el.id + '"><span class="n">' + number(index) + '</span>' +
-      (sev ? sev.outerHTML : '') + '<span class="t">' + tocTitle(el) + '</span><i class="dot"></i></a></li>'
+    var category = categoryOf(el)
+    var label = category && category !== lastCategory ? '<li class="cat-label">' + category.innerHTML + '</li>' : ''
+    lastCategory = category
+    return label + '<li><a href="#' + el.id + '" data-ref="' + el.id + '"><span class="n">' + number(index) + '</span>' +
+      '<span class="t">' + tocTitle(el) + '</span><i class="dot"></i></a></li>'
   }).join('')
   $('#toc').innerHTML = tocItems
   $('#index').innerHTML = tocItems
-
-  /* Each section remembers where the agent put it, so it can leave for Done and come back. */
-  var homes = {}
-  sections.forEach(function (el) {
-    homes[el.id] = document.createComment(el.id)
-    el.parentNode.insertBefore(homes[el.id], el)
-  })
 
   sections.forEach(function (el, index) {
     var bar = $('.fh', el)
     var label = document.createElement('div')
     label.className = 'label'
     while (bar.firstChild) label.appendChild(bar.firstChild)
-    label.insertAdjacentHTML('afterbegin', '<span class="num">' + number(index) + '</span>')
     bar.appendChild(label)
     var group = document.createElement('div')
     group.className = 'decide'
@@ -1409,7 +1400,7 @@ window.VSScrub = (function () {
       '<div class="steer" inert><div><div class="steer-box">' +
       '<label for="steer-' + el.id + '"></label>' +
       '<textarea class="field" id="steer-' + el.id + '" rows="2" autocomplete="off"></textarea>' +
-      '<div class="steer-foot"><span data-steer-state></span><span><kbd>⌘</kbd> <kbd>⏎</kbd> <span data-t="steerKeys"></span> · <kbd>esc</kbd> <span data-t="steerDone"></span></span></div>' +
+      '<div class="steer-foot"><span data-steer-state></span></div>' +
       '</div></div></div><p class="status" aria-live="polite"></p>')
     $$('.decide button', el).forEach(function (button) {
       button.addEventListener('click', function () { choose(el, button.dataset.d) })
@@ -1417,11 +1408,6 @@ window.VSScrub = (function () {
     var box = $('.steer textarea', el)
     box.addEventListener('input', function () {
       setDraft(el.id, { choice: choiceOf(decisionOf(el.id)), note: box.value })
-    })
-    label.addEventListener('click', function () {
-      if (!settled(el)) return
-      opened[el.id] = !opened[el.id]
-      paintSection(el)
     })
   })
 
@@ -1450,7 +1436,7 @@ window.VSScrub = (function () {
       }).join('')
     cmp.insertBefore(strip, cmp.firstChild)
     $$('button', strip).forEach(function (button) {
-      button.addEventListener('click', function () { showVariant(el, button.dataset.v); setCurrent(el) })
+      button.addEventListener('click', function () { showVariant(el, button.dataset.v) })
     })
   })
   var showVariant = function (el, name) {
@@ -1541,6 +1527,7 @@ window.VSScrub = (function () {
     var unsent = el.id in drafts
     var noteNeeded = choice === 'steer' && !(decision.note || '').trim()
     $('[data-steer-state]', el).textContent = !unsent ? t('noteSent') : noteNeeded ? t('noteNeeded') : t('noteQueued')
+    $('[data-steer-state]', el).classList.toggle('needed', noteNeeded && !!nudged[el.id])
 
     var status = $('.status', el)
     var heldDecision = held.decisions[el.id]
@@ -1564,11 +1551,6 @@ window.VSScrub = (function () {
     el.classList.toggle('waiting', waiting)
     el.classList.toggle('ready', waiting && !!ready[el.id])
 
-    var isFolded = settled(el) && !opened[el.id] && !lingering[el.id]
-    el.classList.toggle('folded', isFolded)
-    el.classList.toggle('unfolded', settled(el) && !!opened[el.id])
-    $('.label', el).title = settled(el) ? (isFolded ? t('unfold') : t('fold')) : ''
-
     $$('[data-ref="' + el.id + '"]').forEach(function (ref) {
       CHOICES.forEach(function (c) { ref.classList.toggle(c, choice === c) })
       ref.classList.toggle('revised', revisedNote !== undefined && !decision)
@@ -1576,34 +1558,18 @@ window.VSScrub = (function () {
     })
   }
 
-  /* A section the agent holds as approved or rejected moves to Done; anything else stays where the agent put it. */
-  var doneGroup = $('#done')
-  var regroup = function () {
-    var done = sections.filter(function (el) { return isSettled(choiceOf(held.decisions[el.id])) && !(el.id in drafts) })
-    sections.forEach(function (el) {
-      if (done.indexOf(el) !== -1) doneGroup.appendChild(el)
-      else if (el.parentNode === doneGroup) homes[el.id].parentNode.insertBefore(el, homes[el.id].nextSibling)
-    })
-    doneGroup.hidden = !done.length
-    $('[data-done-count]').textContent = done.length
-  }
-
   var paintTotals = function () {
     var counts = { approve: 0, reject: 0, steer: 0, vary: 0 }
-    var cells = sections.map(function (el) {
+    sections.forEach(function (el) {
       var choice = choiceOf(decisionOf(el.id))
       if (choice) counts[choice]++
-      return '<i' + (choice ? ' class="' + choice + '"' : '') + '></i>'
-    }).join('')
+    })
     var decided = counts.approve + counts.reject + counts.steer + counts.vary
     var open = sections.length - decided
-    $$('[data-segs]').forEach(function (segs) { segs.innerHTML = cells })
-    $$('[data-tally-text]').forEach(function (el) { el.textContent = t('tally', decided, sections.length) })
 
     var pending = pendingCount()
     var label = !BRIDGE ? t('copy') : pending ? t('sendCount', pending, agentName()) : t('sendTo', agentName())
-    var kbd = ' <span class="kbd">⌘⏎</span>'
-    sendBtn.innerHTML = esc(label) + kbd
+    sendBtn.textContent = label
     closingSend.textContent = label
     var disabled = finished || (BRIDGE ? !pending : decided === 0 && !overallBox.value.trim())
     sendBtn.disabled = disabled
@@ -1640,7 +1606,6 @@ window.VSScrub = (function () {
     var current = decisionOf(el.id)
     var box = $('.steer textarea', el)
     var shown = shownOf[el.id]
-    setCurrent(el)
     /* Pressing a sent request again opens its note for editing rather than clearing it. */
     if (choiceOf(current) === choice && isRequest(choice) && !boxOpen(el)) {
       editing[el.id] = true
@@ -1652,11 +1617,9 @@ window.VSScrub = (function () {
     /* A note carries over between steer and variations, never from a request already answered. */
     var note = isRequest(choice) && isRequest(choiceOf(current)) ? box.value : ''
     var next = same ? null : { choice: choice, note: note }
-    if (next && isSettled(choice) && !isSettled(choiceOf(current))) {
-      lingering[el.id] = true
-      setTimeout(function () { delete lingering[el.id]; paintSection(el) }, 600)
-    }
-    if (!next || !isSettled(choice)) delete opened[el.id]
+    /* A pause long enough to see the decision land, then on to the next open section. */
+    clearTimeout(advanceTimer)
+    if (next && isSettled(choice)) advanceTimer = setTimeout(advance, 600)
     if (next && choice === 'approve' && shown) next.variant = shown
     if (next === null && !held.decisions[el.id]) next = undefined
     if (!next) delete editing[el.id]
@@ -1699,6 +1662,18 @@ window.VSScrub = (function () {
   }
   var send = function () {
     if (finished) return Promise.resolve(false)
+    var noteless = sections.filter(function (el) {
+      var draft = drafts[el.id]
+      return draft && draft.choice === 'steer' && !(draft.note || '').trim()
+    })[0]
+    if (noteless) {
+      nudged[noteless.id] = true
+      show(noteless)
+      paintSection(noteless)
+      focusBox(noteless)
+      window.VSShell.toast(t('needsNote'))
+      return Promise.resolve(false)
+    }
     if (!BRIDGE) { copyDecisions(); return Promise.resolve(true) }
     var ids = unsentIds(), overall = overallBox.value.trim()
     if (!ids.length && !overall) return Promise.resolve(true)
@@ -1715,10 +1690,9 @@ window.VSScrub = (function () {
     sendBtn.disabled = true
     return post(BRIDGE.save, next).then(function () {
       held = normalize(next)
-      ids.forEach(function (id) { delete drafts[id]; delete editing[id]; delete opened[id] })
+      ids.forEach(function (id) { delete drafts[id]; delete editing[id] })
       overallBox.value = ''
       save()
-      regroup()
       paintAll()
       window.VSShell.toast(t('sentTo', agentName()))
       return true
@@ -1730,6 +1704,22 @@ window.VSScrub = (function () {
   }
 
   var closeMenu = function () { moreMenu.hidden = true; moreBtn.setAttribute('aria-expanded', 'false') }
+  /* The finished review, filed: up to three approved proposals stacked under a stamp. */
+  var fileAway = function (approved) {
+    var reportOnly = held.kept.delivery === 'report'
+    var pictures = sections.filter(function (el) { return choiceOf(held.decisions[el.id]) === 'approve' }).slice(0, 3).map(function (el) {
+      var img = $('.side.prop.chosen .shot img', el) || $('.side.prop .shot img', el) || $('.wipe img.after', el)
+      return img ? '<img alt="" src="' + img.src + '">' : ''
+    }).join('')
+    var layer = document.createElement('div')
+    layer.className = 'filed'
+    layer.setAttribute('role', 'status')
+    layer.innerHTML = '<div><div class="filed-stack">' + pictures + '<span class="filed-stamp">' + esc(t('filedStamp', approved)) + '</span></div>' +
+      '<h2>' + esc(t(reportOnly ? 'filedReportTitle' : 'filedTitle')) + '</h2><p>' + esc(reportOnly ? t('filedReportText', agentName(), approved) : t('filedText', agentName(), approved)) + '</p>' +
+      '<button class="btn" type="button">' + esc(t('viewReview')) + '</button></div>'
+    $('button', layer).addEventListener('click', function () { layer.remove() })
+    document.body.appendChild(layer)
+  }
   var finish = function () {
     closeMenu()
     send().then(function (sent) {
@@ -1739,8 +1729,11 @@ window.VSScrub = (function () {
         root.classList.add('finished')
         window.VSShell.hideLink()
         var approved = sections.filter(function (el) { return choiceOf(held.decisions[el.id]) === 'approve' }).length
-        $('[data-done-text]').textContent = t('building', agentName(), approved)
-        $('#donebar').classList.add('on')
+        if (approved) fileAway(approved)
+        else {
+          $('[data-done-text]').textContent = t('building', agentName(), approved)
+          $('#donebar').classList.add('on')
+        }
         paintAll()
       }, function () { window.VSShell.toast(t('notFinished')) })
     })
@@ -1771,40 +1764,63 @@ window.VSScrub = (function () {
     })
   } else finishBtn.hidden = true
 
-  /* ── where the reader is ── */
-  var current = null
-  var setCurrent = function (el) {
-    if (current) current.classList.remove('current')
-    current = el
-    if (el) el.classList.add('current')
-    $$('#toc a').forEach(function (link) { link.setAttribute('aria-current', String(!!el && link.dataset.ref === el.id)) })
+  /* ── one slide at a time: each section, then the closing box ── */
+  var closing = $('.closing')
+  var slides = sections.concat(closing)
+  if (!sections.length) {
+    closing.insertAdjacentHTML('beforebegin', '<div class="empty-note">' +
+      '<svg width="120" height="96" viewBox="0 0 120 96" aria-hidden="true"><rect x="22" y="22" width="76" height="56" rx="8" fill="var(--surface-2)" stroke="var(--line-2)" transform="rotate(-6 60 50)"/><rect x="22" y="18" width="76" height="56" rx="8" fill="var(--surface-2)" stroke="var(--line-2)" transform="rotate(3 60 46)"/><rect x="22" y="14" width="76" height="56" rx="8" fill="var(--surface)" stroke="var(--line-2)"/><path d="M44 42l10 10 22-22" fill="none" stroke="var(--brand)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+      '<h2 data-t="emptyTitle"></h2><p data-t="emptyHint"></p></div>')
+    $('.slidenav').hidden = true
   }
-  /* Page order, which Done changes; `sections` keeps the agent's order for numbering. */
-  var inOrder = function () {
-    return sections.slice().sort(function (a, b) { return a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1 })
+  var slide = null
+  var advanceTimer = null
+  var show = function (el) {
+    var from = slides.indexOf(slide), index = slides.indexOf(el)
+    if (slide) slide.classList.remove('current')
+    if (document.activeElement && document.activeElement.matches('a[data-ref]')) document.activeElement.blur()
+    $$('.area-title.on').forEach(function (heading) { heading.classList.remove('on') })
+    slide = el
+    el.style.setProperty('--from', index < from ? '-12px' : '12px')
+    el.classList.add('current')
+    var heading = el === closing ? null : categoryOf(el)
+    if (heading) heading.classList.add('on')
+    $$('[data-ref]').forEach(function (link) { link.setAttribute('aria-current', String(link.dataset.ref === el.id)) })
+    $('#prevBtn').disabled = index === 0
+    $('#nextBtn').disabled = index === slides.length - 1
+    $('[data-where]').textContent = el === closing ? t('wrapUp') : (index + 1) + ' / ' + sections.length
+    if (el.id) history.replaceState(null, '', location.pathname + location.search + '#' + el.id)
+    window.scrollTo({ top: 0, behavior: 'instant' })
   }
-  var inView = function () {
-    var ordered = inOrder()
-    var atEnd = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4
-    if (atEnd) return ordered[ordered.length - 1]
-    var line = 46 + window.innerHeight * 0.45
-    return ordered.filter(function (el) { return el.getBoundingClientRect().top <= line }).pop() || ordered[0]
-  }
-  var ticking = false
-  window.addEventListener('scroll', function () {
-    if (ticking) return
-    ticking = true
-    requestAnimationFrame(function () { ticking = false; setCurrent(inView()) })
-  }, { passive: true })
   var move = function (step) {
-    var ordered = inOrder()
-    var index = Math.max(0, Math.min(ordered.length - 1, ordered.indexOf(current || inView()) + step))
-    root.classList.add('kbd-nav')
-    ordered[index].scrollIntoView({ block: 'start' })
-    setCurrent(ordered[index])
+    var index = slides.indexOf(slide) + step
+    if (index >= 0 && index < slides.length) show(slides[index])
   }
+  /* The next section with no answer, wrapping round, and the closing box once every section has one. */
+  var advance = function () {
+    var from = slides.indexOf(slide)
+    var after = sections.slice(from + 1).concat(sections.slice(0, from))
+    show(after.filter(function (el) { return !decisionOf(el.id) })[0] || closing)
+  }
+  var opening = function () {
+    var target = location.hash && document.getElementById(location.hash.slice(1))
+    if (target && slides.indexOf(target) !== -1) return target
+    return sections.filter(function (el) { return !decisionOf(el.id) })[0] || sections[0] || closing
+  }
+  $('#prevBtn').addEventListener('click', function () { move(-1) })
+  $('#nextBtn').addEventListener('click', function () { move(1) })
+  document.addEventListener('click', function (event) {
+    var link = event.target.closest('a[data-ref]')
+    if (!link || HANDOFF) return
+    event.preventDefault()
+    show(document.getElementById(link.dataset.ref))
+  })
+  /* Choosing anything else in the meantime keeps the owner where they are. */
+  document.addEventListener('pointerdown', function () { clearTimeout(advanceTimer) })
 
   document.addEventListener('keydown', function (event) {
+    clearTimeout(advanceTimer)
+    if (event.key === 'Escape' && !moreMenu.hidden) { closeMenu(); moreBtn.focus(); return }
     if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') { event.preventDefault(); send(); return }
     if (event.target.closest('textarea, input, [contenteditable]')) {
       if (event.key !== 'Escape') return
@@ -1813,16 +1829,12 @@ window.VSScrub = (function () {
       if (section && editing[section.id] && !(section.id in drafts)) { delete editing[section.id]; paintSection(section) }
       return
     }
-    if (event.metaKey || event.ctrlKey || event.altKey || lightbox.open) return
+    if (HANDOFF || event.metaKey || event.ctrlKey || event.altKey || lightbox.open) return
     var key = event.key.toLowerCase()
-    if (key === 'j' || key === 'k') { event.preventDefault(); move(key === 'j' ? 1 : -1) }
-    else if (KEYS[key]) {
-      event.preventDefault()
-      root.classList.add('kbd-nav')
-      choose(current || inView(), KEYS[key])
-    }
+    if (key === 'arrowright' || key === 'j') { event.preventDefault(); move(1) }
+    else if (key === 'arrowleft' || key === 'k') { event.preventDefault(); move(-1) }
+    else if (KEYS[key] && slide !== closing) { event.preventDefault(); choose(slide, KEYS[key]) }
   })
-  document.addEventListener('pointerdown', function () { root.classList.remove('kbd-nav') })
 
   /* ── full size, flipping between the pair ── */
   var lightbox = $('#lightbox')
@@ -1853,7 +1865,11 @@ window.VSScrub = (function () {
     $('.hint', lightbox).hidden = showing.figures.length < 2
     paintLightbox()
     lightbox.showModal()
+    history.pushState({ lightbox: true }, '')
   })
+  /* The picture holds one history entry, so Back closes it rather than leaving the report. */
+  window.addEventListener('popstate', function () { if (lightbox.open) lightbox.close() })
+  lightbox.addEventListener('close', function () { if (history.state && history.state.lightbox) history.back() })
   lightbox.addEventListener('click', function (event) {
     var pick = event.target.closest('[data-lb-seg] button')
     if (pick) { showing.index = Number(pick.dataset.i); paintLightbox(); return }
@@ -1908,14 +1924,14 @@ window.VSScrub = (function () {
 
   var start = function () {
     window.VSShell.init({ defaultLang: held.kept.lang })
-    var paintLanguage = function () { window.VSShell.name(t('pageName')); paintWords() }
+    var paintLanguage = function () { window.VSShell.name(t(HANDOFF ? 'reportName' : 'pageName')); paintWords() }
     paintLanguage()
     restore()
-    regroup()
     Object.keys(variantsOf).forEach(function (id) { showVariant(document.getElementById(id), firstVariant(id)) })
     paintAll()
     window.VSShell.onLang(function () { paintLanguage(); paintAll() })
-    setCurrent(inView())
+    if (HANDOFF) { window.VSShell.hideLink(); return }
+    show(opening())
     if (BRIDGE) {
       window.VSShell.setLink(false, null, BRIDGE.watching)
       window.VSShell.connect({
