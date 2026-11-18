@@ -507,7 +507,9 @@ When('the reviewer opens the review', async function () {
 })
 
 When('the reviewer switches the review to 中文', async function () {
-  await this.browserPage.locator('#langFlip').click()
+  await this.browserPage.locator('#settingsBtn').click()
+  await this.browserPage.locator('#settingsMenu [data-lang="zh"]').click()
+  await this.browserPage.keyboard.press('Escape')
 })
 
 Then('the level panels read in 中文', async function () {
@@ -544,6 +546,27 @@ Then('the review shows {int} of {int} tasks done', async function (done, total) 
   }, `${done} of ${total} tasks are ticked`)
 })
 
+When('the agent stops with a problem', async function () {
+  fs.writeFileSync(this.answersFile, JSON.stringify({ ...this.answers(), problem: '请先登录网站。' }, null, 2))
+  await this.browserPage.locator('#problem:not([hidden])').waitFor({ timeout: 5000 })
+})
+
+When('the reviewer presses Retry', async function () {
+  await this.browserPage.locator('#retry').click()
+})
+
+Then('the answers file asks the agent to retry', async function () {
+  await eventually(() => {
+    const doc = this.answers()
+    assert.equal(doc.retry, true)
+    assert.equal(doc.problem, '')
+  }, 'the answers file holds retry and no problem')
+  await this.browserPage.locator('#problem').waitFor({ state: 'hidden', timeout: 5000 })
+  const doc = this.answers()
+  delete doc.retry
+  fs.writeFileSync(this.answersFile, JSON.stringify(doc, null, 2))
+})
+
 When('the agent publishes the report', async function () {
   fs.writeFileSync(this.reportPage, fs.readFileSync(REPORT_TEMPLATE, 'utf8'))
   fs.writeFileSync(this.answersFile, JSON.stringify({ ...this.answers(), stage: 'report' }, null, 2))
@@ -568,20 +591,70 @@ When('the reviewer opens the report', async function () {
   await this.browserPage.locator('#f-example .decide').waitFor()
 })
 
+// The report shows one section at a time; a reviewer reaches another through the index.
+async function openSection (page, id) {
+  if (!(await page.locator(`#${id}`).isVisible())) await page.locator(`#toc a[data-ref="${id}"]`).click()
+  await page.locator(`#${id}.current`).waitFor()
+}
+
 When('the reviewer approves the section {string}', async function (id) {
+  await openSection(this.browserPage, id)
   await this.browserPage.locator(`#${id} .decide [data-d="approve"]`).click()
 })
 
+When('the reviewer steers the section {string} without a note', async function (id) {
+  await openSection(this.browserPage, id)
+  await this.browserPage.locator(`#${id} .decide [data-d="steer"]`).click()
+})
+
+When('the reviewer adds the note {string} to {string}', async function (note, id) {
+  await this.browserPage.locator(`#${id} .steer textarea`).fill(note)
+})
+
+Then('the report asks for a note on {string}', async function (id) {
+  await this.browserPage.locator(`#${id}.current [data-steer-state].needed`).waitFor()
+  await this.browserPage.locator(`#${id} .steer textarea:focus`).waitFor()
+  assert.equal(this.answers().decisions?.[id], undefined, 'nothing was sent')
+})
+
+When('the reviewer opens a picture full size and goes back', async function () {
+  await this.browserPage.locator('.finding.current .shot.zoom').first().click()
+  await this.browserPage.locator('#lightbox[open]').waitFor()
+  await this.browserPage.goBack()
+})
+
+Then('the picture closes and the report stays open', async function () {
+  await this.browserPage.locator('#lightbox:not([open])').waitFor({ state: 'attached' })
+  await this.browserPage.locator('.finding.current').waitFor()
+})
+
+When('the reviewer opens the ▾ menu and presses Esc', async function () {
+  await this.browserPage.locator('#moreBtn').click()
+  await this.browserPage.locator('#moreMenu:not([hidden])').waitFor()
+  await this.browserPage.keyboard.press('Escape')
+})
+
+Then('the ▾ menu is closed', async function () {
+  await this.browserPage.locator('#moreMenu').waitFor({ state: 'hidden' })
+})
+
+When('the reviewer presses the right arrow key', async function () {
+  await this.browserPage.keyboard.press('ArrowRight')
+})
+
 When('the reviewer steers the section {string} with {string}', async function (id, note) {
+  await openSection(this.browserPage, id)
   await this.browserPage.locator(`#${id} .decide [data-d="steer"]`).click()
   await this.browserPage.locator(`#${id} .steer textarea`).fill(note)
 })
 
 When('the reviewer shows the variation {string} of {string}', async function (name, id) {
+  await openSection(this.browserPage, id)
   await this.browserPage.locator(`#${id} .variants button[data-v="${name}"]`).click()
 })
 
 When('the reviewer asks for more variations of {string} exploring {string}', async function (id, note) {
+  await openSection(this.browserPage, id)
   await this.browserPage.locator(`#${id} .decide [data-d="vary"]`).click()
   await this.browserPage.locator(`#${id} .steer textarea`).fill(note)
 })
@@ -657,10 +730,9 @@ Then('the section {string} shows the revision, quoting {string}', async function
   }, `${id} shows the revision`)
 })
 
-Then('the section {string} is folded into Done', async function (id) {
-  const section = this.browserPage.locator(`#done #${id}.folded`)
-  await section.waitFor()
-  assert.equal(await section.locator('.cmp').isVisible(), false, 'the pictures are folded away')
+Then('the report shows the section {string}', async function (id) {
+  await this.browserPage.locator(`#${id}.current`).waitFor({ timeout: 5000 })
+  assert.equal(await this.browserPage.locator('.finding.current').count(), 1, 'one section shows at a time')
 })
 
 Then('the pictures of {string} wait behind a blur', async function (id) {
@@ -677,8 +749,74 @@ Then('the page announces the revision of {string}', async function (id) {
 })
 
 Then('steering {string} again starts with an empty note', async function (id) {
+  await openSection(this.browserPage, id)
   await this.browserPage.locator(`#${id} .decide [data-d="steer"]`).click()
   assert.equal(await this.browserPage.locator(`#${id} .steer textarea`).inputValue(), '')
+})
+
+Then('the page shows the review filed with {int} approved', async function (count) {
+  const filed = this.browserPage.locator('.filed')
+  await filed.waitFor({ timeout: 5000 })
+  assert.match(await filed.locator('.filed-stamp').innerText(), new RegExp(`${count}`))
+  assert.equal(await filed.locator('.filed-stack img').count(), count)
+})
+
+Given('a design review report with no sections is served', async function () {
+  const template = fs.readFileSync(REPORT_TEMPLATE, 'utf8')
+  await this.startReportServer(template.replace(/<!-- Sections sit under a category heading[\s\S]*?(?=<section class="closing")/, ''))
+})
+
+When('the reviewer opens the empty report', async function () {
+  this.pageErrors = []
+  this.browserPage.on('pageerror', error => this.pageErrors.push(String(error)))
+  await this.browserPage.goto(this.reportUrl)
+})
+
+Then('the report says there is nothing to change', async function () {
+  await this.browserPage.locator('.empty-note h2').waitFor()
+  assert.equal((await this.browserPage.locator('.empty-note h2').innerText()).trim(), 'Nothing to change at this level')
+  await this.browserPage.locator('.closing.current').waitFor()
+  assert.deepEqual(this.pageErrors, [], 'the page runs without errors')
+})
+
+When('the agent recommends the level {string}', async function (level) {
+  const doc = this.answers()
+  doc.recommend = { level, reason: { en: 'The screen looks right.', zh: '页面看起来没问题。' } }
+  fs.writeFileSync(this.answersFile + '.tmp', JSON.stringify(doc))
+  fs.renameSync(this.answersFile + '.tmp', this.answersFile)
+})
+
+Then('the panel {string} shows as recommended', async function (level) {
+  await this.browserPage.locator(`.panel[data-level="${level}"].rec .p-rec`).waitFor({ timeout: 5000 })
+  assert.equal(await this.browserPage.locator('.panel.rec').count(), 1, 'one panel is recommended')
+  assert.match(await this.browserPage.locator('#recLine').innerText(), /页面看起来没问题/)
+})
+
+When('the reviewer chooses Report only', async function () {
+  await this.browserPage.locator('[data-delivery="report"]').click()
+})
+
+Then('the answers file asks for a report', async function () {
+  await eventually(() => { assert.equal(this.answers().delivery, 'report') }, 'the answers file holds the delivery')
+})
+
+Given('a design report handoff is served', async function () {
+  const template = fs.readFileSync(REPORT_TEMPLATE, 'utf8')
+  await this.startReportServer(template.replace('<html', '<html data-handoff').replaceAll(' data-decide>', ' data-decide data-decision="approve">'))
+})
+
+When('the reviewer opens the handoff report', async function () {
+  await this.browserPage.goto(this.reportUrl)
+  await this.browserPage.locator('#f-example').waitFor()
+})
+
+Then('every section shows at once, with nothing to answer', async function () {
+  const sections = this.browserPage.locator('.finding')
+  const total = await sections.count()
+  assert.ok(total > 1, 'the template has several sections')
+  for (let index = 0; index < total; index++) assert.ok(await sections.nth(index).isVisible(), `section ${index + 1} shows`)
+  assert.equal(await this.browserPage.locator('.decide:visible').count(), 0, 'no decision buttons')
+  assert.equal(await this.browserPage.locator('.slidenav').isVisible(), false, 'no slide controls')
 })
 
 Then('the report server has closed', async function () {

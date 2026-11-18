@@ -13,10 +13,17 @@ Feature: A design review report answered in its own tab
   Scenario: R0 — a level picked in 中文 becomes a report in the same tab
     When the reviewer switches the review to 中文
     Then the level panels read in 中文
-    When the reviewer picks the level "refined"
+    When the agent recommends the level "refined"
+    Then the panel "refined" shows as recommended
+    When the reviewer chooses Report only
+    And the reviewer picks the level "refined"
     Then the answers file holds the level "refined" in "zh"
+    And the answers file asks for a report
     When the agent lists 3 tasks and ticks the first
     Then the review shows 1 of 3 tasks done
+    When the agent stops with a problem
+    And the reviewer presses Retry
+    Then the answers file asks the agent to retry
     When the agent publishes the report
     Then the same tab shows the report in 中文
     When the reviewer approves the section "f-example"
@@ -31,13 +38,18 @@ Feature: A design review report answered in its own tab
     And the reviewer opens the report
 
   @browser
-  Scenario: R1 — answers reach the answers file
+  Scenario: R1 — the reviewer answers one section at a time
     When the reviewer approves the section "f-example"
-    And the reviewer steers the section "f-slider" with "Make the handle bigger"
+    Then the report shows the section "f-variants"
+    And the answers file approves "f-example"
+    When the reviewer opens a picture full size and goes back
+    Then the picture closes and the report stays open
+    When the reviewer presses the right arrow key
+    Then the report shows the section "f-slider"
+    When the reviewer steers the section "f-slider" with "Make the handle bigger"
     And the reviewer sends the answers
     Then the answers file approves "f-example"
     And the answers file steers "f-slider" with "Make the handle bigger"
-    And the section "f-example" is folded into Done
 
   @browser
   Scenario: R2 — a revised section asks for a fresh answer
@@ -51,13 +63,19 @@ Feature: A design review report answered in its own tab
   @browser
   Scenario: R3 — Approve & finish sends and closes the link
     When the reviewer approves the section "f-example"
-    And the reviewer presses Approve & finish twice
+    And the reviewer opens the ▾ menu and presses Esc
+    Then the ▾ menu is closed
+    When the reviewer presses Approve & finish twice
     Then the answers file approves "f-example"
     And the report server has closed
+    And the page shows the review filed with 1 approved
 
   @browser
   Scenario: R4 — a sent steer closes its box
-    When the reviewer steers the section "f-slider" with "Make the handle bigger"
+    When the reviewer steers the section "f-slider" without a note
+    And the reviewer sends the answers
+    Then the report asks for a note on "f-slider"
+    When the reviewer adds the note "Make the handle bigger" to "f-slider"
     And the reviewer sends the answers
     Then the steer box on "f-slider" is closed, quoting "Make the handle bigger"
     And the pictures of "f-slider" wait behind a blur
@@ -76,3 +94,19 @@ Feature: A design review report answered in its own tab
     When the reviewer asks for more variations of "f-example" exploring "Try a denser list"
     And the reviewer sends the answers
     Then the answers file asks for more variations of "f-example" exploring "Try a denser list"
+
+  Rule: A review can find nothing to change
+
+  @browser
+  Scenario: R7 — a report with no sections says so
+    Given a design review report with no sections is served
+    When the reviewer opens the empty report
+    Then the report says there is nothing to change
+
+  Rule: A report-only review hands over a report
+
+  @browser
+  Scenario: R8 — the handoff report shows every approved section, with nothing to answer
+    Given a design report handoff is served
+    When the reviewer opens the handoff report
+    Then every section shows at once, with nothing to answer
