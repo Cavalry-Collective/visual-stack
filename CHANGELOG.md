@@ -13,8 +13,8 @@ compares against to decide an update is available. See the release checklist in
 **Changed**
 
 - **Design reviews follow a checklist.** Your agent reviews as a senior UI/UX
-  designer would, against named checks such as C2 Spacing or R8 Loading. Each
-  finding names the check it failed.
+  designer would, against a named list of checks. The report groups each
+  finding under the check it failed, named in plain words.
 - **Clean finds what looks wrong.** It checks hierarchy, spacing, alignment,
   type, colour, components, responsive layout at six widths, and copy.
 - **Refined finds what behaves wrong.** It drives every flow with a slow
@@ -36,9 +36,12 @@ compares against to decide an update is available. See the release checklist in
   while you scroll. Moving to another section sends the answer you left, so
   your agent starts on a steer while you carry on. The Done group is gone,
   since nothing needs folding away.
+- **Each finding says why.** One or two lines under the title say, in plain
+  words, what visitors see today, why it matters and what changes.
 - **Findings are grouped by check.** The report lists every finding under the
   check it failed. Severity tags, before-and-after number pills, the plan, the
-  date line, the answered counter and the keyboard hints are gone.
+  date line, the answered counter, the keyboard hints and the Owner's call tag
+  are gone.
 - **A livelier wait.** While your agent prepares the review, the start page
   shows a mock page being scanned and marked up, and ticks each step as it
   finishes. The level panels' text is shorter.

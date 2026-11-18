@@ -369,9 +369,9 @@ h1 { margin-top: .75rem; font-size: 1.75rem; line-height: 1.15; font-weight: 750
 /* The bar stays in view while the owner scrolls a tall pair of pictures. */
 .fh { position: sticky; top: var(--bar-h); z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; margin: -.5rem; padding: .5rem; border-radius: 12px; background: var(--surface); }
 .label { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; flex: 1 1 22rem; min-width: 0; }
+.why { max-width: 72ch; margin-top: .5rem; color: var(--ink-2); }
 h2 { font-size: 1.25rem; line-height: 1.3; font-weight: 700; letter-spacing: -.01em; transition: color 250ms var(--ease); }
 .is-reject h2 { color: var(--ink-3); text-decoration: line-through; text-decoration-thickness: 1.5px; }
-.call { padding: .125rem .5rem; border: 1px solid var(--ink-3); border-radius: 999px; font-size: 12px; font-weight: 700; line-height: 1.5; color: var(--ink-2); white-space: nowrap; }
 
 /* Approve, Reject, Steer: the shell's segmented control, sized for a decision
    and coloured by what was decided. */
@@ -476,7 +476,7 @@ main { display: flex; flex-direction: column; min-height: calc(100vh - var(--bar
 [data-handoff] .finding, [data-handoff] .area-title.cat { display: block !important; }
 [data-handoff] .finding { padding-top: 2rem; animation: none; }
 [data-handoff] .fh { position: static; }
-[data-handoff] .call, [data-handoff] .decide, [data-handoff] .steer, [data-handoff] .status, [data-handoff] .slidenav, [data-handoff] .closing, [data-handoff] #sendSplit, [data-handoff] .linkdot { display: none !important; }
+[data-handoff] .decide, [data-handoff] .steer, [data-handoff] .status, [data-handoff] .slidenav, [data-handoff] .closing, [data-handoff] #sendSplit, [data-handoff] .linkdot { display: none !important; }
 .empty-note { padding-top: 2rem; }
 .empty-note p { margin-top: .375rem; color: var(--ink-3); }
 .empty-note svg { display: block; margin-bottom: 1rem; }
@@ -667,6 +667,8 @@ main { display: flex; flex-direction: column; min-height: calc(100vh - var(--bar
   <!-- Every word the agent writes comes as a pair: data-l="en" and data-l="zh". The page shows
        the one that matches the language switch. Today and Proposed are translated for you. -->
   <div class="fh"><h2><span data-l="en">Title in six words or fewer</span><span data-l="zh">六个词以内的标题</span></h2></div>
+  <!-- The reason, in plain words: what a visitor sees, why it matters, what changes. -->
+  <p class="why"><span data-l="en">The grey hints in the form are too pale to read, so visitors can't tell what each box asks for. Darker hints fix this.</span><span data-l="zh">表单里的灰色提示太浅，访客看不清每个框要填什么。把提示调深就能解决。</span></p>
   <div class="cmp">
     <!-- A .box takes data-rect="x,y,width,height" in the screenshot's own pixels: the element's
          getBoundingClientRect() less the capture's origin, times the device scale factor. -->
@@ -1261,7 +1263,7 @@ window.VSScrub = (function () {
   var textIn = function (node, lang) {
     if (!node) return ''
     var copy = node.cloneNode(true)
-    $$('.call, [data-l]:not([data-l="' + (lang || (zh() ? 'zh' : 'en')) + '"])', copy).forEach(function (other) { other.remove() })
+    $$('[data-l]:not([data-l="' + (lang || (zh() ? 'zh' : 'en')) + '"])', copy).forEach(function (other) { other.remove() })
     return copy.textContent.replace(/\s+/g, ' ').trim()
   }
   /* Static words in the markup carry data-t, data-t-placeholder, data-t-title or data-t-label. */
@@ -1361,11 +1363,7 @@ window.VSScrub = (function () {
 
   /* ── building the page from its sections ── */
   var number = function (index) { return String(index + 1).padStart(2, '0') }
-  var tocTitle = function (el) {
-    var copy = $('h2', el).cloneNode(true)
-    $$('.call', copy).forEach(function (call) { call.remove() })
-    return copy.innerHTML
-  }
+  var tocTitle = function (el) { return $('h2', el).innerHTML }
   /* A section's category is the heading the agent put above it. */
   var categoryOf = function (el) {
     var node = el.previousElementSibling
@@ -1396,7 +1394,7 @@ window.VSScrub = (function () {
       return '<button type="button" data-d="' + choice + '" aria-pressed="false">' + ICONS[choice] + '<span></span></button>'
     }).join('')
     bar.appendChild(group)
-    bar.insertAdjacentHTML('afterend',
+    ;($('.why', el) || bar).insertAdjacentHTML('afterend',
       '<div class="steer" inert><div><div class="steer-box">' +
       '<label for="steer-' + el.id + '"></label>' +
       '<textarea class="field" id="steer-' + el.id + '" rows="2" autocomplete="off"></textarea>' +

@@ -36,16 +36,19 @@ Do not add metric tiles, counts, instructions, a verdict paragraph, a list of th
 Each section is a bar and a picture pair. It is about 20 words.
 
 1. **Bar.** A title of six words or fewer in an `h2`. The template adds the number and Approve, Reject, Steer and Variations, in the same place on every section.
-2. **Before and after.** Every section has a Today picture and a Proposed picture, side by side, each with a tag and at most one detail of six words or fewer.
-3. **Nothing else.** Evidence, code locations and numbers go in the picture or in the chat reply. Put a code location in `data-loc` on the article if the build needs it.
+2. **Reason.** One or two sentences under the bar, in `<p class="why">`: what a visitor sees today, why it matters to them, and what changes.
+3. **Before and after.** Every section has a Today picture and a Proposed picture, side by side, each with a tag and at most one detail of six words or fewer.
 
-A detail must not repeat the title. Do not add severity tags or before-and-after number pills.
+Write every word for the owner, who may not be a designer. Use plain, everyday words. Leave contrast ratios, pixel sizes, colour codes and design terms out of the page; keep them for the chat reply and the build. Say "too pale to read" in place of "1.8:1 contrast", and "smaller than a fingertip" in place of "14px".
+4. **Nothing else.** Other evidence and code locations go in the chat reply. Put a code location in `data-loc` on the article if the build needs it.
+
+The reason and the details must not repeat the title. Do not add severity tags or before-and-after number pills.
 
 ## Categories
 
 Group the sections under one heading per category, `<h2 class="area-title cat">`, with the heading in both languages.
 
-- Name each category after the check that failed, with its ID, such as **C2 · Spacing** or **R8 · Loading, by action**. See `lenses.md`.
+- Name each category in plain words after the check that failed, such as Readability, Phone or What stands out. Give the check's ID, such as C6, in the chat reply. See `lenses.md`.
 - In Showcase, name each category after the area it improves, such as First screen or Motion.
 - Put the category that most harms use first, and the worst section first inside it.
 - Leave out a category with no findings.
@@ -66,9 +69,9 @@ Show two or more ways to fix one problem as variations of one section. Never giv
 
 The template shows one variation at a time behind A, B, C tabs. Approve records the variation on show.
 
-## Owner's calls
+## Questions
 
-Mark **Owner's call** in the bar of any change to something the owner clearly chose, with `<span class="call"><span data-l="en">Owner's call</span><span data-l="zh">由你决定</span></span>` inside the `h2`. Add `data-yes="Keep" data-no="Change"` or similar when the section is a question, with `data-yes-zh` and `data-no-zh` beside them.
+When a section asks the owner a question, add `data-yes="Keep" data-no="Change"` or similar to the article, with `data-yes-zh` and `data-no-zh` beside them. The first two buttons take those names.
 
 ## Pictures
 
@@ -91,7 +94,7 @@ The owner switches between English and 中文 in the page's settings. The page t
 <h2><span data-l="en">Phone titles cut to 7 letters</span><span data-l="zh">手机上标题只剩 7 个字</span></h2>
 ```
 
-- Pair the eyebrow, category headings, titles, details and the `.call` label.
+- Pair the eyebrow, category headings, titles, reasons and details.
 - Leave `Today` and `Proposed` in English. The page translates them.
 - Write each language as a native speaker would. Do not translate word for word.
 - The page opens in `lang` from the answers file, the language the owner picked in.

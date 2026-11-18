@@ -39,7 +39,7 @@ Pick the mode for each flow:
 
 ## How to report a failed check
 
-- Name the check by its ID, such as R8.
+- Name the check by its ID, such as R8, in the chat reply. The report names it in plain words.
 - Give the evidence: a screenshot, a measured value, and the location in the code.
 - For a behaviour finding, the before picture is the frame where it goes wrong, such as the spinner in the middle of a click.
 - Skip a check that does not apply, such as the form checks on a site with no forms.
@@ -54,7 +54,7 @@ Pick the mode for each flow:
 - **C3 · Grouping.** Related items sit closer than unrelated ones. The gap between a label and its input is smaller than the gap between fields, which is smaller than the gap between sections.
 - **C4 · Alignment.** Every element lines up with a grid column or a shared edge. The page uses one container width. An icon sits visually centred on the text beside it. Labels in one row share a baseline.
 - **C5 · Type.** No more than two font families. Every size is on the product's type scale, or on a scale of about five sizes if it has none. No size is under 12 px. Body text is at least 16 px on a website and at least 14 px in a web app, with a line height between 1.4 and 1.6.
-- **C6 · Colour.** Each status colour has one meaning. If the brand colour is also the error colour, mark it **Owner's call**. Text has at least 4.5:1 contrast, and large text at least 3:1. Status never depends on colour alone.
+- **C6 · Colour.** Each status colour has one meaning. If the brand colour is also the error colour, offer the fix as variations, one of which keeps the brand colour. Text has at least 4.5:1 contrast, and large text at least 3:1. Status never depends on colour alone.
 - **C7 · Link style.** All text links share one style, and nothing else uses it.
 - **C8 · Components.** Each kind of component looks the same everywhere it appears. All buttons share one set of heights, radii and padding. The same applies to inputs, cards, chips and menus.
 - **C9 · Imagery.** The product uses one icon set with one stroke weight. Images are sharp and never stretched. Images in the same role share one aspect ratio and crop.
@@ -167,7 +167,7 @@ Clean and Refined list the defects. Showcase proposes what makes the product mem
 
 1. **Name the concept.** Write one sentence that names the creative idea. Take it from what the brand already owns: its characters, illustration, shapes, colour or voice. Every proposal expresses that idea.
 2. **Propose four to six enhancements.** Each one is a section of the report.
-3. **Make one of them a major change.** Mark it **Owner's call**, and offer it as a bold variation and a restrained one.
+3. **Make one of them a major change.** Offer it as a bold variation and a restrained one.
    - On a website, it changes the first screen.
    - In a web app, it changes the home screen, onboarding or the moment a main task is finished.
 

@@ -116,10 +116,11 @@ Collect evidence:
    - Show every finding as a before and after pair of screenshots of the product, with one short title. See *Pictures* in `report.md`.
    - Report one finding per kind of defect.
    - Show two or more ways to fix one problem as variations of one section. See *Variations* in `report.md`.
-   - Mark **Owner's call** on any change to something the owner clearly chose. Offer a way to keep the idea.
+   - For a change to something the owner clearly chose, offer a way to keep the idea, such as a variation.
 2. Build the review as one self-contained HTML page. Copy `assets/report-template.html` and fill it, in the format in `report.md`. Save it over the start page at `$R.html`.
    - Write every word in English and in Chinese. See *Two languages* in `report.md`.
-   - Cut every word a picture already says. A title and one detail per picture are the whole text.
+   - Write for the owner in plain words, with no ratios, pixel sizes or design terms. See *A section* in `report.md`.
+   - Cut every word a picture already says. A title, a reason of one or two sentences, and one detail per picture are the whole text.
 3. Set `stage` to `report` in the answers file. Keep every other key. Write the HTML first: the open tab reloads into the report as soon as `stage` changes.
 4. Reply in chat with the verdict, the top changes, what already works and what you did not test. Keep the reply short.
 
