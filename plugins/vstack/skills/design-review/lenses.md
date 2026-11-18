@@ -6,13 +6,27 @@ Each level includes every level below it.
 
 | Level | What you do | How you work |
 |---|---|---|
-| **Clean** | Find what looks wrong. | Read screenshots at 320, 375, 768, 1280, 1440 and 1920 px, and resize between them. |
+| **Clean** | Find what looks wrong. | Walk the whole page on an iPhone SE and at 1440 px. Open every menu, drop-down, accordion, tab, carousel and form step, and judge only how each looks. Check the other screen sizes below for overflow and clipping. |
 | **Refined** | Find what behaves wrong. | Drive every flow. |
 | **Showcase** | Propose flair. | Start from what the brand already owns. |
 
+Screen sizes, as width × height:
+
+| Screen | Size |
+|---|---|
+| iPhone SE | 375 × 667 |
+| iPhone 13 mini | 375 × 812 |
+| iPhone 15 | 393 × 852 |
+| iPhone Pro Max | 430 × 932 |
+| Tablet | 768 × 1024 |
+| Laptop | 1280 × 800 |
+| Desktop | 1440 × 900 and 1920 × 1080 |
+
+On a site we do not own, never submit a form, pay or send a message.
+
 ## Recommending a level
 
-Recommend the level that would help this product most now. Take one desktop and one phone screenshot of the main screen, and spend no more than a few minutes.
+Recommend the level that would help this product most now. Take one desktop and one phone screenshot of the main screen, and spend no more than a few minutes. This quick look is not the audit: capture again in Step 3.
 
 - Recommend **Clean** if two or more Clean checks fail at a glance, such as text clipping on the phone or several unrelated font sizes.
 - Recommend **Refined** if the screen looks right.
@@ -37,6 +51,13 @@ Pick the mode for each flow:
 - If you are unsure, say why, and pick the mode of the flow the owner named.
 - Say in your first reply which mode each flow got, and save it as `mode` in the answers file.
 
+## Covering the page
+
+1. **Survey first.** List every section, component, form and interactive element at each screen size. Save the list beside the answers file as `<target>-round-<n>-survey.md`. Run every check against it.
+2. **Give every check a verdict.** Pass with its evidence, fail with each instance, or not applicable with the reason. Save the verdicts as `<target>-round-<n>-checks.md`, and summarise them in chat.
+3. **Report what a visitor can see.** A failed check becomes a report section only if someone who is not a designer can see the problem in the Today picture without reading the caption. List the other failures in chat.
+4. **Confirm what you measure.** A measured failure is a lead. Confirm it in a screenshot before you report it. A fluid type scale or a centred block is not a failure on its own.
+
 ## How to report a failed check
 
 - Name the check by its ID, such as R8, in the chat reply. The report names it in plain words.
@@ -53,19 +74,19 @@ Pick the mode for each flow:
 - **C2 · Spacing.** The same role uses the same value everywhere: the page's side margin, card padding, the gap between cards and the gap between sections. Values come from the product's spacing scale, in 4 px steps if it has none. Padding inside a box is equal left and right. Nothing touches the edge of its container or the screen.
 - **C3 · Grouping.** Related items sit closer than unrelated ones. The gap between a label and its input is smaller than the gap between fields, which is smaller than the gap between sections.
 - **C4 · Alignment.** Every element lines up with a grid column or a shared edge. The page uses one container width. An icon sits visually centred on the text beside it. Labels in one row share a baseline.
-- **C5 · Type.** No more than two font families. Every size is on the product's type scale, or on a scale of about five sizes if it has none. No size is under 12 px. Body text is at least 16 px on a website and at least 14 px in a web app, with a line height between 1.4 and 1.6.
+- **C5 · Type.** No more than two font families. Each text role, such as body, label or heading, has one size at a given screen size, and the sizes form a scale of about five steps. No size is under 12 px. Body text is at least 16 px on a website and at least 14 px in a web app, with a line height between 1.4 and 1.6.
 - **C6 · Colour.** Each status colour has one meaning. If the brand colour is also the error colour, offer the fix as variations, one of which keeps the brand colour. Text has at least 4.5:1 contrast, and large text at least 3:1. Status never depends on colour alone.
 - **C7 · Link style.** All text links share one style, and nothing else uses it.
-- **C8 · Components.** Each kind of component looks the same everywhere it appears. All buttons share one set of heights, radii and padding. The same applies to inputs, cards, chips and menus.
+- **C8 · Components.** Each kind of component looks the same everywhere it appears. All buttons share one set of heights, radii and padding. The same applies to inputs, cards, chips and menus. Open menus, focus rings and selected states use the product's own colours and shapes, never a library's defaults.
 - **C9 · Imagery.** The product uses one icon set with one stroke weight. Images are sharp and never stretched. Images in the same role share one aspect ratio and crop.
-- **C10 · Responsive.** At each listed width, and while resizing between them:
+- **C10 · Responsive.** At each listed screen size:
   - nothing scrolls sideways, clips or overlaps;
   - stacked columns still read in the right order;
   - tables, tab rows and navigation collapse in a designed way;
-  - no fixed or sticky bar covers content;
+  - no fixed or floating element, such as a header or a chat bubble, covers content;
   - popovers fit a phone screen or become a sheet;
   - on a wide screen, content neither stretches to full width nor sits off-centre;
-  - a tap target is at least 44 × 44 px on touch layouts.
+  - on touch screens, navigation and main controls are at least 44 × 44 px, and links in text and lists are at least 24 px tall with space around them.
 - **C11 · Long content.** Long names and Chinese text do not break the layout or get clipped.
 - **C12 · Copy.** Compare the same words across every screen:
   - a label names the action, such as "Verify email" in place of "Continue";
@@ -75,7 +96,7 @@ Pick the mode for each flow:
 
 ### Website
 
-- **CW1 · First screen.** The first screen says what the product is, who it is for, and the one next action. At 375 px, the headline and the call to action show without scrolling. Promo bars and the header together take no more than a quarter of the screen.
+- **CW1 · First screen.** The first screen says what the product is, who it is for, and the one next action. On an iPhone SE, 375 × 667, the headline and the call to action show without scrolling. Promo bars and the header together take no more than a quarter of the screen.
 - **CW2 · Reading.** A line of body text holds 45 to 75 characters.
 - **CW3 · Sections.** Each section makes one point.
 

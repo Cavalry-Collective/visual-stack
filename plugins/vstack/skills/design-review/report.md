@@ -36,7 +36,7 @@ Do not add metric tiles, counts, instructions, a verdict paragraph, a list of th
 Each section is a bar and a picture pair. It is about 20 words.
 
 1. **Bar.** A title of six words or fewer in an `h2`. The template adds the number and Approve, Reject, Steer and Variations, in the same place on every section.
-2. **Reason.** One or two sentences under the bar, in `<p class="why">`: what a visitor sees today, why it matters to them, and what changes.
+2. **Reason.** One or two sentences under the bar, in `<p class="why">`: what a visitor sees today, why it matters to them, and what changes. State what you saw. Do not claim a behaviour you did not observe.
 3. **Before and after.** Every section has a Today picture and a Proposed picture, side by side, each with a tag and at most one detail of six words or fewer.
 
 Write every word for the owner, who may not be a designer. Use plain, everyday words. Leave contrast ratios, pixel sizes, colour codes and design terms out of the page; keep them for the chat reply and the build. Say "too pale to read" in place of "1.8:1 contrast", and "smaller than a fingertip" in place of "14px".
@@ -78,6 +78,9 @@ When a section asks the owner a question, add `data-yes="Keep" data-no="Change"`
 Every picture is a screenshot of the product, today or with the change rendered into it. Never put a list of changes, a description, a diagram of text or a code sample in a Today or Proposed picture. If a change cannot be shown, such as a rename in code, it is not a design review finding.
 
 - Show the area at the size the owner will see it. Crop to the problem and do not shrink a full page into a thumbnail.
+- For a consistency finding, such as buttons in five shapes, put crops of the real instances side by side as Today, and the same instances made consistent as Proposed.
+- Check every Proposed picture before you write its caption. The caption must be true of the picture, and the change must not break another check.
+- Use only pictures captured in this round.
 - Save screenshots with a tool that writes files, such as Playwright.
 - Embed them as `data:` images, at most 1,200 px wide, as JPEG at quality 75.
 - Draw a 2px red box over a Today picture with `.box` when the problem is one area. Give it `data-rect="x,y,width,height"` in the screenshot's own pixels. Measure it in the page you captured: the element's `getBoundingClientRect()`, less the capture's top-left corner, times the device scale factor. Never estimate a box by eye or place it with percentages.

@@ -8,6 +8,22 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.16.0 — 2026-11-19
+
+**Changed**
+
+- **Clean covers the whole page.** Your agent lists every section and control
+  first, opens every menu, drop-down and form step to see how each looks, and
+  gives every check a pass or a fail. It never submits a form on a site it
+  does not own.
+- **Real phone sizes.** Phone checks use iPhone screen sizes, height as well as
+  width, so the first screen is judged as an iPhone SE shows it.
+- **Only what you can see.** A failed check becomes a slide only if the problem
+  shows in the picture. The rest is listed in chat. Consistency problems, such
+  as buttons in several shapes, show every instance side by side.
+- **Pictures match their captions.** Your agent checks each proposal picture
+  before writing its caption, and uses only pictures from the current round.
+
 ## 6.15.0 — 2026-11-18
 
 **Changed**

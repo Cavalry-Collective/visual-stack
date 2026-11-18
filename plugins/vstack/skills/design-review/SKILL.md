@@ -75,7 +75,7 @@ The pick also saves `lang`, `en` or `zh`, the language the page showed, and the 
 
 Keep the page current while you work through Steps 2 to 4:
 
-1. Once the level is known, add `tasks` to the answers file and set `stage` to `audit`. Keep every other key. Write four to seven tasks, each in both languages:
+1. Once the level is known, add `tasks` to the answers file and set `stage` to `audit`. Keep every other key. Write four to seven tasks, each in both languages. Once the survey is done, name the tasks after it, such as the sections walked and the states opened:
 
    ```json
    {"id": "capture", "text": {"en": "Capture the screens", "zh": "截取各个页面"}, "done": false}
@@ -95,7 +95,7 @@ Read the project instructions and anything design-related: the design guide, fro
 
 ## Step 3: Look at the work
 
-Open whatever we are working on, whether that is a dev server, a preview or a live site, with `browser_capture`. Use the widths in `lenses.md`, and choose the themes and states from the requirements.
+Open whatever we are working on, whether that is a dev server, a preview or a live site, with `browser_capture`. Use the screen sizes in `lenses.md`, and choose the themes and states from the requirements. Cover the page as in *Covering the page* in `lenses.md`: survey it first, then give every check a verdict.
 
 If the target asks for a sign-in, such as IAP, Google sign-in or SSO, open it with `user_browser` and ask the owner to sign in there. Capture from that tab. Never type a password yourself.
 
@@ -103,7 +103,7 @@ If the adapter says `browser_capture` is not available, ask the owner for screen
 
 Collect evidence:
 
-- Screenshot each screen, and save the images a finding will need.
+- Screenshot each screen and each opened state, and save the images a finding will need. Capture fresh in every round, and record the screen size of every picture.
 - Measure with JavaScript in the page: `scrollWidth` against `clientWidth`, heights, counts, font sizes, contrast. Use numbers in findings, because "33 cards, 4,312px" can be acted on and "feels heavy" cannot.
 - Stress the layout with the longest title, the largest list and an empty list. Check for sideways overflow.
 - Read the console for errors, where the host's browser tools can reach it.
