@@ -21,7 +21,6 @@ The owner picks the level of polish in the review page, not in chat:
 
 | Level | 中文 | Aim |
 |---|---|---|
-|---|---|
 | **Clean** | 简洁 | Consistent and easy to use. Clear hierarchy, spacing and type, every state handled, and the design system followed. No new effects. |
 | **Refined** | 精致 | Clean, plus a premium feel. Considered depth, small interactions, and a transition on every state change. |
 | **Showcase** | 惊艳 | Refined, plus thoughtful animation, special effects and moments of delight. |
