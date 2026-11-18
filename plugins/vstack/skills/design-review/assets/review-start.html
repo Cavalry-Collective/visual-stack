@@ -353,48 +353,84 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .panel.on .sp-knob { transform: translateX(12px); }
 .panel.on .sp-btn { background: var(--ink); border-color: var(--ink); color: var(--surface); }
 
-/* Clean: the change happens at once. A hard border and an exact grid, nothing moves. */
-.clean, .clean * { transition: none !important; animation: none !important; }
-.clean.on { border-color: var(--ink); }
-.clean.on .spec { border-color: var(--ink-3); background-image: linear-gradient(to right, color-mix(in srgb, var(--ink) 6%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--ink) 6%, transparent) 1px, transparent 1px); background-size: 8px 8px; }
+/* The panel being previewed takes the stage; the other two step back. */
+.panels:has(.panel.on) .panel:not(.on) { opacity: .45; filter: saturate(.4); }
+.panel { transition: opacity 200ms var(--ease), filter 200ms var(--ease); }
 
-/* Refined: depth and timing. The card lifts, the toggle slides, the rows settle in turn. */
-.refined, .showcase { transition: transform 220ms var(--ease), box-shadow 220ms var(--ease), border-color 220ms var(--ease); }
+/* Clean: square, flat and monochrome. The change happens at once on a hard border and an exact grid; nothing moves. */
+.clean .spec, .clean .sp-row, .clean .sp-btn, .clean .sp-dot, .clean .sp-box { border-radius: 2px; }
+.clean .spec { background: var(--surface); }
+.clean .sp-track, .clean .sp-knob { border-radius: 2px; }
+.clean, .clean * { transition: none !important; animation: none !important; }
+.clean.on { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.clean.on .spec { border-color: var(--ink); background-color: var(--surface); background-image: linear-gradient(to right, color-mix(in srgb, var(--ink) 9%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--ink) 9%, transparent) 1px, transparent 1px); background-size: 8px 8px; }
+.clean.on .sp-row { border-color: var(--ink); }
+
+/* Refined: soft depth at rest. On preview the card lifts well clear of the page, the toggle slides and the rows settle in turn. */
+.refined .spec { border-color: transparent; border-radius: 14px; background: linear-gradient(180deg, var(--surface), var(--surface-2)); box-shadow: 0 1px 2px rgba(23,19,32,.06), 0 6px 16px rgba(23,19,32,.08); }
+.refined .sp-row { border-color: transparent; border-radius: 10px; box-shadow: 0 1px 2px rgba(23,19,32,.08), 0 2px 6px rgba(23,19,32,.05); }
+.refined .sp-btn { border-radius: 9px; }
+.refined .sp-dot { background: linear-gradient(135deg, var(--line-2), var(--ink-3)); }
+.refined, .showcase { transition: transform 260ms var(--ease), box-shadow 260ms var(--ease), border-color 260ms var(--ease), background 260ms var(--ease), color 260ms var(--ease), opacity 200ms var(--ease), filter 200ms var(--ease); }
+.refined .spec, .showcase .spec { transition: transform 320ms var(--ease), box-shadow 320ms var(--ease), background 320ms var(--ease), border-color 320ms var(--ease); }
 .refined .sp-box, .refined .sp-track, .refined .sp-knob, .refined .sp-btn,
 .showcase .sp-box, .showcase .sp-track, .showcase .sp-knob, .showcase .sp-btn { transition: transform 200ms var(--ease), background 200ms var(--ease), border-color 200ms var(--ease), color 200ms var(--ease), box-shadow 200ms var(--ease); }
-.refined.on { transform: translateY(-4px); border-color: var(--line-2); box-shadow: 0 1px 2px rgba(23,19,32,.06), 0 8px 20px rgba(23,19,32,.08), 0 24px 48px rgba(23,19,32,.10); }
-.refined.on .spec, .showcase.on .spec { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface) 70%, transparent); }
-.refined.on .sp-row, .showcase.on .sp-row { box-shadow: 0 1px 2px rgba(23,19,32,.06); }
-.refined.on .sp-btn, .showcase.on .sp-btn { box-shadow: 0 1px 0 color-mix(in srgb, #fff 18%, transparent) inset, 0 2px 6px rgba(23,19,32,.22); }
-.refined:active .sp-btn, .showcase:active .sp-btn { transform: translateY(1px); box-shadow: 0 1px 2px rgba(23,19,32,.2); }
-.refined:active { transform: translateY(-2px) scale(.995); }
-.refined.on .sp-row { animation: settle 240ms var(--ease) both; }
-.refined.on .sp-row + .sp-row { animation-delay: 60ms; }
-.refined.on .sp-foot { animation: settle 240ms var(--ease) 120ms both; }
-@keyframes settle { from { opacity: 0; transform: translateY(6px); } }
+.refined.on { transform: translateY(-10px); border-color: transparent; box-shadow: 0 2px 4px rgba(23,19,32,.06), 0 14px 32px rgba(23,19,32,.12), 0 36px 72px rgba(23,19,32,.16); }
+.refined.on .spec { transform: scale(1.04); box-shadow: 0 2px 4px rgba(23,19,32,.06), 0 14px 30px rgba(23,19,32,.14); }
+.refined.on .sp-btn { box-shadow: 0 1px 0 color-mix(in srgb, #fff 18%, transparent) inset, 0 4px 10px rgba(23,19,32,.25); }
+.refined:active .sp-btn { transform: translateY(1px); }
+.refined:active { transform: translateY(-6px) scale(.995); }
+.refined.on .sp-row { animation: settle 280ms var(--ease) both; }
+.refined.on .sp-row + .sp-row { animation-delay: 70ms; }
+.refined.on .sp-foot { animation: settle 280ms var(--ease) 140ms both; }
+@keyframes settle { from { opacity: 0; transform: translateY(8px); } }
 
-/* Showcase: Refined, plus light that follows the pointer, a slight tilt, a moving sheen and a spring. */
-.showcase { --mx: 50%; --my: 30%; --rx: 0deg; --ry: 0deg; transform-style: preserve-3d; }
-.showcase.on { transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry)) translateY(-6px); border-color: transparent; box-shadow: 0 2px 4px rgba(23,19,32,.06), 0 12px 28px rgba(23,19,32,.10), 0 32px 64px color-mix(in srgb, var(--brand) 16%, transparent); }
-.showcase.tracking { transition: transform 90ms linear, box-shadow 220ms var(--ease); }
-.showcase::before { content: ""; position: absolute; inset: 0; z-index: -1; padding: 1.5px; border-radius: inherit; background: conic-gradient(from var(--sheen, 0deg), var(--brand), color-mix(in srgb, var(--brand) 20%, var(--surface)) 25%, color-mix(in srgb, var(--brand) 55%, #ffb36b) 50%, color-mix(in srgb, var(--brand) 20%, var(--surface)) 75%, var(--brand)); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; opacity: 0; transition: opacity 300ms var(--ease); }
-.showcase::after { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: radial-gradient(420px circle at var(--mx) var(--my), color-mix(in srgb, var(--brand) 13%, transparent), transparent 62%); opacity: 0; transition: opacity 300ms var(--ease); pointer-events: none; }
-.showcase.on::before { opacity: 1; animation: sheen 5s linear infinite; }
-.showcase.on::after { opacity: 1; }
+/* Showcase: brand colour even at rest. On preview the panel goes dark under a moving glow, the card floats and tilts with the pointer, and the button shines. */
+.showcase { --mx: 50%; --my: 30%; --rx: 0deg; --ry: 0deg; --night: #15101f; transform-style: preserve-3d; }
+.showcase .spec { border-color: transparent; border-radius: 16px; background: radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--brand) 16%, var(--surface-2)), var(--surface-2) 65%); box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand) 30%, transparent), 0 10px 28px color-mix(in srgb, var(--brand) 16%, transparent); }
+.showcase .sp-row { border-radius: 12px; border-color: color-mix(in srgb, var(--brand) 18%, var(--line)); }
+.showcase .sp-dot { background: conic-gradient(from 0deg, var(--brand), #ff9a5c, #ffd36b, var(--brand)); }
+.showcase .sp-btn { border-radius: 999px; border-color: transparent; background: linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 60%, #ff9a5c)); color: #fff; }
+.showcase.on { transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry)) translateY(-12px) scale(1.02); border-color: transparent; background: var(--night); color: #fff; box-shadow: 0 16px 36px rgba(23,19,32,.25), 0 40px 90px color-mix(in srgb, var(--brand) 40%, transparent); }
+.showcase.on .p-num, .showcase.on .p-adds { color: rgba(255,255,255,.6); }
+.showcase.on .p-aim { color: rgba(255,255,255,.82); }
+.showcase.on .p-go { color: #fff; }
+.showcase.tracking { transition: transform 90ms linear, box-shadow 260ms var(--ease), background 260ms var(--ease); }
+.showcase::before { content: ""; position: absolute; inset: 0; z-index: -1; padding: 2px; border-radius: inherit; background: conic-gradient(from var(--sheen, 0deg), var(--brand), #ff9a5c 25%, #ffd36b 40%, var(--brand) 55%, #7c5cff 75%, var(--brand)); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; opacity: 0; transition: opacity 300ms var(--ease); }
+.showcase::after { content: ""; position: absolute; inset: -20%; z-index: -1; background: radial-gradient(360px circle at var(--mx) var(--my), color-mix(in srgb, var(--brand) 55%, transparent), transparent 60%), radial-gradient(40% 35% at 20% 90%, rgba(255,154,92,.35), transparent 70%), radial-gradient(45% 40% at 90% 10%, rgba(124,92,255,.35), transparent 70%); opacity: 0; transition: opacity 300ms var(--ease); pointer-events: none; }
+.showcase.on::before { opacity: 1; animation: sheen 4s linear infinite; }
+.showcase.on::after { opacity: 1; animation: drift 6s ease-in-out infinite alternate; }
 @property --sheen { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
 @keyframes sheen { to { --sheen: 360deg; } }
-.showcase.on .p-name { background: linear-gradient(100deg, var(--ink) 30%, var(--brand) 50%, var(--ink) 70%); background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: shimmer 2.4s var(--ease) both; }
-@keyframes shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
-.showcase.on .sp-row, .showcase.on .sp-foot, .showcase.on .sp-head { animation: spring 520ms var(--spring) both; }
+@keyframes drift { to { transform: translate(4%, -3%) rotate(6deg); } }
+.showcase.on .p-name { background: linear-gradient(100deg, #fff 25%, #ffd36b 45%, #ff9a5c 55%, #fff 75%); background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: shimmer 2.4s var(--ease) infinite; }
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: -150% 0; } }
+.showcase.on .spec { background: rgba(255,255,255,.07); box-shadow: 0 0 0 1px rgba(255,255,255,.16), 0 18px 40px rgba(0,0,0,.4); animation: float 3.2s ease-in-out 500ms infinite; color: #fff; }
+.showcase.on .sp-row { background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.14); color: rgba(255,255,255,.9); }
+.showcase.on .sp-toggle { color: rgba(255,255,255,.85); }
+.showcase.on .sp-dot { animation: turn 3s linear infinite; }
+.showcase.on .sp-box { background: var(--brand); border-color: var(--brand); }
+.showcase.on .sp-track { background: var(--brand); }
+@keyframes float { 0%, 100% { transform: translateY(0) scale(1.04); } 50% { transform: translateY(-6px) scale(1.04); } }
+@keyframes turn { to { transform: rotate(360deg); } }
+.showcase.on .sp-row, .showcase.on .sp-foot, .showcase.on .sp-head { animation: spring 560ms var(--spring) both; }
 .showcase.on .sp-row { animation-delay: 70ms; }
 .showcase.on .sp-row + .sp-row { animation-delay: 140ms; }
 .showcase.on .sp-foot { animation-delay: 210ms; }
-@keyframes spring { from { opacity: 0; transform: translateY(10px) scale(.96); } }
+@keyframes spring { from { opacity: 0; transform: translateY(14px) scale(.92); } }
 .showcase.on .sp-knob { transition: transform 420ms var(--spring); }
-.showcase.on .sp-btn { background: linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 60%, #ff9a5c)); border-color: transparent; color: #fff; }
-.showcase.on .spark { animation: twinkle 1.6s var(--ease) 300ms infinite; }
-.showcase.on .spark.s2 { animation-delay: 900ms; }
-@keyframes twinkle { 0%, 100% { opacity: 0; transform: scale(.3) rotate(0); } 40% { opacity: 1; transform: scale(1) rotate(45deg); } 70% { opacity: 0; transform: scale(.5) rotate(90deg); } }
+.showcase.on .sp-btn { background: linear-gradient(135deg, var(--brand), #ff9a5c); color: #fff; box-shadow: 0 0 0 1px rgba(255,255,255,.2) inset, 0 0 22px color-mix(in srgb, var(--brand) 75%, transparent), 0 0 44px rgba(255,154,92,.35); }
+.showcase:active .sp-btn { transform: translateY(1px) scale(.98); }
+.spark { width: 11px; height: 11px; }
+.spark.s1 { top: -9px; right: -7px; background: #ffd36b; }
+.spark.s2 { bottom: -7px; left: -8px; width: 8px; height: 8px; }
+.spark.s3 { top: -12px; left: 30%; width: 7px; height: 7px; background: #fff; }
+.spark.s4 { bottom: -10px; right: 22%; width: 9px; height: 9px; background: #ff9a5c; }
+.showcase.on .spark { animation: twinkle 1.5s var(--ease) 300ms infinite; }
+.showcase.on .spark.s2 { animation-delay: 750ms; }
+.showcase.on .spark.s3 { animation-delay: 1050ms; }
+.showcase.on .spark.s4 { animation-delay: 500ms; }
+@keyframes twinkle { 0%, 100% { opacity: 0; transform: scale(.3) rotate(0); } 40% { opacity: 1; transform: scale(1.2) rotate(45deg); } 70% { opacity: 0; transform: scale(.5) rotate(90deg); } }
 
 /* ── progress ── */
 .progress { flex: 1; display: flex; justify-content: center; padding: clamp(2rem, 8vh, 5rem) 1rem 3rem; }
@@ -432,8 +468,9 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
   .spec .sp-head, .spec .sp-row + .sp-row { display: none; }
   .sp-foot { flex-direction: column; align-items: stretch !important; gap: .375rem !important; }
   .sp-btn { text-align: center; }
-  .refined.on { transform: translateY(-2px); }
-  .showcase.on { transform: translateY(-3px); }
+  .refined.on { transform: translateY(-3px); }
+  .showcase.on { transform: translateY(-4px); }
+  .refined.on .spec, .showcase.on .spec { transform: none; animation: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
@@ -1079,7 +1116,7 @@ window.VSScrub = (function () {
         '<span class="sp-row"><span class="sp-box"></span><span data-t="specRow1"></span></span>' +
         '<span class="sp-row"><span class="sp-box"></span><span data-t="specRow2"></span></span>' +
         '<span class="sp-foot"><span class="sp-toggle"><span class="sp-track"><span class="sp-knob"></span></span><span data-t="specToggle"></span></span>' +
-        '<span class="sp-btn"><span data-t="specButton"></span><i class="spark s1"></i><i class="spark s2"></i></span></span>' +
+        '<span class="sp-btn"><span data-t="specButton"></span><i class="spark s1"></i><i class="spark s2"></i><i class="spark s3"></i><i class="spark s4"></i></span></span>' +
       '</span>' +
       '<span class="p-go"><span data-go></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>' +
       '</button>'
