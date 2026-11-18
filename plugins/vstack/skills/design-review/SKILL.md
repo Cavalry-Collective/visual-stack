@@ -13,21 +13,69 @@ Read `lenses.md` before Step 3 and `report.md` before Step 4. Both sit beside th
 
 Follow §0 of `../review/SKILL.md` to load the adapter for your host. This skill uses the Host ops `run`, `edit`, `background`, `watch_stream`, `stop` and `browser_capture`, defined in `contracts/host.md`.
 
-## Step 1: Set the scope and the polish level
+## Step 1: Set the scope and open the review
 
 The skill runs inside a conversation, so take the target and any focus areas from the current work. Ask only if the conversation leaves the target unclear.
 
-Ask which level of polish this review should aim for, unless the owner has already said:
+The owner picks the level of polish in the review page, not in chat:
 
-| Level | Aim |
-|---|---|
-| **Clean** | Consistent and easy to use. Clear hierarchy, spacing and type, every state handled, and the design system followed. No new effects. |
-| **Refined** | Clean, plus a premium feel. Considered depth, small interactions, and a transition on every state change. |
-| **Showcase** | Refined, plus thoughtful animation, special effects and moments of delight. |
+| Level | 中文 | Aim |
+|---|---|---|
+| **Clean** | 简洁 | Consistent and easy to use. Clear hierarchy, spacing and type, every state handled, and the design system followed. No new effects. |
+| **Refined** | 精致 | Clean, plus a premium feel. Considered depth, small interactions, and a transition on every state change. |
+| **Showcase** | 惊艳 | Refined, plus thoughtful animation, special effects and moments of delight. |
 
 The level decides which lenses apply and how far each proposal goes. Do not propose effects above the chosen level.
 
 If `.vstack/local/design-review/` holds an earlier round for this target, also follow **Later rounds** below.
+
+Open the review before you audit:
+
+1. Write the answers file, `.vstack/local/design-review/<target>-round-<n>.json` from the project root:
+
+   ```json
+   {"stage": "choose", "decisions": {}, "overall": "", "revised": {}}
+   ```
+
+   If the owner already named a level in chat, or this is a later round, write `"stage": "audit"` and `"level"` instead. The page then skips the choice.
+2. Copy `assets/review-start.html` to `<target>-round-<n>.html`, unchanged.
+3. Serve the page with Host op `background`. It opens in the owner's browser:
+
+   ```bash
+   LIB=<this skill dir>/../../lib
+   R=.vstack/local/design-review/<target>-round-<n>
+   node "$LIB/json-bridge.mjs" serve --json "$R.json" --template "$R.html" --tool design-review --port 0
+   ```
+
+   Give the owner the whole URL it prints, because the token is part of it.
+4. Arm the watcher with Host op `watch_stream`, passing the seq the server printed:
+
+   ```bash
+   node "$LIB/json-bridge.mjs" watch --json "$R.json" --stream --tool design-review --seq <seq>
+   ```
+
+   How the link behaves is in [`contracts/bridge-loop.md`](../../contracts/bridge-loop.md).
+5. Ask the owner to pick a level in the page, then wait for `SENT`. Do not start Step 2 until the answers file holds a `level`.
+
+The pick also saves `lang`, `en` or `zh`: the language the page showed when the owner picked.
+
+### Show progress
+
+Keep the page current while you work through Steps 2 to 4:
+
+1. Once the level is known, add `tasks` to the answers file and set `stage` to `audit`. Keep every other key. Write four to seven tasks, each in both languages:
+
+   ```json
+   {"id": "capture", "text": {"en": "Capture the screens", "zh": "截取各个页面"}, "done": false}
+   ```
+
+2. Tick each task as you finish it:
+
+   ```bash
+   node "$LIB/json-bridge.mjs" patch --json "$R.json" --id capture --set done=true
+   ```
+
+3. If you cannot finish, set `problem` to one sentence in the owner's language and say the same in chat.
 
 ## Step 2: Read the current instructions
 
@@ -37,7 +85,7 @@ Read the project instructions and anything design-related: the design guide, fro
 
 Open whatever we are working on, whether that is a dev server, a preview or a live site, with `browser_capture`. Choose the screen sizes, themes and states from the requirements.
 
-If the adapter says `browser_capture` is not available, ask the owner for screenshots of each screen and take sizes from the stylesheets. Say in the page footer what you could not measure.
+If the adapter says `browser_capture` is not available, ask the owner for screenshots of each screen and take sizes from the stylesheets. Say in chat what you could not measure.
 
 Collect evidence:
 
@@ -46,41 +94,21 @@ Collect evidence:
 - Stress the layout with the longest title, the largest list and an empty list. Check for sideways overflow.
 - Read the console for errors, where the host's browser tools can reach it.
 
-## Step 4: Write the review and open it
+## Step 4: Write the review
 
 1. Write the findings with the lenses for the chosen level:
    - Name the weakness, with its evidence and its location in the code.
    - Propose a concrete change with values, such as "13.5px, weight 600, two-line clamp".
-   - Show every finding as a before and after picture pair, with one short title. See `report.md`.
+   - Show every finding as a before and after pair of screenshots of the product, with one short title. See *Pictures* in `report.md`.
    - Report one finding per kind of defect.
    - Show two or more ways to fix one problem as variations of one section. See *Variations* in `report.md`.
    - Mark **Owner's call** on any change to something the owner clearly chose. Offer a way to keep the idea.
-2. Build the review as one self-contained HTML page. Copy `assets/report-template.html` and fill it, in the format in `report.md`. Save it as `.vstack/local/design-review/<target>-round-<n>.html`, from the project root.
+2. Build the review as one self-contained HTML page. Copy `assets/report-template.html` and fill it, in the format in `report.md`. Save it over the start page at `$R.html`.
+   - Write every word in English and in Chinese. See *Two languages* in `report.md`.
    - Cut every word a picture already says. A title, a delta and one detail per picture are the whole text.
-   - Run `vstack:proofread` on the report's words: titles, details, slice names and the footer. Read `../proofread/SKILL.md` and follow it, then put the improved words back in the page.
-3. Write the answers file beside it, as `<target>-round-<n>.json`:
-
-   ```json
-   {"decisions": {}, "overall": "", "revised": {}}
-   ```
-
-4. Serve the page with Host op `background`. It opens in the owner's browser:
-
-   ```bash
-   LIB=<this skill dir>/../../lib
-   R=.vstack/local/design-review/<target>-round-<n>
-   node "$LIB/json-bridge.mjs" serve --json "$R.json" --template "$R.html" --tool design-review --port 0
-   ```
-
-   Give the owner the whole URL it prints, because the token is part of it.
-5. Arm the watcher with Host op `watch_stream`, passing the seq the server printed:
-
-   ```bash
-   node "$LIB/json-bridge.mjs" watch --json "$R.json" --stream --tool design-review --seq <seq>
-   ```
-
-   How the link behaves is in [`contracts/bridge-loop.md`](../../contracts/bridge-loop.md).
-6. Reply in chat with the verdict, the top changes and what already works, so the owner knows what to protect. Keep the reply short.
+   - Run `vstack:proofread` on the report's words in both languages: titles, details and slice names. Read `../proofread/SKILL.md` and follow it, then put the improved words back in the page.
+3. Set `stage` to `report` in the answers file. Keep every other key. Write the HTML first: the open tab reloads into the report as soon as `stage` changes.
+4. Reply in chat with the verdict, the top changes, what already works and what you did not test. Keep the reply short.
 
 Product code stays unchanged until the owner chooses **Approve & finish** or says to build.
 
@@ -88,9 +116,10 @@ Answer each watcher event:
 
 | Event | Action |
 |---|---|
+| `SENT`, while `stage` is `choose` | The owner picked. Read `level` and `lang`, start *Show progress*, and continue at Step 2. |
 | `SENT` | Read the answers file. Revise every steered section and add variations to every `vary` section, as in *How the owner answers* in `report.md`. Do not build anything yet. |
 | `APPROVED` | Build the approved sections, in Step 5. |
-| `CLOSED` | Say the link is closed. The answers file keeps the last send. |
+| `CLOSED` | Say the link is closed. The answers file keeps the last send. If it closes during the audit, finish the report, then serve the page and arm the watcher again. |
 
 Do not build a Rejected, a steered, a `vary` or an unanswered section.
 
@@ -109,6 +138,7 @@ Build what the owner approved, one slice at a time.
 
 A later round reviews the result of the last plan. Earlier fixes can create new problems or move an old one elsewhere. Read the last round's page, and save this round under the next number.
 
+- Reuse the last round's level, unless the owner asks for another.
 - Mark each earlier area **Landed**, **Landed, broken** or **Moved**.
 - List bugs the slices introduced first. Fix a bug that blocks use in its own small change.
 - Look for what the fixes made louder.

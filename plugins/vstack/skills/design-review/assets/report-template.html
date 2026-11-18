@@ -299,7 +299,7 @@
 html { font-size: 16px; scroll-padding-top: calc(var(--bar-h) + 1.5rem); -webkit-text-size-adjust: 100%; }
 @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--surface); color: var(--ink); font: 400 1rem/1.5 var(--font); font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; }
+body { margin: 0; background: var(--surface); color: var(--ink); font: 400 .875rem/1.5 var(--font); font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; }
 .vs-topbar { font-size: 13px; }
 h1, h2, h3, p, ol, ul, figure { margin: 0; padding: 0; }
 ol, ul { list-style: none; }
@@ -308,6 +308,9 @@ a { color: inherit; text-decoration: none; }
 button { font: inherit; }
 :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 kbd { display: inline-block; min-width: 1.4em; padding: .1em .35em; border: 1px solid var(--line-2); border-bottom-width: 2px; border-radius: 4px; background: var(--surface); font: 600 11px/1.2 var(--mono); color: var(--ink-2); text-align: center; }
+
+/* The agent writes its words twice, as data-l pairs; the shell's language picks one. */
+:root:not([lang^=zh]) [data-l=zh], :root[lang^=zh] [data-l=en] { display: none !important; }
 
 /* ── top bar: progress and the split action ── */
 .tally { display: flex; align-items: center; gap: 8px; font: 600 10.5px/1 var(--mono); letter-spacing: .03em; color: var(--ink-3); white-space: nowrap; }
@@ -331,17 +334,12 @@ kbd { display: inline-block; min-width: 1.4em; padding: .1em .35em; border: 1px 
 
 /* ── layout: an index that stays put beside a column that scrolls ── */
 .layout { display: grid; grid-template-columns: 16rem minmax(0, 1fr); max-width: 94rem; margin-inline: auto; }
-.rail { position: sticky; top: var(--bar-h); align-self: start; height: calc(100vh - var(--bar-h)); overflow: auto; padding: 2.5rem 1rem 2rem 1.5rem; border-right: 1px solid var(--line); }
-main { min-width: 0; padding: 2.5rem clamp(1rem, 4vw, 3.5rem) 0; }
-.rail-h { font: 600 12px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
-.rail-progress { margin: .75rem 0 1.25rem; font-size: 14px; color: var(--ink-2); }
-.rail-progress b { font-size: 1.75rem; line-height: 1; font-weight: 700; letter-spacing: -.02em; color: var(--ink); }
-.rail-progress .segs { width: 100%; margin-top: .625rem; }
-.rail-progress .segs i { height: 4px; }
-.toc a { display: grid; grid-template-columns: 1.5rem auto minmax(0, 1fr) .5rem; align-items: center; gap: .5rem; padding: .4rem .5rem; border-radius: 6px; font-size: 14px; line-height: 1.3; color: var(--ink-2); transition: background 150ms var(--ease), color 150ms var(--ease); }
+.rail { position: sticky; top: var(--bar-h); align-self: start; height: calc(100vh - var(--bar-h)); overflow: auto; padding: 2rem .75rem 2rem 1rem; border-right: 1px solid var(--line); }
+main { min-width: 0; padding: 2rem clamp(1rem, 4vw, 3rem) 4rem; }
+.toc a { display: grid; grid-template-columns: 1.5rem auto minmax(0, 1fr) .5rem; align-items: center; gap: .5rem; padding: .35rem .5rem; border-radius: 6px; font-size: 13px; line-height: 1.3; color: var(--ink-2); transition: background 150ms var(--ease), color 150ms var(--ease); }
 .toc a:hover { background: var(--surface-2); color: var(--ink); }
 .toc a[aria-current=true] { background: var(--surface-2); color: var(--ink); box-shadow: inset 2px 0 0 var(--brand); }
-.toc .n { font: 500 12px/1 var(--mono); color: var(--ink-3); }
+.toc .n { font: 500 11px/1 var(--mono); color: var(--ink-3); }
 .toc .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .toc .sev { font-size: 11px; }
 .toc a.reject .t { color: var(--ink-3); text-decoration: line-through; }
@@ -351,53 +349,50 @@ main { min-width: 0; padding: 2.5rem clamp(1rem, 4vw, 3.5rem) 0; }
 .steer > .dot, .vary > .dot { background: var(--warn); border-color: var(--warn); }
 .revised > .dot { border-color: var(--brand); background: var(--brand-soft); }
 .unsent > .dot { transform: scale(1.25); }
-.rail-plan { display: block; margin-top: .75rem; padding: .4rem .5rem; border-top: 1px solid var(--line); font-size: 14px; color: var(--ink-2); }
+.rail-plan { display: block; margin-top: .75rem; padding: .4rem .5rem; border-top: 1px solid var(--line); font-size: 13px; color: var(--ink-2); }
 .rail-plan:hover { color: var(--ink); }
-.keys { margin-top: 1.5rem; display: grid; gap: .5rem; font-size: 12px; color: var(--ink-3); }
+.keys { margin-top: 1.5rem; display: grid; gap: .5rem; font-size: 11px; color: var(--ink-3); }
 
 /* ── masthead ── */
 .head .eyebrow { display: inline-flex; align-items: center; gap: .5rem; font: 700 11px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--brand); }
 .head .eyebrow::before { content: ""; width: 1.4rem; height: 2px; border-radius: 2px; background: var(--brand); }
-h1 { margin-top: .875rem; font-size: 2.5rem; line-height: 1.1; font-weight: 750; letter-spacing: -.025em; text-wrap: balance; }
-.meta { margin-top: .625rem; font: 500 14px/1.5 var(--mono); color: var(--ink-3); }
-.counts { display: flex; flex-wrap: wrap; gap: .5rem 1rem; margin-top: 1.25rem; font-size: 14px; color: var(--ink-2); }
-.counts span { display: inline-flex; align-items: center; gap: .375rem; }
-.howto { margin-top: .75rem; font-size: 14px; color: var(--ink-3); }
+h1 { margin-top: .75rem; font-size: 1.75rem; line-height: 1.15; font-weight: 750; letter-spacing: -.02em; text-wrap: balance; }
+.meta { margin-top: .5rem; font: 500 12px/1.5 var(--mono); color: var(--ink-3); }
 .index { display: none; flex-wrap: wrap; gap: .375rem; margin-top: 1rem; }
-.index li a { display: inline-flex; align-items: center; gap: .375rem; padding: .25rem .625rem .25rem .3rem; border: 1px solid var(--line); border-radius: 999px; font-size: 14px; }
+.index li a { display: inline-flex; align-items: center; gap: .375rem; padding: .25rem .625rem .25rem .3rem; border: 1px solid var(--line); border-radius: 999px; font-size: 13px; }
 .index .n { display: none; }
 .index a.reject .t { text-decoration: line-through; color: var(--ink-3); }
 
 /* Severity escalates by degree. Only P0 and P1 carry colour. */
-.sev { display: inline-block; padding: .05rem .4rem; border-radius: 5px; border: 1px solid var(--line-2); background: var(--surface-2); font: 700 12px/1.45 var(--mono); color: var(--ink); white-space: nowrap; }
+.sev { display: inline-block; padding: .05rem .4rem; border-radius: 5px; border: 1px solid var(--line-2); background: var(--surface-2); font: 700 11px/1.45 var(--mono); color: var(--ink); white-space: nowrap; }
 .sev.p0 { background: var(--brand); border-color: var(--brand); color: #fff; }
 .sev.p1 { background: var(--brand-soft); border-color: var(--brand-line); color: var(--p1-ink); }
 .sev.p3 { background: none; border-color: transparent; padding-inline: .1rem; color: var(--ink-3); }
 
 /* ── a section: its bar, the steer box, then the pictures ── */
-.area-title { padding: 3rem 0 .5rem; font-size: 1.75rem; line-height: 1.2; font-weight: 750; letter-spacing: -.02em; }
-.finding { position: relative; margin-top: 2.5rem; padding-top: 2.5rem; border-top: 1px solid var(--line); }
+.area-title { padding: 2.5rem 0 .25rem; font-size: 1.25rem; line-height: 1.2; font-weight: 750; letter-spacing: -.015em; }
+.finding { position: relative; margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--line); }
 .area-title + .finding { margin-top: 0; }
 .fh { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; margin: -.5rem; padding: .5rem; border-radius: 12px; }
 .finding:target > .fh { animation: arrive 1.4s var(--ease-in); }
 @keyframes arrive { from { background: var(--brand-soft); } to { background: transparent; } }
 .label { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; flex: 1 1 22rem; min-width: 0; }
-.num { font: 500 14px/1 var(--mono); color: var(--ink-3); transition: color 150ms var(--ease); }
+.num { font: 500 12px/1 var(--mono); color: var(--ink-3); transition: color 150ms var(--ease); }
 .kbd-nav .finding.current .num { color: var(--brand); }
-.kbd-nav .finding.current::before { content: ""; position: absolute; left: -1.25rem; top: 2.75rem; width: 3px; height: 2rem; border-radius: 2px; background: var(--brand); }
-h2 { font-size: 1.25rem; line-height: 1.25; font-weight: 700; letter-spacing: -.01em; transition: color 250ms var(--ease); }
+.kbd-nav .finding.current::before { content: ""; position: absolute; left: -1.25rem; top: 2.25rem; width: 3px; height: 1.5rem; border-radius: 2px; background: var(--brand); }
+h2 { font-size: 1rem; line-height: 1.3; font-weight: 700; letter-spacing: -.005em; transition: color 250ms var(--ease); }
 .is-reject h2 { color: var(--ink-3); text-decoration: line-through; text-decoration-thickness: 1.5px; }
-.delta { padding: .125rem .5rem; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); font: 600 12px/1.5 var(--mono); color: var(--ink-2); white-space: nowrap; }
-.call { padding: .125rem .5rem; border: 1px solid var(--ink-3); border-radius: 999px; font-size: 12px; font-weight: 700; line-height: 1.5; color: var(--ink-2); white-space: nowrap; }
+.delta { padding: .125rem .5rem; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); font: 600 11px/1.5 var(--mono); color: var(--ink-2); white-space: nowrap; }
+.call { padding: .125rem .5rem; border: 1px solid var(--ink-3); border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.5; color: var(--ink-2); white-space: nowrap; }
 
 /* Approve, Reject, Steer: the shell's segmented control, sized for a decision
    and coloured by what was decided. */
 .decide { display: inline-flex; flex: none; border: 1px solid var(--line-2); border-radius: 9px; background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }
-.decide button { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; height: 2.5rem; padding: 0 1rem; border: 0; border-right: 1px solid var(--line-2); background: none; color: var(--ink-2); font-size: 14px; font-weight: 600; cursor: pointer; transition: background 150ms var(--ease), color 150ms var(--ease); }
+.decide button { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; height: 2.125rem; padding: 0 .875rem; border: 0; border-right: 1px solid var(--line-2); background: none; color: var(--ink-2); font-size: 13px; font-weight: 600; cursor: pointer; transition: background 150ms var(--ease), color 150ms var(--ease); }
 .decide button:last-child { border-right: 0; }
 .decide button:hover { background: var(--surface-2); color: var(--ink); }
 .decide button:active { background: var(--line); }
-.decide svg { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.decide svg { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 .decide [aria-pressed=true] svg { animation: pop 300ms var(--ease-in); }
 .decide [data-d=approve][aria-pressed=true] { background: var(--ok); color: var(--surface); }
 .decide [data-d=reject][aria-pressed=true] { background: var(--ink-2); color: var(--surface); }
@@ -409,23 +404,21 @@ h2 { font-size: 1.25rem; line-height: 1.25; font-weight: 700; letter-spacing: -.
 .steer > div { overflow: hidden; }
 .steer-open .steer { grid-template-rows: 1fr; }
 .steer-box { margin-top: 1rem; padding: .875rem; border: 1px solid var(--warn-line); border-radius: 12px; background: var(--warn-soft); }
-.steer-box label { font-size: 14px; font-weight: 700; color: var(--warn); }
-.field { display: block; width: 100%; min-height: 4.5rem; max-height: 16rem; margin-top: .5rem; padding: .625rem .75rem; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface); color: var(--ink); font: 400 1rem/1.45 var(--font); resize: vertical; field-sizing: content; transition: border-color 150ms var(--ease), box-shadow 150ms var(--ease); }
+.steer-box label { font-size: 13px; font-weight: 700; color: var(--warn); }
+.field { display: block; width: 100%; min-height: 4.5rem; max-height: 16rem; margin-top: .5rem; padding: .625rem .75rem; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface); color: var(--ink); font: 400 .875rem/1.45 var(--font); resize: vertical; field-sizing: content; transition: border-color 150ms var(--ease), box-shadow 150ms var(--ease); }
 .field::placeholder { color: var(--ink-3); }
 .field:focus { outline: none; border-color: var(--warn); box-shadow: 0 0 0 3px var(--warn-line); }
-.steer-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .25rem 1rem; margin-top: .5rem; font-size: 12px; color: var(--ink-3); }
-.status { display: none; align-items: center; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; font-size: 14px; color: var(--ink-2); }
+.steer-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .25rem 1rem; margin-top: .5rem; font-size: 11px; color: var(--ink-3); }
+.status { display: none; align-items: center; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; font-size: 13px; color: var(--ink-2); }
 .status.on { display: flex; animation: menu-in 250ms var(--ease-in); }
 .status q { color: var(--ink-3); font-style: italic; }
-.pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); animation: pulse 2s var(--ease) infinite; }
-@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 var(--warn-line); } 50% { box-shadow: 0 0 0 6px transparent; } }
 .revised-tag { padding: .125rem .5rem; border: 1px solid var(--brand-line); border-radius: 999px; background: var(--brand-soft); font: 700 11px/1.5 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--brand); }
 
 /* ── before and after ── */
 .cmp { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; margin-top: 1.25rem; align-items: start; transition: opacity 250ms var(--ease), filter 250ms var(--ease); }
 .is-reject .cmp, .is-reject .wipe { opacity: .35; filter: grayscale(1); }
-.side figcaption { display: flex; align-items: baseline; gap: .5rem; min-height: 1.5rem; margin-bottom: .5rem; font-size: 14px; color: var(--ink-3); }
-.side figcaption b { font: 700 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); }
+.side figcaption { display: flex; align-items: baseline; gap: .5rem; min-height: 1.25rem; margin-bottom: .5rem; font-size: 13px; color: var(--ink-3); }
+.side figcaption b { font: 700 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); }
 .side.prop figcaption b { color: var(--ok); }
 .shot { position: relative; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface-2); box-shadow: var(--shadow); transition: box-shadow 250ms var(--ease), transform 250ms var(--ease); }
 .shot img { width: 100%; }
@@ -443,8 +436,7 @@ h2 { font-size: 1.25rem; line-height: 1.25; font-weight: 700; letter-spacing: -.
 
 /* Variations: several proposals for one problem, one shown at a time beside Today. */
 .variants { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: .375rem; }
-.variants-h { margin-right: .25rem; font: 700 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); }
-.variants button { display: inline-flex; align-items: center; gap: .375rem; height: 2rem; padding: 0 .75rem 0 .3rem; border: 1px solid var(--line-2); border-radius: 999px; background: var(--surface); color: var(--ink-2); font-size: 14px; font-weight: 600; cursor: pointer; transition: background 150ms var(--ease), border-color 150ms var(--ease), color 150ms var(--ease); }
+.variants button { display: inline-flex; align-items: center; gap: .375rem; height: 2rem; padding: 0 .75rem 0 .3rem; border: 1px solid var(--line-2); border-radius: 999px; background: var(--surface); color: var(--ink-2); font-size: 13px; font-weight: 600; cursor: pointer; transition: background 150ms var(--ease), border-color 150ms var(--ease), color 150ms var(--ease); }
 .variants button:hover { border-color: var(--ink-3); color: var(--ink); }
 .variants button[aria-pressed=true] { background: var(--ink-2); border-color: var(--ink-2); color: var(--surface); }
 .variants .vl { display: grid; place-items: center; width: 1.375rem; height: 1.375rem; border-radius: 50%; background: var(--surface-2); color: var(--ink-2); font: 700 11px/1 var(--mono); transition: background 250ms var(--ease), color 250ms var(--ease); }
@@ -465,24 +457,56 @@ h2 { font-size: 1.25rem; line-height: 1.25; font-weight: 700; letter-spacing: -.
 
 /* ── plan ── */
 .slices { display: grid; margin-top: .75rem; counter-reset: slice; }
-.slice { counter-increment: slice; display: grid; grid-template-columns: 2.5rem minmax(0, 1fr); align-items: center; gap: 1rem; padding-block: 1rem; border-top: 1px solid var(--line); }
-.slice::before { content: counter(slice); font: 700 1.75rem/1 var(--font); color: var(--ink-3); }
+.slice { counter-increment: slice; display: grid; grid-template-columns: 2rem minmax(0, 1fr); align-items: center; gap: .75rem; padding-block: .75rem; border-top: 1px solid var(--line); }
+.slice::before { content: counter(slice); font: 700 1.25rem/1 var(--font); color: var(--ink-3); }
 .slice-body { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; }
-.slice h3 { font-size: 1rem; font-weight: 700; }
+.slice h3 { font-size: .875rem; font-weight: 700; }
 .refs { display: flex; flex-wrap: wrap; gap: .375rem; }
-.ref { display: inline-flex; align-items: center; gap: .375rem; padding: .125rem .625rem .125rem .5rem; border: 1px solid var(--line); border-radius: 999px; font-size: 14px; color: var(--ink-2); transition: border-color 150ms var(--ease), color 150ms var(--ease); }
+.ref { display: inline-flex; align-items: center; gap: .375rem; padding: .125rem .625rem .125rem .5rem; border: 1px solid var(--line); border-radius: 999px; font-size: 13px; color: var(--ink-2); transition: border-color 150ms var(--ease), color 150ms var(--ease); }
 .ref:hover { border-color: var(--ink-3); color: var(--ink); }
 .ref.reject { color: var(--ink-3); text-decoration: line-through; }
 .stop { display: flex; align-items: center; gap: .875rem; padding-block: .75rem; font: 700 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--brand); }
 .stop::before, .stop::after { content: ""; flex: 1; border-top: 2px dashed var(--brand-line); }
 
 /* ── the close: anything else, then send ── */
-.closing { margin-top: 3rem; padding: 1.5rem; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-2); }
-.closing label { font-size: 1rem; font-weight: 700; }
+.closing { margin-top: 2.5rem; padding: 1.25rem; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
+.closing label { font-size: .875rem; font-weight: 700; }
 .closing .field:focus { border-color: var(--ink-3); box-shadow: 0 0 0 3px var(--line); }
-.closing-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 1rem; margin-top: .875rem; font-size: 14px; color: var(--ink-3); }
-.closing .btn { height: 2.5rem; padding: 0 1rem; font-size: 14px; }
-footer { margin-top: 3rem; padding: 1.25rem 0 2.5rem; border-top: 1px solid var(--line); font-size: 14px; color: var(--ink-3); }
+.closing-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 1rem; margin-top: .75rem; font-size: 13px; color: var(--ink-3); }
+.closing .btn { height: 2.125rem; padding: 0 .875rem; font-size: 13px; }
+
+/* A settled section folds to its bar, so what still needs an answer is what the owner scrolls through. */
+.finding.folded { margin-top: .25rem; padding-top: .25rem; border-top-color: transparent; }
+.finding.folded > :not(.fh) { display: none; }
+.finding.folded .label, .finding.unfolded .label { cursor: pointer; }
+.finding.folded h2 { font-weight: 600; color: var(--ink-2); }
+.finding.folded .decide { box-shadow: none; }
+.finding.folded .decide button { height: 1.75rem; padding: 0 .625rem; font-size: 12px; }
+.finding.unfolded > :not(.fh) { animation: menu-in 250ms var(--ease-in); }
+.done-group .area-title { display: flex; align-items: baseline; gap: .5rem; margin-bottom: .5rem; }
+.done-group .area-title span { font: 600 12px/1 var(--mono); color: var(--ink-3); }
+
+/* A sent steer or request for variations: the section waits behind a blur until the agent answers. */
+.finding.waiting > .cmp, .finding.waiting > .wipe { filter: blur(6px) saturate(.6); opacity: .45; pointer-events: none; user-select: none; }
+.finding.waiting > .status { position: absolute; z-index: 2; left: 50%; top: clamp(6.5rem, 30%, 14rem); transform: translateX(-50%); width: max-content; max-width: min(28rem, calc(100% - 2rem)); margin: 0; padding: .75rem 1rem; border: 1px solid var(--warn-line); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow-pop); flex-wrap: nowrap; align-items: flex-start; }
+.finding.waiting > .status q { display: block; margin-top: .25rem; }
+.spin { flex: none; width: 1rem; height: 1rem; margin-top: .1rem; border-radius: 50%; border: 2px solid var(--warn-line); border-top-color: var(--warn); animation: spin 900ms linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.finding.ready > .status { border-color: var(--brand-line); align-items: center; }
+.finding.ready > .status .btn { flex: none; }
+
+/* The agent answered: a soft glow from the screen's edge, then a quiet ring until the owner looks. */
+.arrival { position: fixed; inset: 0; z-index: 70; pointer-events: none; opacity: 0; box-shadow: inset 0 0 0 2px var(--brand-line); transition: opacity 500ms var(--ease); }
+.arrival.on { opacity: 1; animation: arrive-glow 1.8s var(--ease-in) 2 forwards; }
+@keyframes arrive-glow {
+  0% { box-shadow: inset 0 0 0 0 transparent; }
+  30% { box-shadow: inset 0 0 0 3px var(--brand), inset 0 0 140px 16px color-mix(in srgb, var(--brand) 24%, transparent); }
+  100% { box-shadow: inset 0 0 0 2px var(--brand-line), inset 0 0 60px 0 color-mix(in srgb, var(--brand) 6%, transparent); }
+}
+#pushbar.on { padding: 10px 10px 10px 16px; font-size: 13px; animation: drop-in 450ms var(--ease-in); }
+.ping { flex: none; width: .5rem; height: .5rem; border-radius: 50%; background: var(--brand); animation: ping 1.6s var(--ease) infinite; }
+@keyframes drop-in { from { opacity: 0; transform: translate(-50%, -12px) scale(.96); } }
+@keyframes ping { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 60%, transparent); } 100% { box-shadow: 0 0 0 10px transparent; } }
 
 /* ── a picture at full size, flipping between today and proposed ── */
 .lightbox { width: min(96vw, 1400px); max-width: none; max-height: 94vh; padding: 0; border: 0; border-radius: 14px; background: var(--surface); color: var(--ink); box-shadow: var(--window-shadow); }
@@ -505,7 +529,7 @@ footer { margin-top: 3rem; padding: 1.25rem 0 2.5rem; border-top: 1px solid var(
   .index { display: flex; }
 }
 @media (max-width: 760px) {
-  h1 { font-size: 1.75rem; }
+  h1 { font-size: 1.375rem; }
   .cmp, .cmp.phone { grid-template-columns: minmax(0, 1fr); }
   .label { flex-basis: 100%; }
   .decide { width: 100%; }
@@ -614,9 +638,9 @@ footer { margin-top: 3rem; padding: 1.25rem 0 2.5rem; border-top: 1px solid var(
   <!-- vstack:slot actions -->
   <div class="split" id="sendSplit">
     <button class="btn primary" id="sendBtn" type="button"></button>
-    <button class="btn primary caret" id="moreBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="More">▾</button>
+    <button class="btn primary caret" id="moreBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="More" data-t-label="more">▾</button>
     <div class="splitmenu" id="moreMenu" hidden>
-      <button id="restBtn" type="button"><span class="t">Approve the rest</span><span class="d">Approves all unanswered sections.</span></button>
+      <button id="restBtn" type="button"><span class="t" data-t="rest">Approve the rest</span><span class="d" data-t="restWhat">Approves all unanswered sections.</span></button>
       <button id="finishBtn" type="button"><span class="t"></span><span class="d"></span></button>
     </div>
   </div>
@@ -625,25 +649,21 @@ footer { margin-top: 3rem; padding: 1.25rem 0 2.5rem; border-top: 1px solid var(
 <!-- /vstack:shell topbar -->
 
 <div class="layout">
-<aside class="rail" aria-label="Findings">
-  <p class="rail-h">Decisions</p>
-  <div class="rail-progress"><b data-decided>0</b> of <span data-total>0</span> answered<span class="segs" data-segs></span></div>
+<aside class="rail" aria-label="Findings" data-t-label="findings">
   <ol class="toc" id="toc"></ol>
-  <a class="rail-plan" href="#plan">Plan</a>
-  <div class="keys"><span><kbd>J</kbd> <kbd>K</kbd> next / previous</span><span><kbd>A</kbd> <kbd>R</kbd> <kbd>S</kbd> <kbd>V</kbd> approve / reject / steer / variations</span><span><kbd>⌘</kbd> <kbd>⏎</kbd> send</span></div>
+  <a class="rail-plan" href="#plan" data-t="plan">Plan</a>
+  <div class="keys"><span><kbd>J</kbd> <kbd>K</kbd> <span data-t="keysMove">next / previous</span></span><span><kbd>A</kbd> <kbd>R</kbd> <kbd>S</kbd> <kbd>V</kbd> <span data-t="keysDecide">approve / reject / steer / variations</span></span><span><kbd>⌘</kbd> <kbd>⏎</kbd> <span data-t="keysSend">send</span></span></div>
 </aside>
 
 <main>
 <header class="head">
   <!-- FILL: round and polish level -->
-  <p class="eyebrow">Design review · Round 1 · Clean</p>
+  <p class="eyebrow"><span data-l="en">Design review · Round 1 · Clean</span><span data-l="zh">设计审阅 · 第 1 轮 · 简洁</span></p>
   <!-- FILL: the target, by its own name -->
   <h1>Target</h1>
   <!-- FILL: date, then the build or commit reviewed -->
   <p class="meta">1 Jan 2027 · main at 0000000</p>
-  <div class="counts" id="counts"></div>
-  <p class="howto">Approve, reject, or steer each section, then send.</p>
-  <ol class="index toc" id="index" aria-label="Findings"></ol>
+  <ol class="index toc" id="index" aria-label="Findings" data-t-label="findings"></ol>
 </header>
 
 <!-- A section is an article with data-decide and a stable id, worst first. Its .fh row holds the
@@ -651,10 +671,14 @@ footer { margin-top: 3rem; padding: 1.25rem 0 2.5rem; border-top: 1px solid var(
      to the index and builds Approve, Reject and Steer into the row. data-yes and data-no rename the
      first two buttons for a question. -->
 <article class="finding" id="f-example" data-decide>
-  <div class="fh"><span class="sev p1">P1</span><h2>Title in six words or fewer</h2><span class="delta">12 → 44 px</span></div>
+  <!-- Every word the agent writes comes as a pair: data-l="en" and data-l="zh". The page shows
+       the one that matches the language switch. Today and Proposed are translated for you. -->
+  <div class="fh"><span class="sev p1">P1</span><h2><span data-l="en">Title in six words or fewer</span><span data-l="zh">六个词以内的标题</span></h2><span class="delta">12 → 44 px</span></div>
   <div class="cmp">
-    <figure class="side"><figcaption><b>Today</b> One short detail</figcaption><div class="shot"><img alt="What it looks like today" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100'%3E%3Crect width='160' height='100' fill='%23f6f4f8'/%3E%3C/svg%3E"></div></figure>
-    <figure class="side prop"><figcaption><b>Proposed</b> One short detail</figcaption><div class="shot"><img alt="What it would look like" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100'%3E%3Crect width='160' height='100' fill='%23e9f9f2'/%3E%3C/svg%3E"></div></figure>
+    <!-- A .box takes data-rect="x,y,width,height" in the screenshot's own pixels: the element's
+         getBoundingClientRect() less the capture's origin, times the device scale factor. -->
+    <figure class="side"><figcaption><b>Today</b> <span data-l="en">One short detail</span><span data-l="zh">一句简短说明</span></figcaption><div class="shot"><img alt="What it looks like today" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='100' viewBox='0 0 160 100'%3E%3Crect width='160' height='100' fill='%23f6f4f8'/%3E%3C/svg%3E"><div class="box" data-rect="24,30,80,24"></div></div></figure>
+    <figure class="side prop"><figcaption><b>Proposed</b> <span data-l="en">One short detail</span><span data-l="zh">一句简短说明</span></figcaption><div class="shot"><img alt="What it would look like" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100'%3E%3Crect width='160' height='100' fill='%23e9f9f2'/%3E%3C/svg%3E"></div></figure>
   </div>
 </article>
 
@@ -678,34 +702,36 @@ footer { margin-top: 3rem; padding: 1.25rem 0 2.5rem; border-top: 1px solid var(
     <img class="before" alt="Today" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100'%3E%3Crect width='160' height='100' fill='%23f6f4f8'/%3E%3C/svg%3E">
     <img class="after" alt="Proposed" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100'%3E%3Crect width='160' height='100' fill='%23e9f9f2'/%3E%3C/svg%3E">
     <span class="tag l">Today</span><span class="tag r">Proposed</span><span class="handle"></span>
-    <input type="range" min="0" max="100" value="50" aria-label="Wipe between today and proposed">
+    <input type="range" min="0" max="100" value="50" aria-label="Wipe between today and proposed" data-t-label="wipe">
   </div>
 </article>
 
-<h2 class="area-title" id="plan">Plan</h2>
+<!-- Approved and rejected sections fold into this group once sent. The script fills it. -->
+<section class="done-group" id="done" aria-labelledby="done-title" hidden><h2 class="area-title" id="done-title"><span data-t="done">Done</span> <span data-done-count></span></h2></section>
+
+<h2 class="area-title" id="plan" data-t="plan">Plan</h2>
 <ol class="slices">
   <!-- FILL: one slice per outcome. A chip names a section by data-ref and takes its decision. -->
   <li class="slice" id="plan-1"><div class="slice-body"><h3>Slice name</h3><span class="refs"><a class="ref" data-ref="f-example" href="#f-example"><i class="dot"></i>Example finding</a><a class="ref" data-ref="f-variants" href="#f-variants"><i class="dot"></i>Two ways to fix one problem</a></span></div></li>
-  <li class="stop" id="plan-stop">I would stop here</li>
+  <li class="stop" id="plan-stop" data-t="stop">I would stop here</li>
   <li class="slice" id="plan-2"><div class="slice-body"><h3>After the stop</h3><span class="refs"><a class="ref" data-ref="f-slider" href="#f-slider"><i class="dot"></i>Drag to compare</a></span></div></li>
 </ol>
 
 <section class="closing" aria-labelledby="overall-label">
-  <label id="overall-label" for="overall">Anything about the review as a whole?</label>
-  <textarea class="field" id="overall" rows="2" placeholder="Optional. Included in your next send."></textarea>
+  <label id="overall-label" for="overall" data-t="overall">Anything about the review as a whole?</label>
+  <textarea class="field" id="overall" rows="2" placeholder="Optional. Included in your next send." data-t-placeholder="overallHint"></textarea>
   <div class="closing-foot"><span data-closing-text></span><button class="btn primary" id="closingSend" type="button"></button></div>
 </section>
 
-<!-- FILL: what you did not exercise, and why. -->
-<footer>Not tested: Safari, a real phone.</footer>
 </main>
 </div>
 
-<div class="banner dark" id="pushbar" role="status"><span data-push-text></span><button class="btn" id="pushShow" type="button">Show</button><button class="btn" id="pushLater" type="button">Later</button></div>
+<div class="arrival" id="arrival" aria-hidden="true"></div>
+<div class="banner dark" id="pushbar" role="status"><span class="ping" aria-hidden="true"></span><span data-push-text></span><button class="btn" id="pushShow" type="button" data-t="show">Show</button><button class="btn" id="pushLater" type="button" data-t="later">Later</button></div>
 <div class="banner good" id="donebar" role="status"><span class="tick">✓</span><span data-done-text></span></div>
 
-<dialog class="lightbox" id="lightbox" aria-label="Picture at full size">
-  <div class="lb-bar"><b data-lb-title></b><span class="hint">Space flips</span><div class="seg" data-lb-seg></div><button class="btn" type="button" data-lb-close>Close</button></div>
+<dialog class="lightbox" id="lightbox" aria-label="Picture at full size" data-t-label="fullSize">
+  <div class="lb-bar"><b data-lb-title></b><span class="hint" data-t="flips">Space flips</span><div class="seg" data-lb-seg></div><button class="btn" type="button" data-lb-close data-t="close">Close</button></div>
   <div class="lb-body"><img alt="" data-lb-img></div>
 </dialog>
 
@@ -1183,26 +1209,103 @@ window.VSScrub = (function () {
     vary: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 9h11v11H9z"/><path d="M5 15H4V4h11v1"/></svg>'
   }
   var isRequest = function (choice) { return REQUESTS.indexOf(choice) !== -1 }
+
+  /* The page's own words, in both languages the shell offers. A value is a
+     string, or a function of what it names. The agent's content is bilingual
+     in the markup instead, as data-l="en" and data-l="zh" pairs. */
+  var STR = {
+    pageName: ['Design review', '设计审阅'],
+    approve: ['Approve', '批准'], reject: ['Reject', '拒绝'], steer: ['Steer', '调整'], vary: ['Variations', '变体'],
+    moreVariations: ['More variations', '更多变体'],
+    decisionOn: [function (t) { return 'Decision on ' + t }, function (t) { return '对“' + t + '”的决定' }],
+    variationsOf: [function (t) { return 'Variations of ' + t }, function (t) { return '“' + t + '”的变体' }],
+    fresh: ['New', '新'],
+    askVary: ['What should the variations explore?', '变体应该往什么方向探索？'],
+    askSteer: ['What should change?', '需要改什么？'],
+    hintVary: ['Optional. A direction to try.', '可选。写一个可以尝试的方向。'],
+    hintSteer: ['What to keep, change, or try instead.', '保留什么、改什么，或换个做法。'],
+    noteSent: ['Sent.', '已发送。'],
+    noteNeeded: ['Describe what should change, then send.', '先写下要改什么，再发送。'],
+    noteQueued: ['Included in your next send.', '会随下一次发送一起提交。'],
+    steerKeys: ['send', '发送'], steerDone: ['done', '完成'],
+    revised: ['Revised', '已修改'], youAsked: ['You asked:', '你的要求：'], reviewAgain: ['Review again.', '请重新审阅。'],
+    ready: ['Ready', '已就绪'],
+    answered: [function (a) { return a + ' has answered.' }, function (a) { return a + ' 已回复。' }],
+    revising: [function (a) { return a + ' is revising this section.' }, function (a) { return a + ' 正在修改这一部分。' }],
+    drawing: [function (a) { return a + ' is drawing more variations.' }, function (a) { return a + ' 正在绘制更多变体。' }],
+    show: ['Show', '查看'], later: ['Later', '稍后'],
+    unfold: ['Show the pictures', '展开图片'], fold: ['Fold away', '收起'],
+    copy: ['Copy decisions', '复制决定'],
+    sendCount: [function (n, a) { return 'Send ' + n + ' to ' + a }, function (n, a) { return '发送 ' + n + ' 项给 ' + a }],
+    sendTo: [function (a) { return 'Send to ' + a }, function (a) { return '发送给 ' + a }],
+    tally: [function (d, n) { return d + ' / ' + n + ' ANSWERED' }, function (d, n) { return '已回答 ' + d + ' / ' + n }],
+    isFinished: ['This review is finished.', '本次审阅已结束。'],
+    finished: ['Finished', '已结束'], pressAgain: ['Press again to finish', '再按一次以结束'], finish: ['Approve & finish', '批准并结束'],
+    finishWhat: [function (approved, open) { return 'Ends the review. Builds the ' + approved + ' approved' + (open ? ' and skips the ' + open + ' unanswered.' : '.') },
+      function (approved, open) { return '结束审阅。构建已批准的 ' + approved + ' 项' + (open ? '，跳过未回答的 ' + open + ' 项。' : '。') }],
+    copied: [function (a) { return 'Copied. Paste it to ' + a + '.' }, function (a) { return '已复制。请粘贴给 ' + a + '。' }],
+    copyPrompt: ['Copy your decisions', '复制你的决定'],
+    sentTo: [function (a) { return 'Sent to ' + a + '.' }, function (a) { return '已发送给 ' + a + '。' }],
+    notSent: ['Not sent. Your answers are kept here. Try again.', '未发送。你的回答仍保留在这里，请重试。'],
+    building: [function (a, n) { return 'Review finished. ' + a + ' is building the ' + n + ' approved.' }, function (a, n) { return '审阅已结束。' + a + ' 正在构建已批准的 ' + n + ' 项。' }],
+    notFinished: ['Not finished. Try again.', '未能结束，请重试。'],
+    picture: [function (n) { return 'Picture ' + n }, function (n) { return '图片 ' + n }],
+    revisedCount: [function (a, n) { return a + ' revised ' + n + (n === 1 ? ' section.' : ' sections.') }, function (a, n) { return a + ' 修改了 ' + n + ' 个部分。' }],
+    updated: [function (a) { return a + ' updated the review.' }, function (a) { return a + ' 更新了审阅。' }],
+    today: ['Today', '现状'], proposed: ['Proposed', '建议'],
+    rest: ['Approve the rest', '批准其余'], restWhat: ['Approves all unanswered sections.', '批准所有未回答的部分。'],
+    more: ['More', '更多'], findings: ['Findings', '发现'],
+    plan: ['Plan', '计划'], done: ['Done', '已完成'],
+    keysMove: ['next / previous', '下一个 / 上一个'], keysDecide: ['approve / reject / steer / variations', '批准 / 拒绝 / 调整 / 变体'], keysSend: ['send', '发送'],
+    overall: ['Anything about the review as a whole?', '对整个审阅还有什么想说的？'],
+    overallHint: ['Optional. Included in your next send.', '可选。会随下一次发送一起提交。'],
+    flips: ['Space flips', '空格键切换'], close: ['Close', '关闭'], fullSize: ['Picture at full size', '原尺寸图片'],
+    wipe: ['Wipe between today and proposed', '在现状和建议之间拖动对比'],
+    stop: ['I would stop here', '建议到此为止']
+  }
+  var zh = function () { return window.VSShell.lang === 'zh' }
+  var t = function (key) {
+    var value = STR[key][zh() ? 1 : 0]
+    return typeof value === 'function' ? value.apply(null, Array.prototype.slice.call(arguments, 1)) : value
+  }
+  /* The agent's words in the language on show: a data-l pair, or one text for both. */
+  var textIn = function (node, lang) {
+    if (!node) return ''
+    var copy = node.cloneNode(true)
+    $$('.call, [data-l]:not([data-l="' + (lang || (zh() ? 'zh' : 'en')) + '"])', copy).forEach(function (other) { other.remove() })
+    return copy.textContent.replace(/\s+/g, ' ').trim()
+  }
+  /* Static words in the markup carry data-t, data-t-placeholder, data-t-title or data-t-label. */
+  var paintWords = function () {
+    $$('[data-t]').forEach(function (el) { el.textContent = t(el.dataset.t) })
+    $$('[data-t-placeholder]').forEach(function (el) { el.placeholder = t(el.dataset.tPlaceholder) })
+    $$('[data-t-title]').forEach(function (el) { el.title = t(el.dataset.tTitle) })
+    $$('[data-t-label]').forEach(function (el) { el.setAttribute('aria-label', t(el.dataset.tLabel)) })
+  }
+  /* Today and Proposed are the template's words even where the agent typed them. */
+  $$('.side figcaption b, .wipe .tag').forEach(function (tag) {
+    var key = { today: 'today', proposed: 'proposed' }[tag.textContent.trim().toLowerCase()]
+    if (key) tag.dataset.t = key
+  })
+
   var sections = $$('[data-decide]')
   var overallBox = $('#overall')
   var sendBtn = $('#sendBtn'), moreBtn = $('#moreBtn'), moreMenu = $('#moreMenu')
   var restBtn = $('#restBtn'), finishBtn = $('#finishBtn'), closingSend = $('#closingSend')
   var storageKey = 'vstack-report:' + document.title
 
-  var titles = {}
-  sections.forEach(function (el) {
-    var heading = $('h2', el)
-    var copy = heading ? heading.cloneNode(true) : null
-    if (copy) $$('.call', copy).forEach(function (call) { call.remove() })
-    titles[el.id] = copy ? copy.textContent.trim() : el.id
-  })
+  var titleOf = function (id, lang) { return textIn($('h2', document.getElementById(id)), lang) || id }
 
   /* `held` is what the agent has; `drafts` is what the owner changed since.
      A draft of null clears a decision the agent already holds. */
-  var held = { decisions: {}, overall: '', revised: {} }
+  var held = { decisions: {}, overall: '', revised: {}, kept: {} }
   var drafts = {}
   /* A sent request reopens its box only while the owner edits its note. */
   var editing = {}
+  /* A settled section is folded unless the owner opened it, or has only just decided it. */
+  var opened = {}, lingering = {}
+  /* Sections the agent has answered since this version of the page loaded. */
+  var ready = {}
   var finished = false
   var finishArmed = false
   var pendingPush = null
@@ -1214,13 +1317,20 @@ window.VSScrub = (function () {
       (!isRequest(a.choice) || (a.note || '').trim() === (b.note || '').trim())
   }
   var decisionOf = function (id) { return (id in drafts ? drafts[id] : held.decisions[id]) || null }
+  var isSettled = function (choice) { return choice === 'approve' || choice === 'reject' }
+  var settled = function (el) { return isSettled(choiceOf(decisionOf(el.id))) }
   var sendable = function (draft) { return draft === null || draft.choice !== 'steer' || (draft.note || '').trim().length > 0 }
   var unsentIds = function () { return Object.keys(drafts).filter(function (id) { return sendable(drafts[id]) }) }
   var pendingCount = function () { return unsentIds().length + (overallBox.value.trim() ? 1 : 0) }
 
   var normalize = function (doc) {
-    var clean = { decisions: {}, overall: '', revised: {} }
+    var clean = { decisions: {}, overall: '', revised: {}, kept: {} }
     if (!doc || typeof doc !== 'object') return clean
+    /* The agent keeps more in this file than the answers, such as the level and
+       language of the review. A send writes them back as they were. */
+    Object.keys(doc).forEach(function (key) {
+      if (['decisions', 'overall', 'revised'].indexOf(key) === -1) clean.kept[key] = doc[key]
+    })
     Object.keys(doc.decisions || {}).forEach(function (id) {
       var decision = doc.decisions[id]
       if (!decision || CHOICES.indexOf(decision.choice) === -1) return
@@ -1261,20 +1371,25 @@ window.VSScrub = (function () {
 
   /* ── building the page from its sections ── */
   var number = function (index) { return String(index + 1).padStart(2, '0') }
+  var tocTitle = function (el) {
+    var copy = $('h2', el).cloneNode(true)
+    $$('.call', copy).forEach(function (call) { call.remove() })
+    return copy.innerHTML
+  }
   var tocItems = sections.map(function (el, index) {
     var sev = $('.sev', el)
     return '<li><a href="#' + el.id + '" data-ref="' + el.id + '"><span class="n">' + number(index) + '</span>' +
-      (sev ? sev.outerHTML : '') + '<span class="t">' + esc(titles[el.id]) + '</span><i class="dot"></i></a></li>'
+      (sev ? sev.outerHTML : '') + '<span class="t">' + tocTitle(el) + '</span><i class="dot"></i></a></li>'
   }).join('')
   $('#toc').innerHTML = tocItems
   $('#index').innerHTML = tocItems
 
-  var severities = {}
-  sections.forEach(function (el) { var sev = $('.sev', el); if (sev) severities[sev.textContent.trim()] = (severities[sev.textContent.trim()] || []).concat(sev) })
-  $('#counts').innerHTML = Object.keys(severities).sort().map(function (label) {
-    return '<span>' + severities[label][0].outerHTML + ' ' + severities[label].length + '</span>'
-  }).join('')
-  $$('[data-total]').forEach(function (el) { el.textContent = sections.length })
+  /* Each section remembers where the agent put it, so it can leave for Done and come back. */
+  var homes = {}
+  sections.forEach(function (el) {
+    homes[el.id] = document.createComment(el.id)
+    el.parentNode.insertBefore(homes[el.id], el)
+  })
 
   sections.forEach(function (el, index) {
     var bar = $('.fh', el)
@@ -1283,23 +1398,18 @@ window.VSScrub = (function () {
     while (bar.firstChild) label.appendChild(bar.firstChild)
     label.insertAdjacentHTML('afterbegin', '<span class="num">' + number(index) + '</span>')
     bar.appendChild(label)
-    var names = { approve: el.dataset.yes || 'Approve', reject: el.dataset.no || 'Reject', steer: 'Steer', vary: 'Variations' }
-    var hints = { vary: 'More variations' }
     var group = document.createElement('div')
     group.className = 'decide'
     group.setAttribute('role', 'group')
-    group.setAttribute('aria-label', 'Decision on ' + titles[el.id])
     group.innerHTML = CHOICES.map(function (choice) {
-      return '<button type="button" data-d="' + choice + '" aria-pressed="false" title="' + esc(hints[choice] || names[choice]) + ' (' + choice[0].toUpperCase() + ')">' +
-        ICONS[choice] + '<span>' + esc(names[choice]) + '</span></button>'
+      return '<button type="button" data-d="' + choice + '" aria-pressed="false">' + ICONS[choice] + '<span></span></button>'
     }).join('')
-    el.dataset.approveName = names.approve
     bar.appendChild(group)
     bar.insertAdjacentHTML('afterend',
       '<div class="steer" inert><div><div class="steer-box">' +
       '<label for="steer-' + el.id + '"></label>' +
-      '<textarea class="field" id="steer-' + el.id + '" rows="2"></textarea>' +
-      '<div class="steer-foot"><span data-steer-state></span><span><kbd>⌘</kbd> <kbd>⏎</kbd> send · <kbd>esc</kbd> done</span></div>' +
+      '<textarea class="field" id="steer-' + el.id + '" rows="2" autocomplete="off"></textarea>' +
+      '<div class="steer-foot"><span data-steer-state></span><span><kbd>⌘</kbd> <kbd>⏎</kbd> <span data-t="steerKeys"></span> · <kbd>esc</kbd> <span data-t="steerDone"></span></span></div>' +
       '</div></div></div><p class="status" aria-live="polite"></p>')
     $$('.decide button', el).forEach(function (button) {
       button.addEventListener('click', function () { choose(el, button.dataset.d) })
@@ -1307,6 +1417,11 @@ window.VSScrub = (function () {
     var box = $('.steer textarea', el)
     box.addEventListener('input', function () {
       setDraft(el.id, { choice: choiceOf(decisionOf(el.id)), note: box.value })
+    })
+    label.addEventListener('click', function () {
+      if (!settled(el)) return
+      opened[el.id] = !opened[el.id]
+      paintSection(el)
     })
   })
 
@@ -1328,11 +1443,10 @@ window.VSScrub = (function () {
     var strip = document.createElement('div')
     strip.className = 'variants'
     strip.setAttribute('role', 'group')
-    strip.setAttribute('aria-label', 'Variations of ' + titles[el.id])
-    strip.innerHTML = '<span class="variants-h">' + figures.length + ' variations</span>' +
-      variantsOf[el.id].map(function (variant) {
+    strip.innerHTML = variantsOf[el.id].map(function (variant) {
         return '<button type="button" aria-pressed="false" data-v="' + esc(variant.name) + '"><span class="vl">' + variant.letter + '</span>' +
-          (variant.name !== variant.letter ? esc(variant.name) : '') + (variant.fresh ? '<span class="new">New</span>' : '') + '</button>'
+          (variant.name !== variant.letter ? '<span data-l="en">' + esc(variant.name) + '</span><span data-l="zh">' + esc(variant.figure.dataset.variantZh || variant.name) + '</span>' : '') +
+          (variant.fresh ? '<span class="new" data-t="fresh"></span>' : '') + '</button>'
       }).join('')
     cmp.insertBefore(strip, cmp.firstChild)
     $$('button', strip).forEach(function (button) {
@@ -1354,6 +1468,35 @@ window.VSScrub = (function () {
   }
 
   $$('.cmp .shot').forEach(function (shot) { if ($('img', shot)) shot.classList.add('zoom') })
+
+  /* A box names its area in the screenshot's own pixels, as measured in the page that was
+     captured. Placing it from the image's natural size keeps it on its target at every
+     width, and inside a 16:10 crop. */
+  var placeBoxes = function (shot) {
+    var img = $('img', shot)
+    if (!img || !img.naturalWidth) return
+    var width = img.clientWidth, height = img.clientHeight
+    var fit = shot.closest('.cmp.fixed') ? 'cover' : 'width'
+    var scale = fit === 'cover' ? Math.max(width / img.naturalWidth, height / img.naturalHeight) : width / img.naturalWidth
+    var left = (width - img.naturalWidth * scale) / 2
+    $$('.box[data-rect]', shot).forEach(function (box) {
+      var rect = box.dataset.rect.split(',').map(Number)
+      box.style.left = (left + rect[0] * scale) + 'px'
+      box.style.top = (rect[1] * scale) + 'px'
+      box.style.width = (rect[2] * scale) + 'px'
+      box.style.height = (rect[3] * scale) + 'px'
+    })
+  }
+  var boxedShots = $$('.shot').filter(function (shot) { return $('.box[data-rect]', shot) })
+  boxedShots.forEach(function (shot) {
+    var img = $('img', shot)
+    if (img) img.addEventListener('load', function () { placeBoxes(shot) })
+    placeBoxes(shot)
+  })
+  if (boxedShots.length && window.ResizeObserver) {
+    var resized = new ResizeObserver(function (entries) { entries.forEach(function (entry) { placeBoxes(entry.target) }) })
+    boxedShots.forEach(function (shot) { resized.observe(shot) })
+  }
   $$('.wipe').forEach(function (wipe) {
     var input = $('input', wipe)
     input.addEventListener('input', function () { wipe.style.setProperty('--pos', input.value + '%') })
@@ -1368,13 +1511,22 @@ window.VSScrub = (function () {
     var variants = variantsOf[el.id], shown = shownOf[el.id]
     var approvedVariant = choice === 'approve' && variants ? decision.variant : null
     CHOICES.forEach(function (c) { el.classList.toggle('is-' + c, choice === c) })
+    var names = {
+      approve: (zh() && el.dataset.yesZh) || el.dataset.yes || t('approve'),
+      reject: (zh() && el.dataset.noZh) || el.dataset.no || t('reject'),
+      steer: t('steer'), vary: t('vary')
+    }
+    $('.decide', el).setAttribute('aria-label', t('decisionOn', titleOf(el.id)))
     $$('.decide button', el).forEach(function (button) {
       var pressed = button.dataset.d === choice && (!approvedVariant || approvedVariant === shown)
       button.setAttribute('aria-pressed', String(pressed))
+      $('span', button).textContent = names[button.dataset.d]
+      button.title = (button.dataset.d === 'vary' ? t('moreVariations') : names[button.dataset.d]) + ' (' + button.dataset.d[0].toUpperCase() + ')'
     })
     if (variants) {
       var letter = variantNamed(el.id, shown).letter
-      $('.decide [data-d=approve] span', el).textContent = el.dataset.approveName + ' ' + letter
+      $('.variants', el).setAttribute('aria-label', t('variationsOf', titleOf(el.id)))
+      $('.decide [data-d=approve] span', el).textContent = names.approve + ' ' + letter
       variants.forEach(function (variant) { variant.figure.classList.toggle('chosen', variant.name === approvedVariant) })
       $$('.variants button', el).forEach(function (button) { button.classList.toggle('chosen', button.dataset.v === approvedVariant) })
     }
@@ -1383,34 +1535,57 @@ window.VSScrub = (function () {
     el.classList.toggle('steer-open', open)
     steer.inert = !open
     if (!open && steer.contains(document.activeElement)) document.activeElement.blur()
-    if (isRequest(choice) && document.activeElement !== box) box.value = decision.note || ''
-    $('label', steer).textContent = choice === 'vary' ? 'What should the variations explore?' : 'What should change?'
-    box.placeholder = choice === 'vary' ? 'Optional. A direction to try.' : 'What to keep, change, or try instead.'
+    if (document.activeElement !== box) box.value = isRequest(choice) ? decision.note || '' : ''
+    $('label', steer).textContent = choice === 'vary' ? t('askVary') : t('askSteer')
+    box.placeholder = choice === 'vary' ? t('hintVary') : t('hintSteer')
     var unsent = el.id in drafts
     var noteNeeded = choice === 'steer' && !(decision.note || '').trim()
-    $('[data-steer-state]', el).textContent = !unsent ? 'Sent.' : noteNeeded ? 'Describe what should change, then send.' : 'Included in your next send.'
+    $('[data-steer-state]', el).textContent = !unsent ? t('noteSent') : noteNeeded ? t('noteNeeded') : t('noteQueued')
 
     var status = $('.status', el)
     var heldDecision = held.decisions[el.id]
     var heldRequest = !unsent && isRequest(choiceOf(heldDecision))
     var revisedNote = held.revised[el.id]
     var html = ''
+    var waiting = heldRequest && !!BRIDGE && !finished
     if (revisedNote !== undefined && !decision) {
-      html = '<span class="revised-tag">Revised</span><span>' +
-        (revisedNote ? 'You asked: <q>' + esc(revisedNote) + '</q> ' : '') + 'Review again.</span>'
-    } else if (heldRequest && BRIDGE && !finished) {
-      var asked = heldDecision.note ? ' You asked: <q>' + esc(heldDecision.note) + '</q>' : ''
-      html = '<span class="pulse" aria-hidden="true"></span><span>' + esc(agentName()) +
-        (heldDecision.choice === 'vary' ? ' is drawing more variations.' : ' is revising this section.') + asked + '</span>'
+      html = '<span class="revised-tag">' + t('revised') + '</span><span>' +
+        (revisedNote ? t('youAsked') + ' <q>' + esc(revisedNote) + '</q> ' : '') + t('reviewAgain') + '</span>'
+    } else if (waiting && ready[el.id]) {
+      html = '<span class="revised-tag">' + t('ready') + '</span><span>' + esc(t('answered', agentName())) + '</span>' +
+        '<button class="btn primary sm" type="button" data-show-revision>' + t('show') + '</button>'
+    } else if (waiting) {
+      var asked = heldDecision.note ? '<q>' + esc(heldDecision.note) + '</q>' : ''
+      html = '<span class="spin" aria-hidden="true"></span><span>' +
+        esc(t(heldDecision.choice === 'vary' ? 'drawing' : 'revising', agentName())) + asked + '</span>'
     }
-    status.innerHTML = html
+    if (status.innerHTML !== html) status.innerHTML = html
     status.classList.toggle('on', !!html)
+    el.classList.toggle('waiting', waiting)
+    el.classList.toggle('ready', waiting && !!ready[el.id])
+
+    var isFolded = settled(el) && !opened[el.id] && !lingering[el.id]
+    el.classList.toggle('folded', isFolded)
+    el.classList.toggle('unfolded', settled(el) && !!opened[el.id])
+    $('.label', el).title = settled(el) ? (isFolded ? t('unfold') : t('fold')) : ''
 
     $$('[data-ref="' + el.id + '"]').forEach(function (ref) {
       CHOICES.forEach(function (c) { ref.classList.toggle(c, choice === c) })
       ref.classList.toggle('revised', revisedNote !== undefined && !decision)
       ref.classList.toggle('unsent', unsent)
     })
+  }
+
+  /* A section the agent holds as approved or rejected moves to Done; anything else stays where the agent put it. */
+  var doneGroup = $('#done')
+  var regroup = function () {
+    var done = sections.filter(function (el) { return isSettled(choiceOf(held.decisions[el.id])) && !(el.id in drafts) })
+    sections.forEach(function (el) {
+      if (done.indexOf(el) !== -1) doneGroup.appendChild(el)
+      else if (el.parentNode === doneGroup) homes[el.id].parentNode.insertBefore(el, homes[el.id].nextSibling)
+    })
+    doneGroup.hidden = !done.length
+    $('[data-done-count]').textContent = done.length
   }
 
   var paintTotals = function () {
@@ -1423,20 +1598,17 @@ window.VSScrub = (function () {
     var decided = counts.approve + counts.reject + counts.steer + counts.vary
     var open = sections.length - decided
     $$('[data-segs]').forEach(function (segs) { segs.innerHTML = cells })
-    $$('[data-decided]').forEach(function (el) { el.textContent = decided })
-    $$('[data-tally-text]').forEach(function (el) { el.textContent = decided + ' / ' + sections.length + ' ANSWERED' })
+    $$('[data-tally-text]').forEach(function (el) { el.textContent = t('tally', decided, sections.length) })
 
     var pending = pendingCount()
-    var label = !BRIDGE ? 'Copy decisions'
-      : pending ? 'Send ' + pending + ' to ' + agentName() : 'Send to ' + agentName()
+    var label = !BRIDGE ? t('copy') : pending ? t('sendCount', pending, agentName()) : t('sendTo', agentName())
     var kbd = ' <span class="kbd">⌘⏎</span>'
     sendBtn.innerHTML = esc(label) + kbd
     closingSend.textContent = label
     var disabled = finished || (BRIDGE ? !pending : decided === 0 && !overallBox.value.trim())
     sendBtn.disabled = disabled
     closingSend.disabled = disabled
-    $('[data-closing-text]').textContent = finished ? 'This review is finished.'
-      : open ? open + ' of ' + sections.length + ' still unanswered.' : 'Every section is answered.'
+    $('[data-closing-text]').textContent = finished ? t('isFinished') : ''
     restBtn.disabled = finished || open === 0
     paintFinish(counts.approve, open)
   }
@@ -1445,9 +1617,8 @@ window.VSScrub = (function () {
       approved = sections.filter(function (el) { return choiceOf(decisionOf(el.id)) === 'approve' }).length
       open = sections.filter(function (el) { return !decisionOf(el.id) }).length
     }
-    $('.t', finishBtn).textContent = finished ? 'Finished' : finishArmed ? 'Press again to finish' : 'Approve & finish'
-    $('.d', finishBtn).textContent = finished ? '' : 'Ends the review. Builds the ' + approved + ' approved' +
-      (open ? ' and skips the ' + open + ' unanswered.' : '.')
+    $('.t', finishBtn).textContent = finished ? t('finished') : finishArmed ? t('pressAgain') : t('finish')
+    $('.d', finishBtn).textContent = finished ? '' : t('finishWhat', approved, open)
     finishBtn.disabled = finished
   }
   var paintAll = function () { sections.forEach(paintSection); paintTotals() }
@@ -1478,7 +1649,14 @@ window.VSScrub = (function () {
       return
     }
     var same = choiceOf(current) === choice && (choice !== 'approve' || !shown || current.variant === shown)
-    var next = same ? null : { choice: choice, note: isRequest(choice) ? box.value : '' }
+    /* A note carries over between steer and variations, never from a request already answered. */
+    var note = isRequest(choice) && isRequest(choiceOf(current)) ? box.value : ''
+    var next = same ? null : { choice: choice, note: note }
+    if (next && isSettled(choice) && !isSettled(choiceOf(current))) {
+      lingering[el.id] = true
+      setTimeout(function () { delete lingering[el.id]; paintSection(el) }, 600)
+    }
+    if (!next || !isSettled(choice)) delete opened[el.id]
     if (next && choice === 'approve' && shown) next.variant = shown
     if (next === null && !held.decisions[el.id]) next = undefined
     if (!next) delete editing[el.id]
@@ -1488,7 +1666,7 @@ window.VSScrub = (function () {
 
   var summary = function (ids) {
     var lines = ['Decisions from the design review.']
-    var name = function (id) { return id + ' (' + titles[id] + ')' }
+    var name = function (id) { return id + ' (' + titleOf(id, 'en') + ')' }
     var all = ids.map(function (id) { return { id: id, decision: decisionOf(id) } })
     var named = function (choice) {
       return all.filter(function (item) { return choiceOf(item.decision) === choice }).map(function (item) {
@@ -1510,9 +1688,9 @@ window.VSScrub = (function () {
 
   var copyDecisions = function () {
     var text = summary(sections.map(function (el) { return el.id }))
-    var done = function () { window.VSShell.toast('Copied. Paste it to ' + agentName() + '.') }
-    if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () { window.prompt('Copy your decisions', text) })
-    else window.prompt('Copy your decisions', text)
+    var done = function () { window.VSShell.toast(t('copied', agentName())) }
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () { window.prompt(t('copyPrompt'), text) })
+    else window.prompt(t('copyPrompt'), text)
   }
 
   var post = function (path, body) {
@@ -1524,7 +1702,7 @@ window.VSScrub = (function () {
     if (!BRIDGE) { copyDecisions(); return Promise.resolve(true) }
     var ids = unsentIds(), overall = overallBox.value.trim()
     if (!ids.length && !overall) return Promise.resolve(true)
-    var next = { decisions: Object.assign({}, held.decisions), overall: overall, revised: Object.assign({}, held.revised) }
+    var next = Object.assign({}, held.kept, { decisions: Object.assign({}, held.decisions), overall: overall, revised: Object.assign({}, held.revised) })
     ids.forEach(function (id) {
       var draft = drafts[id]
       var note = (draft && draft.note || '').trim()
@@ -1537,14 +1715,15 @@ window.VSScrub = (function () {
     sendBtn.disabled = true
     return post(BRIDGE.save, next).then(function () {
       held = normalize(next)
-      ids.forEach(function (id) { delete drafts[id]; delete editing[id] })
+      ids.forEach(function (id) { delete drafts[id]; delete editing[id]; delete opened[id] })
       overallBox.value = ''
       save()
+      regroup()
       paintAll()
-      window.VSShell.toast('Sent to ' + agentName() + '.')
+      window.VSShell.toast(t('sentTo', agentName()))
       return true
     }, function () {
-      window.VSShell.toast('Not sent. Your answers are kept here. Try again.')
+      window.VSShell.toast(t('notSent'))
       paintTotals()
       return false
     })
@@ -1560,10 +1739,10 @@ window.VSScrub = (function () {
         root.classList.add('finished')
         window.VSShell.hideLink()
         var approved = sections.filter(function (el) { return choiceOf(held.decisions[el.id]) === 'approve' }).length
-        $('[data-done-text]').textContent = 'Review finished. ' + agentName() + ' is building the ' + approved + ' approved.'
+        $('[data-done-text]').textContent = t('building', agentName(), approved)
         $('#donebar').classList.add('on')
         paintAll()
-      }, function () { window.VSShell.toast('Not finished. Try again.') })
+      }, function () { window.VSShell.toast(t('notFinished')) })
     })
   }
 
@@ -1600,11 +1779,16 @@ window.VSScrub = (function () {
     if (el) el.classList.add('current')
     $$('#toc a').forEach(function (link) { link.setAttribute('aria-current', String(!!el && link.dataset.ref === el.id)) })
   }
+  /* Page order, which Done changes; `sections` keeps the agent's order for numbering. */
+  var inOrder = function () {
+    return sections.slice().sort(function (a, b) { return a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1 })
+  }
   var inView = function () {
+    var ordered = inOrder()
     var atEnd = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4
-    if (atEnd) return sections[sections.length - 1]
+    if (atEnd) return ordered[ordered.length - 1]
     var line = 46 + window.innerHeight * 0.45
-    return sections.filter(function (el) { return el.getBoundingClientRect().top <= line }).pop() || sections[0]
+    return ordered.filter(function (el) { return el.getBoundingClientRect().top <= line }).pop() || ordered[0]
   }
   var ticking = false
   window.addEventListener('scroll', function () {
@@ -1613,10 +1797,11 @@ window.VSScrub = (function () {
     requestAnimationFrame(function () { ticking = false; setCurrent(inView()) })
   }, { passive: true })
   var move = function (step) {
-    var index = Math.max(0, Math.min(sections.length - 1, sections.indexOf(current || inView()) + step))
+    var ordered = inOrder()
+    var index = Math.max(0, Math.min(ordered.length - 1, ordered.indexOf(current || inView()) + step))
     root.classList.add('kbd-nav')
-    sections[index].scrollIntoView({ block: 'start' })
-    setCurrent(sections[index])
+    ordered[index].scrollIntoView({ block: 'start' })
+    setCurrent(ordered[index])
   }
 
   document.addEventListener('keydown', function (event) {
@@ -1656,12 +1841,13 @@ window.VSScrub = (function () {
     showing.figures = $$('.side', pair).filter(function (side) { return $('.shot img', side) })
     showing.index = showing.figures.indexOf(shot.closest('.side'))
     var section = shot.closest('[data-decide]')
-    $('[data-lb-title]').textContent = section ? titles[section.id] : ''
+    $('[data-lb-title]').textContent = section ? titleOf(section.id) : ''
     var variants = section ? variantsOf[section.id] || [] : []
     $('[data-lb-seg]').innerHTML = showing.figures.map(function (side, index) {
       var variant = variants.filter(function (each) { return each.figure === side })[0]
       var tag = $('figcaption b', side)
-      var text = variant ? variant.letter + (variant.name !== variant.letter ? ' ' + variant.name : '') : tag ? tag.textContent : 'Picture ' + (index + 1)
+      var variantName = variant && ((zh() && side.dataset.variantZh) || variant.name)
+      var text = variant ? variant.letter + (variant.name !== variant.letter ? ' ' + variantName : '') : tag ? tag.textContent : t('picture', index + 1)
       return '<button type="button" data-i="' + index + '">' + esc(text) + '</button>'
     }).join('')
     $('.hint', lightbox).hidden = showing.figures.length < 2
@@ -1683,29 +1869,52 @@ window.VSScrub = (function () {
   })
 
   /* ── the agent's side of the link ── */
-  var pushbar = $('#pushbar')
-  $('#pushShow').addEventListener('click', function () {
+  var pushbar = $('#pushbar'), arrival = $('#arrival')
+  var pageTitle = document.title, titleTimer = null
+  var showRevision = function () {
     save()
     var target = pendingPush && pendingPush.fresh[0]
     history.replaceState(null, '', location.pathname + location.search + (target ? '#' + target : ''))
     location.reload()
-  })
-  $('#pushLater').addEventListener('click', function () { pushbar.classList.remove('on') })
+  }
+  var quiet = function () {
+    pushbar.classList.remove('on')
+    arrival.classList.remove('on')
+    clearInterval(titleTimer)
+    document.title = pageTitle
+  }
+  $('#pushShow').addEventListener('click', showRevision)
+  $('#pushLater').addEventListener('click', quiet)
+  document.addEventListener('click', function (event) { if (event.target.closest('[data-show-revision]')) showRevision() })
+  /* The owner may be in another tab while the agent works, so the tab's title says it too. */
+  var announce = function (text) {
+    $('[data-push-text]').textContent = text
+    pushbar.classList.add('on')
+    arrival.classList.remove('on')
+    void arrival.offsetWidth
+    arrival.classList.add('on')
+    clearInterval(titleTimer)
+    var flip = false
+    titleTimer = setInterval(function () { flip = !flip; document.title = flip ? '● ' + text : pageTitle }, 1200)
+  }
   var onPush = function (doc) {
     var next = normalize(doc)
     var fresh = Object.keys(next.revised).filter(function (id) { return held.revised[id] !== next.revised[id] })
     pendingPush = { fresh: fresh }
-    $('[data-push-text]').textContent = fresh.length
-      ? agentName() + ' revised ' + fresh.length + (fresh.length === 1 ? ' section.' : ' sections.')
-      : agentName() + ' updated the review.'
-    pushbar.classList.add('on')
+    fresh.forEach(function (id) { ready[id] = true })
+    paintAll()
+    announce(fresh.length ? t('revisedCount', agentName(), fresh.length) : t('updated', agentName()))
   }
 
   var start = function () {
-    window.VSShell.init({ name: 'Design review' })
+    window.VSShell.init({ defaultLang: held.kept.lang })
+    var paintLanguage = function () { window.VSShell.name(t('pageName')); paintWords() }
+    paintLanguage()
     restore()
+    regroup()
     Object.keys(variantsOf).forEach(function (id) { showVariant(document.getElementById(id), firstVariant(id)) })
     paintAll()
+    window.VSShell.onLang(function () { paintLanguage(); paintAll() })
     setCurrent(inView())
     if (BRIDGE) {
       window.VSShell.setLink(false, null, BRIDGE.watching)

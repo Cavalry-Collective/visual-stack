@@ -1,0 +1,1293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design review</title>
+<style>
+/* vstack:shell tokens */
+/* One palette for every vstack page. Roles, not colours: a page asks for
+   --surface, not for white, so light and dark are the same stylesheet.
+
+   The values come from `design/tokens.css`, which owns the palette. They are
+   copied rather than imported because a page has to work opened off disk and
+   inlined into an Artifact under a CSP that blocks every external request —
+   nothing here may be fetched. `tests/design-tokens.mjs` fails when the two
+   files disagree, so the copy cannot drift quietly.
+
+   Page-specific hues (the story map's phase bands, the board's new/have/touch,
+   the spec's priorities) stay in the page, below this block — they mean
+   something only there. Everything here is shared, and is the reason a board
+   and a spec look like the same product.
+
+   Three states, in this order: the OS preference, then an explicit choice.
+   `data-theme` absent means auto.
+
+   The type scale is the guide's; the families are not. Space Grotesk and Inter
+   would each be an external request, so every page reads in the system stack. */
+:root{
+  --paper:#efecf4; --surface:#ffffff; --surface-2:#f6f4f8;
+  --ink:#171320; --ink-2:#453f52; --ink-3:#665e72;
+  --line:#e6e2ec; --line-2:#cfc9d8;
+  --brand:#e02b20; --brand-soft:#fff1f0; --brand-line:#ffb3ad;
+  --ok:#0b8157; --ok-soft:#e9f9f2;
+  --shadow:0 1px 2px rgba(23,19,32,.08);
+  --shadow-pop:0 1px 2px rgba(23,19,32,.08),0 4px 16px rgba(23,19,32,.12);
+  --window-shadow:0 4px 16px rgba(23,19,32,.12),0 16px 48px rgba(23,19,32,.22);
+  --radius:8px;
+  --font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --paper:#0e0c13; --surface:#171320; --surface-2:#1e1a28;
+  --ink:#f3f1f7; --ink-2:#bdb7c8; --ink-3:#8d86a0;
+  --line:#2a2534; --line-2:#372f45;
+  --brand:#ff6b60; --brand-soft:rgba(255,107,96,.14); --brand-line:rgba(255,107,96,.38);
+  --ok:#2fb89b; --ok-soft:rgba(47,184,155,.14);
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+  --shadow-pop:0 1px 2px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.5);
+  --window-shadow:0 4px 16px rgba(0,0,0,.5),0 16px 48px rgba(0,0,0,.6);
+  color-scheme:dark;
+}}
+:root[data-theme=light]{
+  --paper:#efecf4; --surface:#ffffff; --surface-2:#f6f4f8;
+  --ink:#171320; --ink-2:#453f52; --ink-3:#665e72;
+  --line:#e6e2ec; --line-2:#cfc9d8;
+  --brand:#e02b20; --brand-soft:#fff1f0; --brand-line:#ffb3ad;
+  --ok:#0b8157; --ok-soft:#e9f9f2;
+  --shadow:0 1px 2px rgba(23,19,32,.08);
+  --shadow-pop:0 1px 2px rgba(23,19,32,.08),0 4px 16px rgba(23,19,32,.12);
+  --window-shadow:0 4px 16px rgba(23,19,32,.12),0 16px 48px rgba(23,19,32,.22);
+  color-scheme:light;
+}
+:root[data-theme=dark]{
+  --paper:#0e0c13; --surface:#171320; --surface-2:#1e1a28;
+  --ink:#f3f1f7; --ink-2:#bdb7c8; --ink-3:#8d86a0;
+  --line:#2a2534; --line-2:#372f45;
+  --brand:#ff6b60; --brand-soft:rgba(255,107,96,.14); --brand-line:rgba(255,107,96,.38);
+  --ok:#2fb89b; --ok-soft:rgba(47,184,155,.14);
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+  --shadow-pop:0 1px 2px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.5);
+  --window-shadow:0 4px 16px rgba(0,0,0,.5),0 16px 48px rgba(0,0,0,.6);
+  color-scheme:dark;
+}
+/* /vstack:shell tokens */
+/* vstack:shell css */
+/* The chrome every vstack page wears: the top bar and the controls that sit in
+   it. Page layout stays in the page — some of these are app shells that fill
+   the viewport, some are documents that scroll — but the bar, the buttons and
+   the segmented controls are the same object everywhere. */
+/* The shell hides its own controls with `hidden` — the link dot when there is
+   no link, the primary action on a page that doesn't send. A class that sets
+   `display` outranks the browser's default [hidden] rule, and .btn/.linkdot
+   both do, so state this here rather than trusting each page's reset. */
+[hidden]{display:none!important}
+/* Above anything the page floats at its edges. The bar makes a stacking context,
+   so a menu opening out of it can never rise past a sibling with a higher
+   z-index — which is how the comments handle came to sit on top of the settings
+   menu. Raising the bar raises everything it opens. */
+.vs-topbar{display:flex;align-items:center;gap:10px;padding:0 12px;height:46px;
+  background:var(--surface);border-bottom:1px solid var(--line);
+  position:sticky;top:0;z-index:50}
+.vs-topbar .brand{display:flex;align-items:center;gap:8px;min-width:0}
+.vslink{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:inherit}
+.vsmark{width:15px;height:15px;flex:none;color:var(--ink)}
+.vslink:hover .vsmark{opacity:.8}
+/* The tool's name, in the place the wordmark used to take. */
+.brand b{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;max-width:280px}
+.brand .eyebrow{font:600 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);white-space:nowrap}
+.spacer{flex:1}
+.sep{width:1px;height:20px;background:var(--line);flex:none}
+
+/* Says the tool itself is unfinished — not that something is running. A page
+   still being built should admit it in the chrome, not in a footnote. */
+.wip{flex:none;font:700 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+  color:#b0761a;background:color-mix(in srgb,#b0761a 12%,transparent);
+  border:1px solid color-mix(in srgb,#b0761a 34%,transparent);
+  border-radius:999px;padding:4px 8px;white-space:nowrap}
+@media (prefers-color-scheme:dark){.wip{color:#d29a3f;background:color-mix(in srgb,#d29a3f 14%,transparent);
+  border-color:color-mix(in srgb,#d29a3f 34%,transparent)}}
+:root[data-theme=dark] .wip{color:#d29a3f;background:color-mix(in srgb,#d29a3f 14%,transparent);
+  border-color:color-mix(in srgb,#d29a3f 34%,transparent)}
+:root[data-theme=light] .wip{color:#b0761a;background:color-mix(in srgb,#b0761a 12%,transparent);
+  border-color:color-mix(in srgb,#b0761a 34%,transparent)}
+
+/* A switch is on or off. A segmented control is a choice between alternatives —
+   using one to mean the other is why "Highlight new" read as two buttons. */
+.switch{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px 0 9px;
+  border:1px solid var(--line-2);border-radius:7px;background:var(--surface);color:var(--ink-2);
+  font:inherit;font-weight:550;white-space:nowrap;cursor:pointer;flex:none}
+.switch:hover{background:var(--surface-2);color:var(--ink)}
+.switch .track{width:26px;height:15px;border-radius:999px;background:var(--line-2);
+  position:relative;flex:none;transition:background .14s}
+.switch .knob{position:absolute;top:2px;left:2px;width:11px;height:11px;border-radius:50%;
+  background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.35);transition:transform .14s}
+/* On is the same "this one is selected" the segmented control uses. The brand
+   red is the primary action — a view option wearing it read as the thing to
+   press; solid black read like one too. */
+.switch[aria-checked=true]{color:var(--ink);border-color:var(--line-2)}
+/* The same near-black the segmented controls use when selected — on is on,
+   whichever control is saying it. */
+.switch[aria-checked=true] .track{background:var(--ink-2)}
+.switch[aria-checked=true] .knob{transform:translateX(11px)}
+
+/* buttons — one shape, three sizes of intent */
+.btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;
+  border:1px solid var(--line-2);background:var(--surface);color:var(--ink);font-weight:550;
+  white-space:nowrap;cursor:pointer}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.primary[disabled]{opacity:.45;cursor:default;filter:none;pointer-events:none}
+.btn[disabled]{opacity:.45;cursor:default;pointer-events:none}
+.btn.sm{height:25px;padding:0 9px;font-size:11.5px}
+
+/* A primary action with a ▾ beside it. The workspace and the story map both
+   have one and they were built twice; same markup, same metrics, here. */
+.split{display:inline-flex;position:relative;flex:none}
+.split > .btn:first-child{border-radius:7px 0 0 7px}
+.split > .caret{border-radius:0 7px 7px 0;width:28px;padding:0 8px;justify-content:center;
+  border-left:1px solid color-mix(in srgb,#fff 28%,transparent)}
+
+/* segmented control — modes, sizes, language, theme */
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;
+  background:var(--surface);flex:none}
+.seg button{height:30px;padding:0 12px;font-weight:550;color:var(--ink-2);display:inline-flex;
+  align-items:center;gap:6px;border:0;border-right:1px solid var(--line-2);background:none;
+  cursor:pointer;font:inherit;font-weight:550}
+.seg button:last-child{border-right:0}
+.seg button:hover{background:var(--surface-2)}
+/* Selected is near-black rather than black: dark enough to find at a glance,
+   one step off the ink the page's own words are set in, so the bar never
+   out-blacks the content. --ink-2 flips with the theme, so in dark mode this is
+   the same step down from white. */
+.seg button[aria-pressed=true]{background:var(--ink-2);color:var(--surface);font-weight:650}
+.seg.sm button{height:25px;padding:0 9px;font-size:11.5px}
+#langSwitch button,#themeSwitch button{padding:0 9px;font-size:11.5px;font-weight:600}
+#themeSwitch button{padding:0 8px}
+#themeSwitch svg{width:13px;height:13px;display:block}
+
+/* ── settings: how you like the page, out of the way ── */
+.cogwrap{position:relative;flex:none}
+.cog{width:30px;height:30px;border:1px solid var(--line-2);border-radius:7px;background:var(--surface);
+  color:var(--ink-2);display:grid;place-items:center;cursor:pointer}
+.cog:hover,.cog[aria-expanded=true]{background:var(--surface-2);color:var(--ink)}
+.cog svg{width:15px;height:15px;display:block}
+.cogmenu{position:absolute;top:36px;right:0;z-index:60;background:var(--surface);
+  border:1px solid var(--line-2);border-radius:10px;box-shadow:var(--shadow-pop);padding:9px;
+  display:grid;gap:9px;min-width:210px}
+.cogmenu[hidden]{display:none}
+.cogmenu .row{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.cogmenu .lbl{font-size:12px;color:var(--ink-2);white-space:nowrap}
+.cogmenu .about{align-items:flex-start}
+.cogmenu .abouts{display:grid;gap:3px;justify-items:end}
+.cogmenu .abouts .one{display:flex;gap:8px;align-items:baseline}
+/* An author `display` beats the UA rule for [hidden], so every row that is
+   hidden from script needs its own. A page that never hears a server version
+   showed "server —" for good without this. */
+.cogmenu .abouts .one[hidden]{display:none}
+.cogmenu .abouts em{font-style:normal;font-size:10.5px;letter-spacing:.03em;color:var(--ink-3)}
+.cogmenu .abouts b{font:600 11px/1.3 var(--mono);color:var(--ink);font-variant-numeric:tabular-nums}
+.cogmenu .stale{font-size:11px;line-height:1.4;color:var(--brand);justify-content:flex-start}
+.cogmenu .stale[hidden]{display:none}
+.cogmenu .about[hidden]{display:none}
+
+/* the live link, stated rather than implied */
+.linkdot{display:inline-flex;align-items:center;gap:6px;font:600 10.5px/1 var(--mono);
+  letter-spacing:.03em;color:var(--ink-3);white-space:nowrap}
+.linkdot::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ink-3);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--ink-3) 18%,transparent)}
+.linkdot.on{color:var(--ok)}
+.linkdot.on::before{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
+/* Up, but nobody is waiting to read what you send. Amber rather than green,
+   because the page works and the round will not — the same distinction the
+   WIP tag makes. */
+.linkdot.idle{color:#b0761a}
+.linkdot.idle::before{background:#b0761a;box-shadow:0 0 0 3px color-mix(in srgb,#b0761a 22%,transparent)}
+@media (prefers-color-scheme:dark){.linkdot.idle{color:#d29a3f}
+  .linkdot.idle::before{background:#d29a3f;box-shadow:0 0 0 3px color-mix(in srgb,#d29a3f 22%,transparent)}}
+:root[data-theme=dark] .linkdot.idle{color:#d29a3f}
+:root[data-theme=dark] .linkdot.idle::before{background:#d29a3f;
+  box-shadow:0 0 0 3px color-mix(in srgb,#d29a3f 22%,transparent)}
+
+/* floating banners — the page talking back, never blocking the work.
+   z-index above every panel and menu (comments panel 40–46, dropdowns 60–70):
+   a snackbar that slides under other chrome reads as clipped. Full-screen
+   overlays (z 200+) still cover it. */
+.banner{position:fixed;left:50%;top:58px;transform:translateX(-50%);z-index:80;display:none;
+  align-items:center;gap:10px;padding:8px 10px 8px 14px;border-radius:10px;box-shadow:var(--shadow-pop);
+  font-size:12.5px;white-space:nowrap;max-width:calc(100% - 24px)}
+.banner.on{display:flex}
+.banner.dark{background:var(--ink);color:var(--surface)}
+.banner.dark .btn{background:color-mix(in srgb,var(--surface) 16%,transparent);
+  border-color:transparent;color:var(--surface)}
+.banner.dark .btn:hover{background:color-mix(in srgb,var(--surface) 28%,transparent)}
+.banner.good{background:var(--ok-soft);border:1px solid var(--ok);color:var(--ink)}
+.banner.good .tick{color:var(--ok);font-weight:700}
+
+/* the toast — VSShell.toast(); one element, appended on first use */
+/* It is a popover, so the browser's own [popover] rules apply first: inset,
+   margin and border are theirs to set and ours to put back. */
+.vs-toast{position:fixed;inset:auto;left:50%;bottom:18px;transform:translateX(-50%);z-index:80;
+  background:var(--ink);color:var(--surface);border:0;margin:0;padding:8px 14px;border-radius:8px;
+  font-size:12.5px;box-shadow:var(--shadow-pop);opacity:0;pointer-events:none;transition:opacity .25s}
+.vs-toast.on{opacity:1}
+
+/* ── "there is a newer one" ──
+   One line under the bar, in the workmanlike amber the WIP tag uses: it is
+   information, not an alarm, and it goes away for good on ×. */
+/* The bar and the notice as one block, because that is what a page's layout
+   sized the row for: on its own, the notice would claim the content row of a
+   `grid-template-rows:auto 1fr` shell and stretch down the window. Only ever
+   built when there is a notice to put in it.
+   It carries the bar's sticky, not just its place in the flow — a sticky child
+   sticks within its containing block, so a shrink-wrapped wrapper would scroll
+   the bar away with the notice on any page that is a document rather than an
+   app shell. */
+.vs-chrome{flex:none;min-width:0;position:sticky;top:0;z-index:50}
+.vs-update{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:7px 12px;font-size:12px;color:var(--ink-2);
+  background:color-mix(in srgb,#b0761a 8%,var(--surface));
+  border-bottom:1px solid color-mix(in srgb,#b0761a 26%,transparent)}
+.vs-update .v{font:500 9.5px/1 var(--mono);letter-spacing:.06em;color:#8a5c06;
+  background:color-mix(in srgb,#b0761a 16%,transparent);border-radius:999px;padding:4px 7px;flex:none}
+.vs-update .t{flex:1;min-width:0}
+/* Both buttons are one height and centre their own contents. Left to padding
+   and line-height they came out different sizes, and the × — which sits on the
+   maths axis, not the baseline — hung high inside the smaller one. */
+.vs-update button{font:inherit;font-size:11.5px;font-weight:600;color:var(--ink-2);
+  border:1px solid var(--line-2);background:var(--surface);border-radius:6px;
+  height:24px;padding:0 8px;flex:none;
+  display:inline-flex;align-items:center;justify-content:center}
+.vs-update button:hover{color:var(--ink);background:var(--surface-2)}
+.vs-update .no{width:24px;padding:0;display:grid;place-items:center}
+.vs-update .no svg{width:11px;height:11px;display:block}
+.vs-update-how{flex-basis:100%;margin:2px 0 0;font-size:11.5px;color:var(--ink-3)}
+.vs-update-how[hidden]{display:none}
+.vs-update-how p{margin:0 0 4px}
+.vs-update-how pre{margin:0 0 4px;padding:7px 9px;border-radius:7px;overflow-x:auto;
+  font:500 11px/1.6 var(--mono);color:var(--ink);background:var(--surface);border:1px solid var(--line)}
+.vs-update-how .auto{margin:0 0 4px}
+@media (prefers-color-scheme:dark){.vs-update .v{color:#e2b567}}
+:root[data-theme=dark] .vs-update .v{color:#e2b567}
+
+@media (max-width:720px){
+  .brand .eyebrow,.wip{display:none}
+  .vs-topbar{gap:8px;padding:0 8px}
+  /* What the bar keeps at this width is what the page is doing. The mark says
+     which tool this is as well as the word beside it did, and the dot carries
+     the link state on its own — colour is the whole message, the words only
+     ever spelled it out. Both stay in the DOM: the text is still the dot's
+     accessible name, and its title says it on hover. */
+  .brand b{display:none}
+  .linkdot{gap:0;font-size:0}
+}
+/* /vstack:shell css */
+
+/* The first page of a design review: the owner picks a level of polish, then
+   watches the agent prepare the review. The agent writes the report over this
+   page at the same address, and the tab reloads into it. */
+:root { --warn: #8a5c06; --warn-soft: #fef5e6; --warn-line: #fbd38d;
+  --ease: cubic-bezier(0.2, 0, 0, 1); --spring: cubic-bezier(.34, 1.56, .64, 1); --bar-h: 46px; }
+@media (prefers-color-scheme: dark) { :root { --warn: #d29a3f; --warn-soft: rgba(210,154,63,.14); --warn-line: rgba(210,154,63,.4); } }
+:root[data-theme=light] { --warn: #8a5c06; --warn-soft: #fef5e6; --warn-line: #fbd38d; }
+:root[data-theme=dark] { --warn: #d29a3f; --warn-soft: rgba(210,154,63,.14); --warn-line: rgba(210,154,63,.4); }
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; min-height: 100dvh; display: flex; flex-direction: column; background: var(--paper); color: var(--ink); font: 400 .875rem/1.5 var(--font); -webkit-font-smoothing: antialiased; }
+.vs-topbar { font-size: 13px; }
+h1, h2, p, ul { margin: 0; padding: 0; }
+ul { list-style: none; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.langflip { height: 30px; padding: 0 10px; border: 1px solid var(--line-2); border-radius: 7px; background: var(--surface); color: var(--ink-2); font-size: 12px; font-weight: 600; cursor: pointer; }
+.langflip:hover { background: var(--surface-2); color: var(--ink); }
+
+main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.view[hidden] { display: none !important; }
+.eyebrow-line { display: inline-flex; align-items: center; gap: .5rem; font: 700 11px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--brand); }
+.eyebrow-line::before { content: ""; width: 1.4rem; height: 2px; border-radius: 2px; background: var(--brand); }
+
+/* ── the chooser ── */
+.choose { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 1.25rem; width: 100%; max-width: 78rem; margin-inline: auto; padding: 2rem clamp(1rem, 3vw, 2rem); }
+.choose h1 { margin-top: .625rem; font-size: 1.75rem; line-height: 1.15; font-weight: 750; letter-spacing: -.02em; }
+.choose .sub { margin-top: .375rem; color: var(--ink-3); }
+.panels { flex: 1; min-height: 26rem; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+
+.panel { position: relative; isolation: isolate; display: flex; flex-direction: column; gap: 1rem; min-height: 0; padding: 1.5rem; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); text-align: left; cursor: pointer; overflow: hidden; -webkit-tap-highlight-color: transparent; }
+.panel:focus-visible { outline: none; }
+.panel > span { display: block; }
+.p-num { font: 600 11px/1 var(--mono); letter-spacing: .08em; color: var(--ink-3); }
+.p-name { font-size: 1.375rem; line-height: 1.2; font-weight: 750; letter-spacing: -.015em; }
+.p-aim { color: var(--ink-2); max-width: 30ch; min-height: 4.5em; }
+.p-adds { font-size: 12.5px; color: var(--ink-3); }
+.p-go { display: inline-flex !important; align-items: center; gap: .4rem; font-size: 13px; font-weight: 650; color: var(--ink-3); }
+.p-go svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.panel.on .p-go { color: var(--ink); }
+
+/* The specimen: one small card, drawn the same in every panel, that each level then handles its own way. */
+.spec { position: relative; display: grid !important; gap: .625rem; margin-block: auto; padding: 1rem; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
+.spec > span { display: flex; align-items: center; gap: .625rem; }
+.sp-head { font-weight: 700; font-size: 13px; }
+.sp-dot { width: 1.5rem; height: 1.5rem; flex: none; border-radius: 50%; background: var(--line-2); }
+.sp-row { padding: .5rem .625rem; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 12.5px; color: var(--ink-2); }
+.sp-box { position: relative; width: 14px; height: 14px; flex: none; border: 1.5px solid var(--line-2); border-radius: 4px; }
+.sp-box::after { content: ""; position: absolute; left: 3.5px; top: .5px; width: 4px; height: 8px; border: solid var(--surface); border-width: 0 2px 2px 0; transform: rotate(45deg); opacity: 0; }
+.sp-foot { justify-content: space-between; }
+.sp-toggle { display: inline-flex; align-items: center; gap: .5rem; font-size: 12.5px; color: var(--ink-2); }
+.sp-track { position: relative; width: 28px; height: 16px; border-radius: 999px; background: var(--line-2); }
+.sp-knob { position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+.sp-btn { position: relative; padding: .375rem .875rem; border: 1px solid var(--line-2); border-radius: 7px; background: var(--surface); font-size: 12.5px; font-weight: 650; }
+.spark { position: absolute; width: 8px; height: 8px; opacity: 0; pointer-events: none; background: var(--brand); clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); }
+.spark.s1 { top: -6px; right: -5px; }
+.spark.s2 { bottom: -5px; left: -6px; width: 6px; height: 6px; }
+
+/* The "after" state every level shows: rows ticked, the toggle on, the button primary. */
+.panel.on .sp-box { background: var(--ink); border-color: var(--ink); }
+.panel.on .sp-box::after { opacity: 1; }
+.panel.on .sp-track { background: var(--ink-2); }
+.panel.on .sp-knob { transform: translateX(12px); }
+.panel.on .sp-btn { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+
+/* The panel being previewed takes the stage; the other two step back. */
+.panels:has(.panel.on) .panel:not(.on) { opacity: .45; filter: saturate(.4); }
+.panel { transition: opacity 200ms var(--ease), filter 200ms var(--ease); }
+
+/* Clean: square, flat and monochrome. The change happens at once on a hard border and an exact grid; nothing moves. */
+.clean .spec, .clean .sp-row, .clean .sp-btn, .clean .sp-dot, .clean .sp-box { border-radius: 2px; }
+.clean .spec { background: var(--surface); }
+.clean .sp-track, .clean .sp-knob { border-radius: 2px; }
+.clean, .clean * { transition: none !important; animation: none !important; }
+.clean.on { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.clean.on .spec { border-color: var(--ink); background-color: var(--surface); background-image: linear-gradient(to right, color-mix(in srgb, var(--ink) 9%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--ink) 9%, transparent) 1px, transparent 1px); background-size: 8px 8px; }
+.clean.on .sp-row { border-color: var(--ink); }
+
+/* Refined: soft depth at rest. On preview the card lifts well clear of the page, the toggle slides and the rows settle in turn. */
+.refined .spec { border-color: transparent; border-radius: 14px; background: linear-gradient(180deg, var(--surface), var(--surface-2)); box-shadow: 0 1px 2px rgba(23,19,32,.06), 0 6px 16px rgba(23,19,32,.08); }
+.refined .sp-row { border-color: transparent; border-radius: 10px; box-shadow: 0 1px 2px rgba(23,19,32,.08), 0 2px 6px rgba(23,19,32,.05); }
+.refined .sp-btn { border-radius: 9px; }
+.refined .sp-dot { background: linear-gradient(135deg, var(--line-2), var(--ink-3)); }
+.refined, .showcase { transition: transform 260ms var(--ease), box-shadow 260ms var(--ease), border-color 260ms var(--ease), background 260ms var(--ease), color 260ms var(--ease), opacity 200ms var(--ease), filter 200ms var(--ease); }
+.refined .spec, .showcase .spec { transition: transform 320ms var(--ease), box-shadow 320ms var(--ease), background 320ms var(--ease), border-color 320ms var(--ease); }
+.refined .sp-box, .refined .sp-track, .refined .sp-knob, .refined .sp-btn,
+.showcase .sp-box, .showcase .sp-track, .showcase .sp-knob, .showcase .sp-btn { transition: transform 200ms var(--ease), background 200ms var(--ease), border-color 200ms var(--ease), color 200ms var(--ease), box-shadow 200ms var(--ease); }
+.refined.on { transform: translateY(-10px); border-color: transparent; box-shadow: 0 2px 4px rgba(23,19,32,.06), 0 14px 32px rgba(23,19,32,.12), 0 36px 72px rgba(23,19,32,.16); }
+.refined.on .spec { transform: scale(1.04); box-shadow: 0 2px 4px rgba(23,19,32,.06), 0 14px 30px rgba(23,19,32,.14); }
+.refined.on .sp-btn { box-shadow: 0 1px 0 color-mix(in srgb, #fff 18%, transparent) inset, 0 4px 10px rgba(23,19,32,.25); }
+.refined:active .sp-btn { transform: translateY(1px); }
+.refined:active { transform: translateY(-6px) scale(.995); }
+.refined.on .sp-row { animation: settle 280ms var(--ease) both; }
+.refined.on .sp-row + .sp-row { animation-delay: 70ms; }
+.refined.on .sp-foot { animation: settle 280ms var(--ease) 140ms both; }
+@keyframes settle { from { opacity: 0; transform: translateY(8px); } }
+
+/* Showcase: brand colour even at rest. On preview the panel goes dark under a moving glow, the card floats and tilts with the pointer, and the button shines. */
+.showcase { --mx: 50%; --my: 30%; --rx: 0deg; --ry: 0deg; --night: #15101f; transform-style: preserve-3d; }
+.showcase .spec { border-color: transparent; border-radius: 16px; background: radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--brand) 16%, var(--surface-2)), var(--surface-2) 65%); box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand) 30%, transparent), 0 10px 28px color-mix(in srgb, var(--brand) 16%, transparent); }
+.showcase .sp-row { border-radius: 12px; border-color: color-mix(in srgb, var(--brand) 18%, var(--line)); }
+.showcase .sp-dot { background: conic-gradient(from 0deg, var(--brand), #ff9a5c, #ffd36b, var(--brand)); }
+.showcase .sp-btn { border-radius: 999px; border-color: transparent; background: linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 60%, #ff9a5c)); color: #fff; }
+.showcase.on { transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry)) translateY(-12px) scale(1.02); border-color: transparent; background: var(--night); color: #fff; box-shadow: 0 16px 36px rgba(23,19,32,.25), 0 40px 90px color-mix(in srgb, var(--brand) 40%, transparent); }
+.showcase.on .p-num, .showcase.on .p-adds { color: rgba(255,255,255,.6); }
+.showcase.on .p-aim { color: rgba(255,255,255,.82); }
+.showcase.on .p-go { color: #fff; }
+.showcase.tracking { transition: transform 90ms linear, box-shadow 260ms var(--ease), background 260ms var(--ease); }
+.showcase::before { content: ""; position: absolute; inset: 0; z-index: -1; padding: 2px; border-radius: inherit; background: conic-gradient(from var(--sheen, 0deg), var(--brand), #ff9a5c 25%, #ffd36b 40%, var(--brand) 55%, #7c5cff 75%, var(--brand)); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; opacity: 0; transition: opacity 300ms var(--ease); }
+.showcase::after { content: ""; position: absolute; inset: -20%; z-index: -1; background: radial-gradient(360px circle at var(--mx) var(--my), color-mix(in srgb, var(--brand) 55%, transparent), transparent 60%), radial-gradient(40% 35% at 20% 90%, rgba(255,154,92,.35), transparent 70%), radial-gradient(45% 40% at 90% 10%, rgba(124,92,255,.35), transparent 70%); opacity: 0; transition: opacity 300ms var(--ease); pointer-events: none; }
+.showcase.on::before { opacity: 1; animation: sheen 4s linear infinite; }
+.showcase.on::after { opacity: 1; animation: drift 6s ease-in-out infinite alternate; }
+@property --sheen { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+@keyframes sheen { to { --sheen: 360deg; } }
+@keyframes drift { to { transform: translate(4%, -3%) rotate(6deg); } }
+.showcase.on .p-name { background: linear-gradient(100deg, #fff 25%, #ffd36b 45%, #ff9a5c 55%, #fff 75%); background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: shimmer 2.4s var(--ease) infinite; }
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: -150% 0; } }
+.showcase.on .spec { background: rgba(255,255,255,.07); box-shadow: 0 0 0 1px rgba(255,255,255,.16), 0 18px 40px rgba(0,0,0,.4); animation: float 3.2s ease-in-out 500ms infinite; color: #fff; }
+.showcase.on .sp-row { background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.14); color: rgba(255,255,255,.9); }
+.showcase.on .sp-toggle { color: rgba(255,255,255,.85); }
+.showcase.on .sp-dot { animation: turn 3s linear infinite; }
+.showcase.on .sp-box { background: var(--brand); border-color: var(--brand); }
+.showcase.on .sp-track { background: var(--brand); }
+@keyframes float { 0%, 100% { transform: translateY(0) scale(1.04); } 50% { transform: translateY(-6px) scale(1.04); } }
+@keyframes turn { to { transform: rotate(360deg); } }
+.showcase.on .sp-row, .showcase.on .sp-foot, .showcase.on .sp-head { animation: spring 560ms var(--spring) both; }
+.showcase.on .sp-row { animation-delay: 70ms; }
+.showcase.on .sp-row + .sp-row { animation-delay: 140ms; }
+.showcase.on .sp-foot { animation-delay: 210ms; }
+@keyframes spring { from { opacity: 0; transform: translateY(14px) scale(.92); } }
+.showcase.on .sp-knob { transition: transform 420ms var(--spring); }
+.showcase.on .sp-btn { background: linear-gradient(135deg, var(--brand), #ff9a5c); color: #fff; box-shadow: 0 0 0 1px rgba(255,255,255,.2) inset, 0 0 22px color-mix(in srgb, var(--brand) 75%, transparent), 0 0 44px rgba(255,154,92,.35); }
+.showcase:active .sp-btn { transform: translateY(1px) scale(.98); }
+.spark { width: 11px; height: 11px; }
+.spark.s1 { top: -9px; right: -7px; background: #ffd36b; }
+.spark.s2 { bottom: -7px; left: -8px; width: 8px; height: 8px; }
+.spark.s3 { top: -12px; left: 30%; width: 7px; height: 7px; background: #fff; }
+.spark.s4 { bottom: -10px; right: 22%; width: 9px; height: 9px; background: #ff9a5c; }
+.showcase.on .spark { animation: twinkle 1.5s var(--ease) 300ms infinite; }
+.showcase.on .spark.s2 { animation-delay: 750ms; }
+.showcase.on .spark.s3 { animation-delay: 1050ms; }
+.showcase.on .spark.s4 { animation-delay: 500ms; }
+@keyframes twinkle { 0%, 100% { opacity: 0; transform: scale(.3) rotate(0); } 40% { opacity: 1; transform: scale(1.2) rotate(45deg); } 70% { opacity: 0; transform: scale(.5) rotate(90deg); } }
+
+/* ── progress ── */
+.progress { flex: 1; display: flex; justify-content: center; padding: clamp(2rem, 8vh, 5rem) 1rem 3rem; }
+.progress-in { width: 100%; max-width: 32rem; }
+.progress h1 { margin-top: .625rem; font-size: 1.75rem; line-height: 1.15; font-weight: 750; letter-spacing: -.02em; }
+.progress .sub { margin-top: .5rem; color: var(--ink-3); }
+.problem { margin-top: 1.25rem; padding: .75rem 1rem; border: 1px solid var(--warn-line); border-radius: 10px; background: var(--warn-soft); color: var(--ink); }
+.problem b { color: var(--warn); margin-right: .375rem; }
+.tasks { margin-top: 1.5rem; display: grid; gap: .25rem; }
+.tasks li { display: flex; align-items: center; gap: .75rem; padding: .625rem .75rem; border-radius: 8px; color: var(--ink-2); }
+.tasks li.done { color: var(--ink-3); }
+.tasks li.now { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.tasks input { width: 16px; height: 16px; margin: 0; flex: none; accent-color: var(--ok); }
+.tasks .pulse { margin-left: auto; width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--brand); animation: ping 1.6s var(--ease) infinite; }
+@keyframes ping { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 55%, transparent); } 100% { box-shadow: 0 0 0 9px transparent; } }
+.count { margin-top: 1rem; font: 500 12px/1 var(--mono); color: var(--ink-3); }
+.waiting { margin-top: 1.5rem; display: flex; align-items: center; gap: .625rem; color: var(--ink-2); }
+.spin { width: 1rem; height: 1rem; flex: none; border-radius: 50%; border: 2px solid var(--line-2); border-top-color: var(--brand); animation: spin 900ms linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.open-report { margin-top: 1.5rem; height: 2.25rem; padding: 0 1rem; }
+
+@media (max-width: 720px) {
+  .choose { gap: .75rem; padding: 1rem 1rem; }
+  .choose h1 { font-size: 1.25rem; margin-top: .375rem; }
+  .choose .sub { font-size: 13px; margin-top: .25rem; }
+  .panels { min-height: 0; grid-template-columns: minmax(0, 1fr); grid-template-rows: repeat(3, minmax(0, 1fr)); gap: .625rem; }
+  .panel { display: grid; grid-template-columns: minmax(0, 1fr) 9.5rem; grid-template-rows: auto auto 1fr auto; column-gap: .875rem; row-gap: .25rem; padding: .875rem 1rem; border-radius: 14px; }
+  .panel > span { grid-column: 1; }
+  .p-num { display: none !important; }
+  .p-name { font-size: 1.125rem; }
+  .p-aim { font-size: 12.5px; line-height: 1.4; min-height: 0; }
+  .p-adds { font-size: 11.5px; }
+  .p-go { margin-top: 0; font-size: 12px; }
+  .panel > .spec { grid-column: 2; grid-row: 1 / -1; align-self: center; margin-block: 0; gap: .375rem; padding: .625rem; }
+  .spec .sp-head, .spec .sp-row + .sp-row { display: none; }
+  .sp-foot { flex-direction: column; align-items: stretch !important; gap: .375rem !important; }
+  .sp-btn { text-align: center; }
+  .refined.on { transform: translateY(-3px); }
+  .showcase.on { transform: translateY(-4px); }
+  .refined.on .spec, .showcase.on .spec { transform: none; animation: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+  .refined.on, .showcase.on { transform: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- vstack:shell topbar -->
+<div class="vs-topbar" id="top">
+  <div class="brand">
+    <!-- The repo, not the marketing page: someone clicking the mark inside the
+         tool wants the source, the issues, or the install command. -->
+    <a class="vslink" href="https://github.com/Cavalry-Collective/visual-stack" target="_blank" rel="noopener"
+       title="Visual Stack">
+      <svg class="vsmark" viewBox="0 0 64 64" aria-hidden="true">
+        <g fill="currentColor"><rect x="6" y="44" width="52" height="16"/><rect x="6" y="24" width="52" height="16"/><rect x="6" y="4" width="40" height="16"/></g>
+        <rect x="46" y="4" width="12" height="16" fill="var(--brand)"/>
+      </svg>
+    </a>
+    <!-- The mark is the stack; the word beside it is this tool. Writing
+         "Visual Stack" here said what the logo already says, and pushed the
+         one thing you can't infer — which tool you are in — further right. -->
+    <b id="pageName"></b>
+    <span class="wip" id="wip" hidden></span>
+    <span class="eyebrow" id="pageEyebrow"></span>
+  </div>
+  <div class="spacer"></div>
+  <!-- The page's own controls: `tools` sits before the shared switches,
+       `actions` after them, where the primary action belongs. -->
+  <!-- vstack:slot tools -->
+  <button class="langflip" id="langFlip" type="button"></button>
+  <!-- /vstack:slot tools -->
+  <!-- How you like the page, rather than anything about the work: two segmented
+       controls sat in the bar all day for a choice made once. They live behind
+       the cog now, and the bar keeps only what the tool is doing. -->
+  <div class="cogwrap">
+    <button class="cog" id="settingsBtn" aria-haspopup="true" aria-expanded="false" aria-label="Settings">
+      <!-- A real gear: a toothed rim with a hole. Spokes radiating from a circle
+           is a brightness dial, which is what the first attempt drew. -->
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"
+              d="M13.15 9.45 L14.64 10.22 L14.26 11.13 L12.67 10.61 L10.61 12.67 L11.13 14.26 L10.22 14.64 L9.45 13.15 L6.55 13.15 L5.78 14.64 L4.87 14.26 L5.39 12.67 L3.33 10.61 L1.74 11.13 L1.36 10.22 L2.85 9.45 L2.85 6.55 L1.36 5.78 L1.74 4.87 L3.33 5.39 L5.39 3.33 L4.87 1.74 L5.78 1.36 L6.55 2.85 L9.45 2.85 L10.22 1.36 L11.13 1.74 L10.61 3.33 L12.67 5.39 L14.26 4.87 L14.64 5.78 L13.15 6.55 Z M8 5.6a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8Z"/>
+      </svg>
+    </button>
+    <div class="cogmenu" id="settingsMenu" hidden>
+      <div class="row">
+        <span class="lbl" id="cogTheme">Theme</span>
+        <div class="seg" id="themeSwitch">
+          <button data-theme-set="auto" aria-pressed="true" title="Match the system">A</button>
+          <button data-theme-set="light" aria-pressed="false" title="Light">
+            <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="8" cy="8" r="3.1"/><path d="M8 .9v2M8 13.1v2M.9 8h2M13.1 8h2M3 3l1.4 1.4M11.6 11.6 13 13M13 3l-1.4 1.4M4.4 11.6 3 13" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <button data-theme-set="dark" aria-pressed="false" title="Dark">
+            <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M13.4 9.6A5.8 5.8 0 0 1 6.4 2.6a5.8 5.8 0 1 0 7 7Z" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="row">
+        <span class="lbl" id="cogLang">Language</span>
+        <div class="seg" id="langSwitch">
+          <button data-lang="en" aria-pressed="true">EN</button>
+          <button data-lang="zh" aria-pressed="false">中文</button>
+        </div>
+      </div>
+      <!-- A tool's own settings, beside the shell's. -->
+      <!-- vstack:slot cog-settings -->
+      <!-- /vstack:slot cog-settings -->
+      <!-- What is running. The workspace reports the version it loaded with and
+           the server the one it is on now, so a tab left open across an update
+           says which is which. -->
+      <div class="row about" id="cogAbout" hidden>
+        <span class="lbl">Version</span>
+        <span class="abouts">
+          <span class="one"><em>workspace UI</em><b id="cogVersionPage">—</b></span>
+          <span class="one" id="cogServerLine"><em>server</em><b id="cogVersionServer">—</b></span>
+        </span>
+      </div>
+      <div class="row stale" id="cogStale" hidden>Reload to pick up the server's version.</div>
+      <!-- What only this tool can offer about its own state — starting it over,
+           usually. Every tool keeps different things, so the shell offers the
+           place rather than the content. -->
+      <!-- vstack:slot cog -->
+      <!-- /vstack:slot cog -->
+    </div>
+  </div>
+  <div class="sep"></div>
+  <span class="linkdot" id="linkDot" hidden></span>
+  <button class="btn primary" id="send" disabled hidden></button>
+  <!-- vstack:slot actions -->
+  <!-- /vstack:slot actions -->
+</div>
+<!-- /vstack:shell topbar -->
+
+<main>
+<section class="view choose" id="choose" hidden>
+  <header>
+    <p class="eyebrow-line" data-t="eyebrow"></p>
+    <h1 id="pickTitle" data-t="pickTitle"></h1>
+    <p class="sub" id="pickSub"></p>
+  </header>
+  <div class="panels" id="panels" role="group" aria-labelledby="pickTitle"></div>
+</section>
+
+<section class="view progress" id="progress" hidden>
+  <div class="progress-in">
+    <p class="eyebrow-line" data-t="eyebrow"></p>
+    <h1 id="progressTitle"></h1>
+    <p class="sub" id="progressSub"></p>
+    <p class="problem" id="problem" hidden><b data-t="stopped"></b><span></span></p>
+    <p class="waiting" id="waiting" hidden><span class="spin" aria-hidden="true"></span><span></span></p>
+    <ul class="tasks" id="tasks" role="status" aria-live="polite"></ul>
+    <p class="count" id="count"></p>
+    <button class="btn primary open-report" id="openReport" type="button" hidden></button>
+  </div>
+</section>
+</main>
+
+<script>
+/* vstack:shell js */
+/* The behaviour behind the top bar: theme, language, the link dot, and the
+   page's own name. Everything else — what the page does — is the page's.
+
+   Nothing here touches the network or the document beyond the bar, so a page
+   works identically served, opened off disk, or published as an Artifact. */
+window.VSShell = (function () {
+  const $ = s => document.querySelector(s);
+  const KEY = { theme: 'vstack:theme', lang: 'vstack:lang', seen: 'vstack:update-seen' };
+  const store = {
+    get (k, d) { try { return localStorage.getItem(k) ?? d } catch { return d } },
+    set (k, v) { try { localStorage.setItem(k, v) } catch {} },
+  };
+
+  /* ── theme: auto (whatever the OS says) / light / dark ──
+     Auto is the absence of an override, so the page keeps following the system
+     if it changes while open — and an Artifact viewer's own toggle still wins
+     the same way it does on a page that never had this control. */
+  let theme = store.get(KEY.theme, 'auto');
+  function applyTheme () {
+    if (theme === 'auto') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', theme);
+    document.querySelectorAll('#themeSwitch button').forEach(b => {
+      b.setAttribute('aria-pressed', String(b.dataset.themeSet === theme));
+    });
+  }
+  function setTheme (next) {
+    theme = ['auto', 'light', 'dark'].includes(next) ? next : 'auto';
+    store.set(KEY.theme, theme);
+    applyTheme();
+  }
+
+  /* ── language: chrome only. Page content stays as authored. ── */
+  const storedLang = store.get(KEY.lang, null);
+  let lang = storedLang === 'zh' ? 'zh' : 'en';
+  const langListeners = [];
+  function applyLang () {
+    // zh-CN, not zh: the specific tag is what picks the right font and
+    // line-breaking for simplified Chinese.
+    document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+    document.querySelectorAll('#langSwitch button').forEach(b => {
+      b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+    });
+    langListeners.forEach(fn => { try { fn(lang) } catch {} });
+    paintLink();
+  }
+  function setLang (next) {
+    lang = next === 'zh' ? 'zh' : 'en';
+    store.set(KEY.lang, lang);
+    applyLang();
+  }
+
+  /* ── the live link, said out loud ── */
+  /* Three states, not two. "The page reached its server" and "an agent session
+     is waiting to read what you send" are different facts, and only the second
+     is the one anyone actually wants to know. `watching` undefined means the
+     page has no way to tell, and the dot behaves as it always did. Host name
+     comes from window.__VSTACK_HOST__ (contracts/host.md), so no page bakes a
+     product name in; the words live here, in both languages, so no page
+     repeats them either. A page with something more specific to say passes
+     `labels` to setLink and only those keys win. */
+  let linked = null, linkLabels = null, watching;
+  function linkWords () {
+    const agent = window.__VSTACK_HOST__?.name || 'agent';
+    return lang === 'zh' ? {
+      on: `已连接 ${agent}`, off: '连接已断开', idle: '未连接',
+      idleTitle: `页面是通的，但没有 ${agent} 会话在等待——发送的内容会一直留在这里，直到有会话接手。`,
+      offTitle: `${agent} 会话已不再提供此页面——你写的内容只保存在这个标签页里。`,
+    } : {
+      on: `LINKED TO ${String(agent).toUpperCase()}`, off: 'LINK LOST', idle: 'UNLINKED',
+      idleTitle: `This page is live, but no ${agent} session is waiting for it — what you send will sit here until one is.`,
+      offTitle: `The ${agent} session is no longer serving this page — anything you write stays in this tab.`,
+    };
+  }
+  function paintLink () {
+    const el = $('#linkDot');
+    if (!el || linked === null) return;
+    el.hidden = false;
+    const idle = linked && watching === false;
+    el.classList.toggle('on', linked && !idle);
+    el.classList.toggle('idle', !!idle);
+    const words = linkWords();
+    const label = !linked ? (linkLabels?.off ?? words.off)
+      : idle ? (linkLabels?.idle ?? words.idle)
+      : (linkLabels?.on ?? words.on);
+    el.textContent = label;
+    // Narrow bars show the dot and not the words, so the title has to say what
+    // the words would have — the state that needs no explaining still needs
+    // naming when nothing beside the colour is left.
+    el.title = (!linked ? (linkLabels?.offTitle ?? words.offTitle)
+      : idle ? (linkLabels?.idleTitle ?? words.idleTitle) : '') || label;
+  }
+  function setLink (up, labels, isWatching) {
+    linked = !!up;
+    if (labels) linkLabels = labels;
+    if (isWatching !== undefined) watching = isWatching;
+    paintLink();
+  }
+  /** The server saying who is listening now, without the page repeating itself. */
+  function setWatching (isWatching) {
+    if (watching === isWatching) return;
+    watching = isWatching;
+    paintLink();
+  }
+  const hideLink = () => { const el = $('#linkDot'); if (el) el.hidden = true };
+
+  /* ── which version is running ──
+     The page reports what served it, held from load; the server reports what it
+     is on now. A tab open across an update shows both and offers the reload. */
+  let pageVersion = null, serverVersion = null;
+  function paintVersions () {
+    const row = $('#cogAbout');
+    if (!row) return;
+    row.hidden = !pageVersion && !serverVersion;
+    const put = (id, value) => { const el = $(id); if (el) el.textContent = value || '—' };
+    put('#cogVersionPage', pageVersion || serverVersion);
+    put('#cogVersionServer', serverVersion);
+    const line = $('#cogServerLine');
+    if (line) line.hidden = !serverVersion;
+    const stale = $('#cogStale');
+    if (stale) stale.hidden = !(pageVersion && serverVersion && pageVersion !== serverVersion);
+  }
+  /** What the server is on right now, which a page learns from its own payload. */
+  function setServerVersion (version) {
+    const next = version || null;
+    if (serverVersion === next) return;
+    serverVersion = next;
+    paintVersions();
+  }
+
+  /* ── one live-link client, instead of one per page ──
+     Wires the dot to a server: SSE when the page has an event stream, a plain
+     poll for a server that only answers /ping. Either way the shell owns the
+     socket-to-dot translation and the page only hears about its own events.
+
+       VSShell.connect({ url, on: { push: ev => apply(ev) }, onLink })
+       VSShell.connect({ poll: '/ping', onLink })
+
+     SSE reconnects on its own, so the dot only ever reports what is true right
+     now. `presence` — who is listening, said by the server rather than guessed
+     from the socket — is handled here; every other event is the page's. */
+  function connect (opts = {}) {
+    const say = up => { setLink(up); try { opts.onLink?.(up) } catch {} };
+    if (opts.poll) {
+      const tick = async () => {
+        try { const r = await fetch(opts.poll, { cache: 'no-store' }); say(r.ok) }
+        catch { say(false) }
+      };
+      tick();
+      const timer = setInterval(tick, opts.interval || 5000);
+      return { stop: () => clearInterval(timer) };
+    }
+    const es = new EventSource(opts.url);
+    es.onopen = () => say(true);
+    es.onerror = () => say(false);
+    es.addEventListener('presence', ev => {
+      try { setWatching(JSON.parse(ev.data).watching) } catch {}
+    });
+    for (const [name, fn] of Object.entries(opts.on || {})) es.addEventListener(name, fn);
+    return { stop: () => es.close(), source: es };
+  }
+
+  /* ── a toast: the page saying "done" without stopping anyone ── */
+  /* Long enough for the opacity transition in shell.css to finish before the
+     toast leaves the top layer, so it fades rather than vanishing. */
+  const TOAST_FADE_MS = 300;
+  let toastTimer = null;
+  function toast (msg, ms = 2200) {
+    let el = document.querySelector('.vs-toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'vs-toast';
+      /* A modal dialog paints in the top layer, above every z-index there is,
+         and its backdrop blurs what lies under it. A toast raised while one is
+         open has to join the top layer or it is unreadable behind the very
+         dialog whose failure it is reporting. */
+      el.popover = 'manual';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    /* Promoted on each toast rather than left open, because the top layer
+       stacks in the order things entered it: one promoted before a dialog
+       would sit under it. Older browsers have no popover and lose nothing but
+       the stacking. */
+    try { el.showPopover(); } catch {}
+    el.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      el.classList.remove('on');
+      toastTimer = setTimeout(() => { try { el.hidePopover() } catch {} }, TOAST_FADE_MS);
+    }, ms);
+  }
+
+  /* ── two-step confirm on one button ──
+     First press arms it (class `armed`, plus whatever `arm` repaints); a second
+     press inside the window fires; the window closing quietly disarms. The
+     page styles `armed` and words the button — this owns only the dance. */
+  function armConfirm (btn, { onConfirm, arm, disarm, ms = 4000 } = {}) {
+    let timer = null;
+    const reset = () => { timer = null; btn.classList.remove('armed'); try { disarm?.() } catch {} };
+    btn.addEventListener('click', () => {
+      if (timer) { clearTimeout(timer); reset(); onConfirm(); return }
+      btn.classList.add('armed');
+      try { arm?.() } catch {}
+      timer = setTimeout(reset, ms);
+    });
+    return { armed: () => timer !== null, disarm: () => { if (timer) { clearTimeout(timer); reset() } } };
+  }
+
+  function name (pageName, eyebrow) {
+    const n = $('#pageName'); const e = $('#pageEyebrow');
+    if (n && pageName != null) n.textContent = pageName;
+    if (e && eyebrow != null) e.textContent = eyebrow;
+  }
+
+  /** Mark the tool itself as unfinished. `false` takes it off again. */
+  function wip (on, label) {
+    const el = $('#wip');
+    if (!el) return;
+    el.hidden = !on;
+    el.textContent = label || 'Work in progress';
+  }
+
+  /* ── a newer Visual Stack than this one ──
+     The server looked it up before serving this page and left the answer on
+     `window.__VSTACK_UPDATE__`; nothing here reaches the network. Dismissal is
+     remembered per version, so saying "not now" to 4.2 stays said, and 4.3
+     asks once. */
+  function updateNotice () {
+    const info = window.__VSTACK_UPDATE__;
+    // Dismissal is per release: saying "not now" to this one stays said, and
+    // the next one asks once. `key` is the release — the sentence reads the
+    // same every time, so remembering the sentence would silence every future
+    // release too.
+    const seen = info?.key || info?.title;
+    // Nothing here decides whether a release is worth mentioning yet — the
+    // server holds back the first sighting (lib/update-check.mjs), because a
+    // page served on an ephemeral port has no memory that outlives its run.
+    if (!info?.title || store.get(KEY.seen, '') === seen) return;
+    const bar = document.createElement('div');
+    bar.className = 'vs-update';
+    bar.innerHTML =
+      `<span class="v">${esc(info.pill || 'new')}</span>` +
+      `<span class="t">${esc(info.title)}</span>` +
+      `<button class="how">Update instructions</button>` +
+      // Drawn, not typed: the × glyph hangs off the maths axis, so no amount of
+      // centring the line box centres the mark you actually see. Same treatment
+      // as the cog.
+      `<button class="no" aria-label="Dismiss">` +
+      `<svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" ` +
+      `stroke-width="1.6" stroke-linecap="round"><path d="M4.5 4.5 11.5 11.5M11.5 4.5 4.5 11.5"/>` +
+      `</svg></button>`;
+    const how = document.createElement('div');
+    how.className = 'vs-update-how';
+    how.hidden = true;
+    const lead = info.howLead || 'To update:';
+    how.innerHTML = `<p>${esc(lead)}</p><pre>${esc((info.install || []).join('\n'))}</pre>` +
+      (info.auto ? `<p class="auto">${esc(info.auto)}</p>` : '');
+    bar.appendChild(how);
+    bar.querySelector('.how').onclick = () => { how.hidden = !how.hidden };
+    bar.querySelector('.no').onclick = () => {
+      store.set(KEY.seen, seen);
+      // Say it to the server too, when there is one: this page's memory of it
+      // lasts as long as its origin does, which for a server on an ephemeral
+      // port is one run. Nothing here depends on the answer.
+      if (info.dismiss) {
+        try {
+          fetch(info.dismiss, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ key: seen }),
+          }).catch(() => {});
+        } catch {}
+      }
+      bar.remove();
+    };
+    // Pages lay their chrome out in a row grid — `grid-template-rows:auto 1fr`
+    // and the like — so a bare sibling of the bar takes the row meant for the
+    // content and gets stretched down the whole window. The notice moves in
+    // with the bar instead, leaving the layout the single child it sized for.
+    const top = $('.vs-topbar');
+    if (!top) return;
+    let slot = top.parentElement;
+    if (!slot || !slot.classList.contains('vs-chrome')) {
+      slot = document.createElement('div');
+      slot.className = 'vs-chrome';
+      top.insertAdjacentElement('beforebegin', slot);
+      slot.appendChild(top);
+    }
+    slot.appendChild(bar);
+  }
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  /* The cog: one button for the two choices nobody makes twice. */
+  function wireSettings () {
+    const btn = $('#settingsBtn'), menu = $('#settingsMenu');
+    if (!btn || !menu) return;
+    const open = on => { menu.hidden = !on; btn.setAttribute('aria-expanded', String(on)) };
+    // A control in the cog's slot can act on the page behind it, so the page
+    // needs a way to put the menu away first.
+    closeSettings = () => open(false);
+    btn.addEventListener('click', e => { e.stopPropagation(); open(menu.hidden) });
+    menu.addEventListener('click', e => e.stopPropagation());
+    document.addEventListener('click', () => open(false));
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !menu.hidden) open(false) });
+  }
+
+  function init (opts = {}) {
+    document.querySelectorAll('#themeSwitch button').forEach(b => {
+      b.addEventListener('click', () => setTheme(b.dataset.themeSet));
+    });
+    document.querySelectorAll('#langSwitch button').forEach(b => {
+      b.addEventListener('click', () => setLang(b.dataset.lang));
+    });
+    if (opts.onLang) langListeners.push(opts.onLang);
+    // `defaultLang` is what the artifact was authored in — it opens that way
+    // once, and after that the reader's own choice is the one that sticks.
+    if (opts.defaultLang && !storedLang) lang = opts.defaultLang === 'zh' ? 'zh' : 'en';
+    if (opts.lang) { lang = opts.lang === 'zh' ? 'zh' : 'en'; store.set(KEY.lang, lang); }
+    // Not every page sends something back — the form doesn't — so the primary
+    // action stays out of the bar unless a page asks for it.
+    const send = $('#send');
+    if (send && opts.send) send.hidden = false;
+    if (opts.wip) wip(true, typeof opts.wip === 'string' ? opts.wip : undefined);
+    name(opts.name, opts.eyebrow);
+    wireSettings();
+    pageVersion = (window.__VSTACK_BUILD__ || {}).version || null;
+    paintVersions();
+    applyTheme();
+    applyLang();
+    updateNotice();
+    return api;
+  }
+
+  let closeSettings = () => {};
+
+  const api = {
+    init, setTheme, setLang, setLink, setWatching, setServerVersion, hideLink, name, wip,
+    connect, toast, armConfirm, esc,
+    closeSettings: () => closeSettings(),
+    get theme () { return theme },
+    get lang () { return lang },
+    onLang (fn) { langListeners.push(fn) },
+  };
+  return api;
+})();
+
+/* ── the scrubber ──
+   An ordered set of states and a handle that moves between them: versions on
+   the spec and the review workspace, release phases on phase-preview. The
+   page says what the stops are and what showing one does; this owns the track,
+   the ticks, the drag, and the caption.
+
+     VSScrub.mount({ onPick: id => showThat(id) })
+     VSScrub.set({ items: [{ id, cap, label, sub }], active: id })
+
+   `cap` is the label under the tick (v3, P2), `label` names the stop, and
+   `sub` is the line beneath it — both are escaped here, so a page never has to
+   remember to. */
+window.VSScrub = (function () {
+  const $ = s => document.querySelector(s);
+  const esc = s => window.VSShell.esc(s ?? '');
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+  let items = [];
+  let active = null;
+  let onPick = () => {};
+  let wired = false;
+
+  const index = () => Math.max(0, items.findIndex(i => i.id === active));
+  const pct = i => items.length < 2 ? 100 : (i / (items.length - 1)) * 100;
+
+  function pickAt (clientX) {
+    const track = $('#tlTrack');
+    if (!track || !items.length) return null;
+    const r = track.getBoundingClientRect();
+    return items[Math.round(clamp((clientX - r.left) / r.width, 0, 1) * (items.length - 1))]?.id;
+  }
+  function pick (id) {
+    if (id == null || id === active) return;
+    active = id;
+    paint();
+    onPick(id);
+  }
+  const step = d => { const n = items[index() + d]; if (n) pick(n.id) };
+
+  function paint () {
+    const track = $('#tlTrack');
+    if (!track) return;
+    const i = index();
+    track.querySelectorAll('.tick').forEach(t => t.remove());
+    items.forEach((it, k) => {
+      const t = document.createElement('div');
+      t.className = 'tick' + (k <= i ? ' past' : '');
+      t.style.left = pct(k) + '%';
+      t.innerHTML = `<span class="cap">${esc(it.cap)}</span>`;
+      if (it.label) t.title = it.label;
+      t.onclick = e => { e.stopPropagation(); pick(it.id) };
+      track.appendChild(t);
+    });
+    $('#tlHandle').style.left = pct(i) + '%';
+    $('#tlFill').style.width = pct(i) + '%';
+    const cur = items[i];
+    $('#tlMeta').innerHTML = cur
+      ? `<div class="row"><b>${esc(cur.cap)}</b> <span class="lab">${esc(cur.label)}</span></div>` +
+        `<div class="row">${esc(cur.sub)}</div>`
+      : '';
+    $('#tlPrev').disabled = i === 0;
+    $('#tlNext').disabled = i >= items.length - 1;
+  }
+
+  function mount (opts = {}) {
+    if (opts.onPick) onPick = opts.onPick;
+    if (wired || !$('#tlTrack')) return api;
+    wired = true;
+    $('#tlPrev').onclick = () => step(-1);
+    $('#tlNext').onclick = () => step(1);
+    $('#tlHandle').addEventListener('pointerdown', e => {
+      e.preventDefault();
+      const mv = ev => pick(pickAt(ev.clientX));
+      const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up) };
+      addEventListener('pointermove', mv); addEventListener('pointerup', up);
+    });
+    $('#tlTrack').addEventListener('pointerdown', e => {
+      if (e.target.closest('#tlHandle, .tick')) return;
+      pick(pickAt(e.clientX));
+    });
+    return api;
+  }
+
+  const api = {
+    mount,
+    set ({ items: list, active: a }) {
+      if (list) items = list;
+      if (a !== undefined) active = a;
+      if (active == null && items.length) active = items[items.length - 1].id;
+      paint();
+      return api;
+    },
+    /** Move one stop back or forward — what arrow keys and the ‹ › buttons do. */
+    step,
+    get active () { return active },
+    get items () { return items },
+  };
+  return api;
+})();
+/* /vstack:shell js */
+</script>
+
+<script>
+(function () {
+  'use strict'
+  var BRIDGE = window.__VSTACK_BRIDGE__ || null
+  var $ = function (selector, scope) { return (scope || document).querySelector(selector) }
+  var $$ = function (selector, scope) { return Array.prototype.slice.call((scope || document).querySelectorAll(selector)) }
+  var esc = function (text) { return window.VSShell.esc(text) }
+  var lang = function () { return window.VSShell.lang === 'zh' ? 'zh' : 'en' }
+  var agent = function () {
+    var name = window.__VSTACK_HOST__ && window.__VSTACK_HOST__.name
+    return name || (lang() === 'zh' ? '你的智能体' : 'your agent')
+  }
+  var fill = function (text) { return text.replace(/\{agent\}/g, agent()) }
+
+  var STR = {
+    tool: ['Design review', '设计评审'],
+    eyebrow: ['Design review', '设计评审'],
+    flip: ['中文', 'EN'],
+    pickTitle: ['Pick a level of polish', '选择打磨程度'],
+    pickSub: ['Point at a level to preview it. Click to start the review.', '将指针移到某个级别上预览，点击即开始评审。'],
+    pickSubTouch: ['Tap a level to preview it. Tap it again to start.', '轻点某个级别预览，再点一次开始评审。'],
+    go: ['Start this review', '开始这个评审'],
+    goTouch: ['Tap again to start', '再点一次开始'],
+    title: ['{level} review', '{level}评审'],
+    preparing: ['{agent} is preparing the review. This page becomes the report when it is ready.', '{agent} 正在准备评审。准备好后，此页面会变成评审报告。'],
+    waiting: ['Waiting for {agent}…', '正在等待 {agent}…'],
+    count: ['{done} of {total} done', '已完成 {done}/{total}'],
+    stopped: ['Stopped.', '已停止。'],
+    ready: ['The report is ready.', '报告已准备好。'],
+    openReport: ['Open the report', '打开报告'],
+    offline: ['Start the review from {agent} to pick a level.', '请先让 {agent} 开始评审，再选择级别。'],
+    notSent: ['Not sent. Try again.', '未发送，请重试。'],
+    specTitle: ['Weekly report', '周报'],
+    specRow1: ['Review the layout', '检查布局'],
+    specRow2: ['Check every state', '检查每种状态'],
+    specToggle: ['Notify me', '通知我'],
+    specButton: ['Save', '保存']
+  }
+  var t = function (key) { return fill(STR[key][lang() === 'zh' ? 1 : 0]) }
+
+  /* The aims come from the level table in SKILL.md, Step 1. */
+  var LEVELS = [
+    { id: 'clean', name: ['Clean', '简洁'],
+      aim: ['Consistent and easy to use. Clear hierarchy, spacing and type, and every state handled.', '一致、易用。层级、间距和字体清晰，每种状态都处理到位。'],
+      adds: ['Follows the design system. No new effects.', '遵循设计系统，不加新效果。'] },
+    { id: 'refined', name: ['Refined', '精致'],
+      aim: ['Clean, plus a premium feel: considered depth and small interactions.', '在简洁之上加入高级感：有分寸的层次和细小的交互。'],
+      adds: ['Adds a transition on every state change.', '每次状态变化都加上过渡。'] },
+    { id: 'showcase', name: ['Showcase', '惊艳'],
+      aim: ['Refined, plus thoughtful animation and moments of delight.', '在精致之上加入用心的动画和惊喜时刻。'],
+      adds: ['Adds special effects.', '加入特效。'] }
+  ]
+  var pick = function (pair) { return pair[lang() === 'zh' ? 1 : 0] }
+  var levelOf = function (id) { return LEVELS.filter(function (level) { return level.id === id })[0] || null }
+
+  var doc = { decisions: {}, overall: '', revised: {} }
+  var touchUI = window.matchMedia('(hover: none)').matches
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)')
+
+  /* ── the chooser ── */
+  var panels = $('#panels')
+  panels.innerHTML = LEVELS.map(function (level, index) {
+    return '<button class="panel ' + level.id + '" type="button" data-level="' + level.id + '">' +
+      '<span class="p-num">0' + (index + 1) + '</span>' +
+      '<span class="p-name" data-l="name"></span>' +
+      '<span class="p-aim" data-l="aim"></span>' +
+      '<span class="p-adds" data-l="adds"></span>' +
+      '<span class="spec" aria-hidden="true">' +
+        '<span class="sp-head"><span class="sp-dot"></span><span data-t="specTitle"></span></span>' +
+        '<span class="sp-row"><span class="sp-box"></span><span data-t="specRow1"></span></span>' +
+        '<span class="sp-row"><span class="sp-box"></span><span data-t="specRow2"></span></span>' +
+        '<span class="sp-foot"><span class="sp-toggle"><span class="sp-track"><span class="sp-knob"></span></span><span data-t="specToggle"></span></span>' +
+        '<span class="sp-btn"><span data-t="specButton"></span><i class="spark s1"></i><i class="spark s2"></i><i class="spark s3"></i><i class="spark s4"></i></span></span>' +
+      '</span>' +
+      '<span class="p-go"><span data-go></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>' +
+      '</button>'
+  }).join('')
+  var panelList = $$('.panel', panels)
+
+  /* One panel previews at a time, whether the pointer, the keyboard or a tap chose it. */
+  var active = null
+  var setActive = function (panel) {
+    if (active === panel) return
+    if (active) { active.classList.remove('on'); resetTilt(active) }
+    active = panel
+    if (panel) panel.classList.add('on')
+  }
+  var resetTilt = function (panel) {
+    panel.classList.remove('tracking')
+    panel.style.removeProperty('--rx'); panel.style.removeProperty('--ry')
+  }
+
+  var lastPointer = 'mouse'
+  var frame = null
+  panelList.forEach(function (panel, index) {
+    panel.addEventListener('pointerdown', function (event) { lastPointer = event.pointerType })
+    panel.addEventListener('pointerenter', function (event) { if (event.pointerType !== 'touch') setActive(panel) })
+    panel.addEventListener('pointerleave', function (event) {
+      if (event.pointerType === 'touch') return
+      var focused = document.activeElement
+      setActive(panelList.indexOf(focused) !== -1 && focused.matches(':focus-visible') ? focused : null)
+    })
+    panel.addEventListener('focus', function () { setActive(panel) })
+    panel.addEventListener('blur', function () { if (active === panel && !panel.matches(':hover')) setActive(null) })
+    panel.addEventListener('click', function () {
+      /* A tap has no hover to preview with, so the first tap previews and the second starts. */
+      if (lastPointer === 'touch' && active !== panel) { setActive(panel); paintGo(); return }
+      choose(panel.dataset.level)
+    })
+    panel.addEventListener('keydown', function (event) {
+      var step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key]
+      if (!step) return
+      event.preventDefault()
+      panelList[(index + step + panelList.length) % panelList.length].focus()
+    })
+    if (panel.dataset.level !== 'showcase') return
+    panel.addEventListener('pointermove', function (event) {
+      if (event.pointerType === 'touch' || reduced.matches) return
+      var rect = panel.getBoundingClientRect()
+      var x = (event.clientX - rect.left) / rect.width, y = (event.clientY - rect.top) / rect.height
+      if (frame) return
+      frame = requestAnimationFrame(function () {
+        frame = null
+        panel.style.setProperty('--mx', (x * 100) + '%')
+        panel.style.setProperty('--my', (y * 100) + '%')
+        if (!panel.classList.contains('on')) return
+        panel.classList.add('tracking')
+        panel.style.setProperty('--rx', ((0.5 - y) * 5).toFixed(2) + 'deg')
+        panel.style.setProperty('--ry', ((x - 0.5) * 6).toFixed(2) + 'deg')
+      })
+    })
+  })
+  document.addEventListener('keydown', function (event) {
+    if ($('#choose').hidden || event.metaKey || event.ctrlKey || event.altKey) return
+    var index = ['1', '2', '3'].indexOf(event.key)
+    if (index !== -1) { event.preventDefault(); panelList[index].focus() }
+  })
+
+  var post = function (path, body) {
+    return fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-VSTACK-Token': BRIDGE.token }, body: JSON.stringify(body) })
+      .then(function (response) { if (!response.ok) throw new Error(String(response.status)); return response.json() })
+  }
+  var choosing = false
+  var choose = function (id) {
+    if (!BRIDGE) { window.VSShell.toast(t('offline'), 3200); return }
+    if (choosing) return
+    choosing = true
+    var next = Object.assign({}, doc, { level: id, lang: lang() })
+    post(BRIDGE.save, next).then(function () {
+      doc = next
+      render()
+    }, function () {
+      window.VSShell.toast(t('notSent'))
+    }).then(function () { choosing = false })
+  }
+
+  /* ── progress ── */
+  var taskText = function (task) {
+    var text = task.text
+    if (text && typeof text === 'object') return text[lang()] || text.en || text.zh || ''
+    return String(text || task.id || '')
+  }
+  var paintProgress = function () {
+    var level = levelOf(doc.level)
+    $('#progressTitle').textContent = t('title').replace('{level}', level ? pick(level.name) : '')
+    var tasks = Array.isArray(doc.tasks) ? doc.tasks : []
+    var problem = typeof doc.problem === 'string' ? doc.problem.trim() : ''
+    var isReport = doc.stage === 'report'
+    $('#progressSub').textContent = isReport ? t('ready') : t('preparing')
+    $('#problem').hidden = !problem
+    $('#problem span').textContent = problem
+    $('#waiting').hidden = isReport || !!tasks.length || !!problem
+    $('#waiting span:last-child').textContent = t('waiting')
+    var current = problem || isReport ? -1 : tasks.findIndex(function (task) { return !task.done })
+    $('#tasks').innerHTML = tasks.map(function (task, index) {
+      var done = !!task.done
+      return '<li class="' + (done ? 'done' : '') + (index === current ? ' now' : '') + '">' +
+        '<input type="checkbox" disabled' + (done ? ' checked' : '') + ' aria-label="' + esc(taskText(task)) + '">' +
+        '<span>' + esc(taskText(task)) + '</span>' +
+        (index === current ? '<i class="pulse" aria-hidden="true"></i>' : '') + '</li>'
+    }).join('')
+    var finished = tasks.filter(function (task) { return task.done }).length
+    $('#count').textContent = tasks.length ? t('count').replace('{done}', finished).replace('{total}', tasks.length) : ''
+    $('#openReport').hidden = !isReport
+    $('#openReport').textContent = t('openReport')
+  }
+
+  var paintGo = function () {
+    panelList.forEach(function (panel) {
+      $('[data-go]', panel).textContent = touchUI && active === panel ? t('goTouch') : t('go')
+    })
+  }
+  var paintChooser = function () {
+    $('#pickSub').textContent = touchUI ? t('pickSubTouch') : t('pickSub')
+    panelList.forEach(function (panel) {
+      var level = levelOf(panel.dataset.level)
+      $$('[data-l]', panel).forEach(function (el) { el.textContent = pick(level[el.dataset.l]) })
+      panel.setAttribute('aria-label', pick(level.name) + '. ' + pick(level.aim))
+    })
+    paintGo()
+  }
+
+  var render = function () {
+    $$('[data-t]').forEach(function (el) { el.textContent = t(el.dataset.t) })
+    $('#langFlip').textContent = t('flip')
+    window.VSShell.name(t('tool'))
+    document.title = t('tool')
+    var choosingView = !doc.level
+    $('#choose').hidden = !choosingView
+    $('#progress').hidden = choosingView
+    if (choosingView) paintChooser()
+    else paintProgress()
+  }
+
+  $('#langFlip').addEventListener('click', function () { window.VSShell.setLang(lang() === 'zh' ? 'en' : 'zh') })
+  $('#openReport').addEventListener('click', function () { location.reload() })
+
+  /* The agent moves the review on by writing the answers file: tasks, ticks, then the report. */
+  var onPush = function (next) {
+    if (!next || typeof next !== 'object') return
+    var toReport = doc.stage !== 'report' && next.stage === 'report'
+    doc = next
+    if (toReport) { location.reload(); return }
+    render()
+  }
+
+  var start = function () {
+    window.VSShell.init({ name: t('tool'), onLang: render })
+    render()
+    if (BRIDGE) {
+      window.VSShell.setLink(false, null, BRIDGE.watching)
+      window.VSShell.connect({
+        url: BRIDGE.events + '?t=' + encodeURIComponent(BRIDGE.token),
+        on: { push: function (event) { try { onPush(JSON.parse(event.data)) } catch (e) {} } }
+      })
+    } else window.VSShell.hideLink()
+  }
+  if (BRIDGE) {
+    fetch(BRIDGE.doc + '?t=' + encodeURIComponent(BRIDGE.token))
+      .then(function (response) { return response.json() })
+      .then(function (loaded) { if (loaded && typeof loaded === 'object') doc = loaded }, function () {})
+      .then(start)
+  } else start()
+})()
+</script>
+</body>
+</html>

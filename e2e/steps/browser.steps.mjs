@@ -1,11 +1,15 @@
 import { Given, Then, When } from '@cucumber/cucumber'
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as agent from '../support/mock-agent.mjs'
 import { PAGES } from '../support/world.mjs'
 
+const START_PAGE = path.resolve(path.dirname(fileURLToPath(import.meta.url)),
+  '../../plugins/vstack/skills/design-review/assets/review-start.html')
+const BRIDGE_CLI = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../plugins/vstack/lib/json-bridge.mjs')
 const REPORT_TEMPLATE = path.resolve(path.dirname(fileURLToPath(import.meta.url)),
   '../../plugins/vstack/skills/design-review/assets/report-template.html')
 
@@ -493,6 +497,68 @@ Then('the server records {string} as handed out', async function (note) {
 
 /* ── a design review report, answered in its own tab ── */
 
+Given('a design review is started on its own', async function () {
+  await this.startReportServer(fs.readFileSync(START_PAGE, 'utf8'), { stage: 'choose', decisions: {}, overall: '', revised: {} })
+})
+
+When('the reviewer opens the review', async function () {
+  await this.browserPage.goto(this.reportUrl)
+  await this.browserPage.locator('.panel[data-level="clean"]').waitFor()
+})
+
+When('the reviewer switches the review to 中文', async function () {
+  await this.browserPage.locator('#langFlip').click()
+})
+
+Then('the level panels read in 中文', async function () {
+  await eventually(async () => {
+    assert.match(await this.browserPage.locator('.panel[data-level="showcase"]').textContent(), /惊艳/)
+  }, 'the Showcase panel reads 惊艳')
+})
+
+When('the reviewer picks the level {string}', async function (level) {
+  await this.browserPage.locator(`.panel[data-level="${level}"]`).click()
+})
+
+Then('the answers file holds the level {string} in {string}', async function (level, lang) {
+  await eventually(() => {
+    const doc = this.answers()
+    assert.equal(doc.level, level)
+    assert.equal(doc.lang, lang)
+  }, `the answers file holds ${level} in ${lang}`)
+})
+
+When('the agent lists {int} tasks and ticks the first', async function (count) {
+  const doc = this.answers()
+  doc.stage = 'audit'
+  doc.tasks = Array.from({ length: count }, (_, index) => ({ id: `task-${index + 1}`, text: { en: `Task ${index + 1}`, zh: `任务 ${index + 1}` }, done: false }))
+  fs.writeFileSync(this.answersFile, JSON.stringify(doc, null, 2))
+  const tick = spawnSync(process.execPath, [BRIDGE_CLI, 'patch', '--json', this.answersFile, '--id', 'task-1', '--set', 'done=true'])
+  assert.equal(tick.status, 0, String(tick.stderr))
+})
+
+Then('the review shows {int} of {int} tasks done', async function (done, total) {
+  await eventually(async () => {
+    assert.equal(await this.browserPage.locator('#progress input[type="checkbox"]').count(), total)
+    assert.equal(await this.browserPage.locator('#progress input[type="checkbox"]:checked').count(), done)
+  }, `${done} of ${total} tasks are ticked`)
+})
+
+When('the agent publishes the report', async function () {
+  fs.writeFileSync(this.reportPage, fs.readFileSync(REPORT_TEMPLATE, 'utf8'))
+  fs.writeFileSync(this.answersFile, JSON.stringify({ ...this.answers(), stage: 'report' }, null, 2))
+})
+
+Then('the same tab shows the report in 中文', async function () {
+  await this.browserPage.locator('#f-example .decide').waitFor({ timeout: 5000 })
+  assert.equal((await this.browserPage.locator('#f-example .decide [data-d="approve"]').textContent()).trim(), '批准')
+  assert.equal((await this.browserPage.locator('#f-example h2').innerText()).trim(), '六个词以内的标题')
+})
+
+Then('the answers file still holds the level {string}', async function (level) {
+  await eventually(() => { assert.equal(this.answers().level, level) }, `the level ${level} survives a send`)
+})
+
 Given('a design review report is served on its own', async function () {
   await this.startReportServer(fs.readFileSync(REPORT_TEMPLATE, 'utf8'))
 })
@@ -589,6 +655,30 @@ Then('the section {string} shows the revision, quoting {string}', async function
     assert.ok(status.includes('Revised') && status.includes(note), `the status says "${status}"`)
     assert.equal(await section.locator('[aria-pressed="true"]').count(), 0, 'it waits for a fresh answer')
   }, `${id} shows the revision`)
+})
+
+Then('the section {string} is folded into Done', async function (id) {
+  const section = this.browserPage.locator(`#done #${id}.folded`)
+  await section.waitFor()
+  assert.equal(await section.locator('.cmp').isVisible(), false, 'the pictures are folded away')
+})
+
+Then('the pictures of {string} wait behind a blur', async function (id) {
+  const section = this.browserPage.locator(`#${id}`)
+  await eventually(async () => {
+    const filter = await section.locator('.wipe, .cmp').first().evaluate(pictures => getComputedStyle(pictures).filter)
+    assert.match(filter, /blur/, `the pictures are drawn with "${filter}"`)
+  }, `${id} waits behind a blur`)
+})
+
+Then('the page announces the revision of {string}', async function (id) {
+  await this.browserPage.locator('#arrival.on').waitFor({ timeout: 5000 })
+  await this.browserPage.locator(`#${id}.ready [data-show-revision]`).waitFor()
+})
+
+Then('steering {string} again starts with an empty note', async function (id) {
+  await this.browserPage.locator(`#${id} .decide [data-d="steer"]`).click()
+  assert.equal(await this.browserPage.locator(`#${id} .steer textarea`).inputValue(), '')
 })
 
 Then('the report server has closed', async function () {
