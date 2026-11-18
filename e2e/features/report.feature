@@ -41,6 +41,7 @@ Feature: A design review report answered in its own tab
   Scenario: R1 — the reviewer answers one section at a time
     When the reviewer approves the section "f-example"
     Then the report shows the section "f-variants"
+    And the answers file approves "f-example"
     When the reviewer opens a picture full size and goes back
     Then the picture closes and the report stays open
     When the reviewer presses the right arrow key

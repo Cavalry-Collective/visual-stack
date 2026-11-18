@@ -98,7 +98,7 @@ The owner switches between English and 中文 in the page's settings. The page t
 
 ## How the owner answers
 
-The owner presses Approve, Reject, Steer or Variations on each section, then Send. A steer needs a note, written in the box that opens under the bar. A request for more variations takes an optional note in the same box. The box closes once the note is sent. The page saves every answer to the answers file, and the watcher reports `SENT`:
+The owner presses Approve, Reject, Steer or Variations on each section. The page sends each answer when the owner moves to another section, and Send sends whatever is left, with the note about the whole review. A steer needs a note, written in the box that opens under the bar. A request for more variations takes an optional note in the same box. The box closes once the note is sent. The page saves every answer to the answers file, and the watcher reports `SENT`:
 
 ```json
 {

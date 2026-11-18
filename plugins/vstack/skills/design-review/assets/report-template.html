@@ -1211,7 +1211,7 @@ window.VSScrub = (function () {
     hintSteer: ['What to keep, change, or try instead.', '保留什么、改什么，或换个做法。'],
     noteSent: ['Sent.', '已发送。'],
     noteNeeded: ['Describe what should change, then send.', '先写下要改什么，再发送。'],
-    noteQueued: ['Included in your next send.', '会随下一次发送一起提交。'],
+    noteQueued: ['Sent when you move on.', '切换到其他部分时发送。'],
     revised: ['Revised', '已修改'], youAsked: ['You asked:', '你的要求：'], reviewAgain: ['Review again.', '请重新审阅。'],
     ready: ['Ready', '已就绪'],
     answered: [function (a) { return a + ' has answered.' }, function (a) { return a + ' 已回复。' }],
@@ -1245,7 +1245,7 @@ window.VSScrub = (function () {
     filedText: [function (a, n) { return a + ' is building the ' + n + ' approved ' + (n === 1 ? 'change' : 'changes') + '. You can close this tab.' }, function (a, n) { return a + ' 正在构建已批准的 ' + n + ' 项修改。你可以关闭这个标签页。' }],
     viewReview: ['View the review', '查看评审'],
     emptyTitle: ['Nothing to change at this level', '这个级别下没有需要修改的地方'], emptyHint: ['Send a note if you expected something here.', '如果你原本以为会有修改建议，请留言发送。'],
-    needsNote: ['One steer needs a note. Nothing was sent.', '有一项调整还没写说明，所以没有发送。'],
+    needsNote: ['A steer needs a note before it can be sent.', '调整需要先写说明才能发送。'],
     prev: ['Previous', '上一个'], next: ['Next', '下一个'], sections: ['Sections', '部分'], wrapUp: ['Wrap up', '收尾'],
     overall: ['Anything about the review as a whole?', '对整个审阅还有什么想说的？'],
     overallHint: ['Optional. Included in your next send.', '可选。会随下一次发送一起提交。'],
@@ -1660,9 +1660,18 @@ window.VSScrub = (function () {
     return fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-VSTACK-Token': BRIDGE.token }, body: JSON.stringify(body) })
       .then(function (response) { if (!response.ok) throw new Error(String(response.status)); return response.json() })
   }
-  var send = function () {
+  /* Sends run one after another, so an answer sent on the move never races the Send button. */
+  var sendQueue = Promise.resolve(true)
+  var send = function (opts) {
+    var run = function () { return sendNow(opts || {}) }
+    sendQueue = sendQueue.then(run, run)
+    return sendQueue
+  }
+  /* `auto` is a send made by moving to another section: it skips a steer still waiting for its
+     note, leaves the note about the whole review for the Send button, and says nothing. */
+  var sendNow = function (opts) {
     if (finished) return Promise.resolve(false)
-    var noteless = sections.filter(function (el) {
+    var noteless = opts.auto ? null : sections.filter(function (el) {
       var draft = drafts[el.id]
       return draft && draft.choice === 'steer' && !(draft.note || '').trim()
     })[0]
@@ -1674,8 +1683,12 @@ window.VSScrub = (function () {
       window.VSShell.toast(t('needsNote'))
       return Promise.resolve(false)
     }
-    if (!BRIDGE) { copyDecisions(); return Promise.resolve(true) }
-    var ids = unsentIds(), overall = overallBox.value.trim()
+    if (!BRIDGE) {
+      if (opts.auto) return Promise.resolve(false)
+      copyDecisions()
+      return Promise.resolve(true)
+    }
+    var ids = unsentIds(), overall = opts.auto ? '' : overallBox.value.trim()
     if (!ids.length && !overall) return Promise.resolve(true)
     var next = Object.assign({}, held.kept, { decisions: Object.assign({}, held.decisions), overall: overall, revised: Object.assign({}, held.revised) })
     ids.forEach(function (id) {
@@ -1691,10 +1704,10 @@ window.VSScrub = (function () {
     return post(BRIDGE.save, next).then(function () {
       held = normalize(next)
       ids.forEach(function (id) { delete drafts[id]; delete editing[id] })
-      overallBox.value = ''
+      if (!opts.auto) overallBox.value = ''
       save()
       paintAll()
-      window.VSShell.toast(t('sentTo', agentName()))
+      if (!opts.auto) window.VSShell.toast(t('sentTo', agentName()))
       return true
     }, function () {
       window.VSShell.toast(t('notSent'))
@@ -1781,6 +1794,7 @@ window.VSScrub = (function () {
   var slide = null
   var advanceTimer = null
   var show = function (el) {
+    if (slide && slide !== el && slide !== closing && BRIDGE) send({ auto: true })
     var from = slides.indexOf(slide), index = slides.indexOf(el)
     if (slide) slide.classList.remove('current')
     if (document.activeElement && document.activeElement.matches('a[data-ref]')) document.activeElement.blur()

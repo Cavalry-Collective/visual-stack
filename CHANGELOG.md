@@ -33,7 +33,9 @@ compares against to decide an update is available. See the release checklist in
 - **One section at a time.** The report shows each finding on its own, like a
   slide. Move with Previous and Next or the arrow keys. Approve and Reject take
   you to the next section with no answer, and the decision buttons stay in view
-  while you scroll. The Done group is gone, since nothing needs folding away.
+  while you scroll. Moving to another section sends the answer you left, so
+  your agent starts on a steer while you carry on. The Done group is gone,
+  since nothing needs folding away.
 - **Findings are grouped by check.** The report lists every finding under the
   check it failed. Severity tags, before-and-after number pills, the plan, the
   date line, the answered counter and the keyboard hints are gone.
