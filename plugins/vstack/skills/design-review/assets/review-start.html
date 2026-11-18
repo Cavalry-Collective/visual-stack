@@ -321,11 +321,11 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 
 /* ── the chooser ── */
 .choose { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 1.25rem; width: 100%; max-width: 78rem; margin-inline: auto; padding: 2rem clamp(1rem, 3vw, 2rem); }
-.choose header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1rem 2rem; }
+.choose header { display: grid; justify-items: start; gap: 1rem; }
 .rec-line { min-height: 1.5em; margin-top: .5rem; color: var(--ink-2); }
 .rec-line b { color: var(--ink); }
 .rec-line .spin { display: inline-block; vertical-align: -1px; margin-right: .5rem; width: 12px; height: 12px; border: 2px solid var(--line-2); border-top-color: var(--brand); border-radius: 50%; animation: spin 900ms linear infinite; }
-.delivery { display: grid; justify-items: end; gap: .375rem; }
+.delivery { display: grid; justify-items: start; gap: .375rem; }
 .delivery .seg button { height: 34px; padding: 0 14px; font-size: 14px; }
 .delivery .seg button[disabled] { opacity: .45; cursor: default; }
 .delivery-hint { font-size: 12px; color: var(--ink-3); }
@@ -550,7 +550,6 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
   .choose { gap: .75rem; padding: 1rem 1rem; }
   .choose h1 { font-size: 1.25rem; margin-top: .375rem; }
   .choose .sub { font-size: 14px; margin-top: .25rem; }
-  .delivery { justify-items: start; }
   .p-rec { top: .875rem; right: .875rem; }
   .panels { grid-template-columns: minmax(0, 1fr); gap: .75rem; }
   .panel { gap: .25rem; padding: 1rem; border-radius: 14px; }
