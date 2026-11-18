@@ -1707,16 +1707,21 @@ window.VSScrub = (function () {
   /* The finished review, filed: up to three approved proposals stacked under a stamp. */
   var fileAway = function (approved) {
     var reportOnly = held.kept.delivery === 'report'
-    var pictures = sections.filter(function (el) { return choiceOf(held.decisions[el.id]) === 'approve' }).slice(0, 3).map(function (el) {
-      var img = $('.side.prop.chosen .shot img', el) || $('.side.prop .shot img', el) || $('.wipe img.after', el)
-      return img ? '<img alt="" src="' + img.src + '">' : ''
-    }).join('')
     var layer = document.createElement('div')
     layer.className = 'filed'
     layer.setAttribute('role', 'status')
-    layer.innerHTML = '<div><div class="filed-stack">' + pictures + '<span class="filed-stamp">' + esc(t('filedStamp', approved)) + '</span></div>' +
+    layer.innerHTML = '<div><div class="filed-stack"><span class="filed-stamp">' + esc(t('filedStamp', approved)) + '</span></div>' +
       '<h2>' + esc(t(reportOnly ? 'filedReportTitle' : 'filedTitle')) + '</h2><p>' + esc(reportOnly ? t('filedReportText', agentName(), approved) : t('filedText', agentName(), approved)) + '</p>' +
       '<button class="btn" type="button">' + esc(t('viewReview')) + '</button></div>'
+    var stack = $('.filed-stack', layer)
+    sections.filter(function (el) { return choiceOf(held.decisions[el.id]) === 'approve' }).slice(0, 3).forEach(function (el) {
+      var source = $('.side.prop.chosen .shot img', el) || $('.side.prop .shot img', el) || $('.wipe img.after', el)
+      if (!source) return
+      var img = document.createElement('img')
+      img.alt = ''
+      img.src = source.src
+      stack.insertBefore(img, $('.filed-stamp', stack))
+    })
     $('button', layer).addEventListener('click', function () { layer.remove() })
     document.body.appendChild(layer)
   }
