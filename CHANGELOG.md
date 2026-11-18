@@ -8,6 +8,43 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.14.0 — 2026-11-18
+
+**Added**
+
+- **Pick the level in the page.** A design review opens on three panels: Clean,
+  Refined and Showcase. Point at one to see what that level feels like, then
+  click it to start. Your agent no longer asks in chat. Later rounds keep the
+  last level.
+- **Watch the review being prepared.** After you pick, the page lists what your
+  agent will do and ticks each step as it finishes. The same tab turns into the
+  report when it is ready.
+- **English and 中文.** Switch language in the page's settings. The level
+  panels, the task list, the report's buttons and the findings themselves all
+  follow it.
+
+- **Answered sections fold away.** Approve or reject a section and it folds to
+  one line. Once sent, it moves to a Done group at the end, so a revision comes
+  back at the top. Click a title to open it again.
+- **A section you steered waits behind a blur.** Its pictures blur, and a card
+  says your agent is revising it and quotes your note.
+- **You see when your agent answers.** The screen's edges glow, the section says
+  Ready, and the tab title flashes if you are in another tab.
+
+**Changed**
+
+- **Smaller, quieter text.** The report uses the dense end of the type scale.
+  The severity counts, the instructions line, the "every section is answered"
+  line and the footer are gone.
+- **Pictures are always screenshots.** Your agent no longer puts a list of
+  changes where a picture belongs. Red boxes are placed from measured pixels,
+  so they stay on their target at every width.
+
+**Fixed**
+
+- **A new steer starts with an empty note.** The note you sent last time no
+  longer reappears in the box.
+
 ## 6.13.0 — 2026-11-14
 
 **Added**

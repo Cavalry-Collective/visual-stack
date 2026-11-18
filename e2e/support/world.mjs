@@ -118,13 +118,13 @@ export class ReviewWorld {
 
   /** A design review report, served on its own over the JSON bridge the way
       the skill serves it. The answers file starts empty. */
-  async startReportServer (html, hostId = this.hostId) {
+  async startReportServer (html, doc = { decisions: {}, overall: '', revised: {} }, hostId = this.hostId) {
     const dir = path.join(this.temp, '.vstack', 'local', 'design-review')
     fs.mkdirSync(dir, { recursive: true })
     this.reportPage = path.join(dir, 'target-round-1.html')
     this.answersFile = path.join(dir, 'target-round-1.json')
     fs.writeFileSync(this.reportPage, html)
-    fs.writeFileSync(this.answersFile, JSON.stringify({ decisions: {}, overall: '', revised: {} }))
+    fs.writeFileSync(this.answersFile, JSON.stringify(doc))
     this.server = spawn(process.execPath, [
       BRIDGE, 'serve', '--json', this.answersFile, '--template', this.reportPage,
       '--tool', 'design-review', '--port', String(this.port), '--idle-timeout', '0',

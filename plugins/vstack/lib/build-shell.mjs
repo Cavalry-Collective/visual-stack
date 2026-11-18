@@ -42,6 +42,7 @@ const PAGES = [
   'skills/user-story-map/assets/story-map-template.html',
   'experimental/start/assets/chooser.html',
   'skills/design-review/assets/report-template.html',
+  'skills/design-review/assets/review-start.html',
 ].map(p => path.join(ROOT, p))
 
 const read = f => fs.readFileSync(f, 'utf8')
