@@ -79,6 +79,7 @@ Every picture is a screenshot of the product, today or with the change rendered 
 
 - Show the area at the size the owner will see it. Crop to the problem and do not shrink a full page into a thumbnail.
 - For a consistency finding, such as buttons in five shapes, put crops of the real instances side by side as Today, and the same instances made consistent as Proposed.
+- Add `wide` to `.cmp` when the pictures are much wider than they are tall, such as a line-up or a strip of the top bar. Today then sits above Proposed. Add `phone` for phone screenshots.
 - Check every Proposed picture before you write its caption. The caption must be true of the picture, and the change must not break another check.
 - Use only pictures captured in this round.
 - Save screenshots with a tool that writes files, such as Playwright.

@@ -20,7 +20,8 @@ compares against to decide an update is available. See the release checklist in
   width, so the first screen is judged as an iPhone SE shows it.
 - **Only what you can see.** A failed check becomes a slide only if the problem
   shows in the picture. The rest is listed in chat. Consistency problems, such
-  as buttons in several shapes, show every instance side by side.
+  as buttons in several shapes, show every instance side by side, with Today
+  above Proposed so both stay large.
 - **Pictures match their captions.** Your agent checks each proposal picture
   before writing its caption, and uses only pictures from the current round.
 
