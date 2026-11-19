@@ -214,7 +214,7 @@ body.panelshut #panelHandle:hover{background:var(--surface-2);border-color:var(-
 .vslink{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:inherit}
 .vsmark{width:15px;height:15px;flex:none;color:var(--ink)}
 .vslink:hover .vsmark{opacity:.8}
-/* The tool's name, in the place the wordmark used to take. */
+/* Visual Stack and the tool's name, beside the mark. */
 .brand b{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;max-width:280px}
 .brand .eyebrow{font:600 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
@@ -1045,10 +1045,10 @@ body.viewing #toolbar button[aria-pressed=true]{background:var(--surface-2);colo
         <rect x="46" y="4" width="12" height="16" fill="var(--brand)"/>
       </svg>
     </a>
-    <!-- The mark is the stack; the word beside it is this tool. Writing
-         "Visual Stack" here said what the logo already says, and pushed the
-         one thing you can't infer — which tool you are in — further right. -->
-    <b id="pageName"></b>
+    <!-- The product and the tool together are the tool's full name, such as
+         Visual Stack Polish. A page sets only the tool part, in English in
+         every language, the way a product name is not translated. -->
+    <b>Visual Stack <span id="pageName"></span></b>
     <span class="wip" id="wip" hidden></span>
     <span class="eyebrow" id="pageEyebrow"></span>
   </div>
@@ -2267,7 +2267,7 @@ async function boot () {
   // product rather than which of one tool you are in. Which page you are on is
   // already on the window below, twice. Phase preview is a different tool and
   // still names itself.
-  VSShell.init({ name: phase ? 'Phase preview' : 'Visual Stack' });
+  VSShell.init({ name: phase ? 'Phase preview' : 'Review' });
   measureChrome();
   document.title = S.name + (phase ? ' — Phases' : ' — Review') + ' · Visual Stack';
   $('#urlBar').textContent = live() ? S.route : S.fileName;

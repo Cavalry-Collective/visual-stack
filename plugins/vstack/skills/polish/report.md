@@ -23,7 +23,8 @@ Copy `assets/report-template.html` and fill it. Do not write the page's CSS or s
 Use these parts in this order. Leave out a part that has nothing in it.
 
 1. **Header.** An eyebrow with the round and polish level, then the target's name as the title.
-2. **Sections.** One per finding, grouped by category. See *Categories* below.
+2. **Handoff context.** The `#handoff-context` block under the header. See *The brief* below.
+3. **Sections.** One per finding, grouped by category. See *Categories* below.
 
 The script builds the rest from the sections: the numbers, the index, the slides and the closing box. Do not write them by hand.
 
@@ -35,12 +36,13 @@ Do not add metric tiles, counts, instructions, a verdict paragraph, a list of th
 
 Each section is a bar and a picture pair. It is about 20 words.
 
-1. **Bar.** A title of six words or fewer in an `h2`. The template adds the number and Approve, Reject, Steer and Variations, in the same place on every section.
-2. **Reason.** One or two sentences under the bar, in `<p class="why">`: what a visitor sees today, why it matters to them, and what changes.
+1. **Bar.** A title of six words or fewer in an `h2`. The template adds the number, the Approve and Reject buttons, and a Steer link, in the same place on every section.
+2. **Reason.** One or two sentences under the bar, in `<p class="why">`: what a visitor sees today, why it matters to them, and what changes. State what you saw. Do not claim a behaviour you did not observe.
 3. **Before and after.** Every section has a Today picture and a Proposed picture, side by side, each with a tag and at most one detail of six words or fewer.
 
 Write every word for the owner, who may not be a designer. Use plain, everyday words. Leave contrast ratios, pixel sizes, colour codes and design terms out of the page; keep them for the chat reply and the build. Say "too pale to read" in place of "1.8:1 contrast", and "smaller than a fingertip" in place of "14px".
-4. **Nothing else.** Other evidence and code locations go in the chat reply. Put a code location in `data-loc` on the article if the build needs it.
+4. **Spec.** A `<script type="text/plain" class="spec">` block at the end of the article. The page does not show it. See *The brief* below.
+5. **Nothing else.** Other evidence goes in the chat reply. Put a code location in `data-loc` on the article if the build needs it.
 
 The reason and the details must not repeat the title. Do not add severity tags or before-and-after number pills.
 
@@ -49,7 +51,7 @@ The reason and the details must not repeat the title. Do not add severity tags o
 Group the sections under one heading per category, `<h2 class="area-title cat">`, with the heading in both languages.
 
 - Name each category in plain words after the check that failed, such as Readability, Phone or What stands out. Give the check's ID, such as C6, in the chat reply. See `lenses.md`.
-- In Showcase, name each category after the area it improves, such as First screen or Motion.
+- In Showcase, name each category after the area it improves, such as Entrance, Scroll or Transitions.
 - Put the category that most harms use first, and the worst section first inside it.
 - Leave out a category with no findings.
 
@@ -67,7 +69,7 @@ Show two or more ways to fix one problem as variations of one section. Never giv
 - Put your pick first.
 - Mark a variation you added after **More variations** with `data-new`, and remove `data-new` from the earlier ones.
 
-The template shows one variation at a time behind A, B, C tabs. Approve records the variation on show.
+The template shows one variation at a time. A small switcher in the Proposed caption names each one by its `data-variant`, and a tick marks the one approved. Approve records the variation on show.
 
 ## Questions
 
@@ -78,6 +80,10 @@ When a section asks the owner a question, add `data-yes="Keep" data-no="Change"`
 Every picture is a screenshot of the product, today or with the change rendered into it. Never put a list of changes, a description, a diagram of text or a code sample in a Today or Proposed picture. If a change cannot be shown, such as a rename in code, it is not a design review finding.
 
 - Show the area at the size the owner will see it. Crop to the problem and do not shrink a full page into a thumbnail.
+- For a consistency finding, such as buttons in five shapes, put crops of the real instances side by side as Today, and the same instances made consistent as Proposed.
+- Add `wide` to `.cmp` when the pictures are much wider than they are tall, such as a line-up or a strip of the top bar. Today then sits above Proposed. Add `phone` for phone screenshots.
+- Check every Proposed picture before you write its caption. The caption must be true of the picture, and the change must not break another check.
+- Use only pictures captured in this round.
 - Save screenshots with a tool that writes files, such as Playwright.
 - Embed them as `data:` images, at most 1,200 px wide, as JPEG at quality 75.
 - Draw a 2px red box over a Today picture with `.box` when the problem is one area. Give it `data-rect="x,y,width,height"` in the screenshot's own pixels. Measure it in the page you captured: the element's `getBoundingClientRect()`, less the capture's top-left corner, times the device scale factor. Never estimate a box by eye or place it with percentages.
@@ -101,7 +107,7 @@ The owner switches between English and 中文 in the page's settings. The page t
 
 ## How the owner answers
 
-The owner presses Approve, Reject, Steer or Variations on each section. The page sends each answer when the owner moves to another section, and Send sends whatever is left, with the note about the whole review. A steer needs a note, written in the box that opens under the bar. A request for more variations takes an optional note in the same box. The box closes once the note is sent. The page saves every answer to the answers file, and the watcher reports `SENT`:
+The owner presses Approve or Reject on each section, or opens Steer. The page sends each answer when the owner moves to another section, and Send sends whatever is left, with the note about the whole review. Steer opens a box under the bar. A steer needs a note, written in that box, and the box closes once the note is sent. The box also offers a link that asks for more variations instead: it takes no note, the page confirms it, and moves on. The page saves every answer to the answers file, and the watcher reports `SENT`:
 
 ```json
 {
@@ -110,7 +116,7 @@ The owner presses Approve, Reject, Steer or Variations on each section. The page
     "f-lanes": { "choice": "approve", "variant": "Band" },
     "f-size": { "choice": "reject" },
     "f-nav": { "choice": "steer", "note": "Keep the hint too." },
-    "f-card": { "choice": "vary", "note": "Try a denser row." }
+    "f-card": { "choice": "vary" }
   },
   "overall": "Keep it short.",
   "revised": {}
@@ -126,6 +132,9 @@ The owner presses Approve, Reject, Steer or Variations on each section. The page
 | `level` | `clean`, `refined` or `showcase`. Written by the page when the owner picks, or by you when the level is already known. |
 | `lang` | `en` or `zh`. The language the owner picked in. |
 | `delivery` | `build` or `report`. Written by you as the default, and by the page with the owner's choice when they pick. |
+| `effort` | `low`, `medium` or `high`. Written by the page when the owner picks. Missing means `medium`. |
+| `proofread` | `true` when the owner turned on Proofread. Written by the page. |
+| `trimCopy` | `true` when the owner turned on Trim AI filler. Written by the page. |
 | `canBuild` | `false` when the code is not in this repo. The page then offers only **Report only**. |
 | `recommend` | `{"level", "reason": {"en", "zh"}}`. Your quick look at the site. The page marks that panel **Recommended**. |
 | `mode` | The mode of each flow, such as `{"marketing site": "website", "sign-in": "web-app"}`. Written by you once you have picked. |
@@ -137,15 +146,15 @@ Keep every key you do not own when you write the file. The page does the same wh
 
 Revise a steered section, or add variations to a `vary` section, like this:
 
-1. Change the section in the HTML page. Keep its id. For `vary`, keep the existing variations and add one to three new ones that follow the note.
-2. Then write the answers file: delete the section from `decisions`, and set `revised["<id>"]` to the note it answered. For a `vary` with no note, use `"More variations"`.
+1. Change the section in the HTML page. Keep its id. For `vary`, keep the existing variations and add one to three new ones that take a different approach.
+2. Then write the answers file: delete the section from `decisions`, and set `revised["<id>"]` to the note it answered. For a `vary`, use `"More variations"`.
 3. Write the HTML first. The page offers the owner the new version as soon as the answers file changes.
 
 The page then shows the section as **Revised**, quotes the note, and asks for a fresh answer. A steer you have not answered yet blurs its pictures and shows the owner that you are revising it. When you write the answers file, the page glows at the edges and offers the new version.
 
 The page shows one section at a time, under its category heading. The owner moves with Previous and Next, the arrow keys or the index. Approve and Reject move on to the next section with no answer. The closing box is the last slide.
 
-**Approve & finish**, under the ▾ beside Send, sends any answers left, then ends the review. The watcher reports `APPROVED` and the server closes. Build only what `decisions` approves, and only the variation it names. When `delivery` is `report`, write the report in Step 5 of `SKILL.md` in place of a build.
+**Approve & finish**, on the last slide and under the ▾ beside Send, sends any answers left, then ends the review. It asks for a second press. The watcher reports `APPROVED` and the server closes. Build only what `decisions` approves, and only the variation it names. When `delivery` is `report`, write the report in Step 5 of `SKILL.md` in place of a build.
 
 | Status | Meaning |
 |---|---|
@@ -159,7 +168,16 @@ The page shows one section at a time, under its category heading. The owner move
 | Landed, broken | Shipped with a fault. List it first. Later rounds only. |
 | Moved | The problem now sits somewhere else. Later rounds only. |
 
-Opened off disk or as an Artifact, the page has no server. Send becomes **Copy decisions**, which copies the answers as text for the owner to paste into chat. To keep a record in that form, put `data-decision="approve"`, `"reject"` or `"steer"` on each settled section.
+Opened off disk or as an Artifact, the page has no server. Send becomes **Copy decisions**, which copies the brief described in *The brief* below. To keep a record in that form, put `data-decision="approve"`, `"reject"` or `"steer"` on each settled section.
+
+## The brief
+
+**Copy decisions** copies a brief that an agent with no other context can act on. The page builds it in English from the title, the eyebrow, the context block, and each section's decision, owner's note, reason, captions, `data-loc` and spec. Fill two blocks the page does not show:
+
+- **Context**, in `#handoff-context`: the target's address or repo path, the delivery, the screen sizes and states checked, the stack as far as you could tell, and what the receiver must not do.
+- **Spec**, in each section's `.spec`: where the change goes, what is there today with measured values, the change with exact values and selectors, and how to check it. Name one line per variation when the section has several.
+
+Write both for an agent, in plain text. Technical terms, values and selectors belong here. Each must stand alone: do not point to the chat, to another section or to a picture.
 
 ## Page requirements
 

@@ -1,7 +1,7 @@
 # Contract: Bridge loop
 
 How a session stays linked to a page served by `lib/json-bridge.mjs` — the
-shared engine behind `user-story-map`, `design-review`, `spec` and `phase-build`. Host-independent:
+shared engine behind `user-story-map`, `polish`, `spec` and `phase-build`. Host-independent:
 each skill's SKILL.md names the host mechanism that fulfills the two roles here
 (a background process for `serve`, a persistent stream for `watch`).
 
@@ -23,9 +23,25 @@ forgotten and leaves a page nobody is reading.
 own position from there, so a send that lands between rounds cannot be
 swallowed.
 
+A Host with pull delivery (`watch_next` in [host.md](host.md)) cannot hold a
+stream, so it waits in bounded calls instead:
+
+```bash
+node <lib>/json-bridge.mjs watch --json <doc.json> --tool <skill> \
+  --next --timeout 25 --seq <the seq the server printed>
+```
+
+Each call returns one event, or `IDLE` when the time is up, and always ends
+with a `WAIT` line holding the exact command to run next, carrying the seq it
+reached. Run that command, not a fresh one, so a send that lands between two
+calls is still reported. The page stays **Linked** while the calls keep
+coming.
+
 | Event | Meaning | Agent action |
 | --- | --- | --- |
 | `WATCHING` | Stream armed | — |
+| `IDLE` | A bounded wait ran out with nothing new | Run the `WAIT` command |
+| `WAIT` | Ends every bounded wait | The command that resumes it |
 | `SENT` | An edited document landed in the JSON file | Read the file back — it is the new source of truth |
 | `APPROVED` | The document is signed off | Say so; carry on with what comes next |
 | `CLOSED` | The tab went away; the server has exited | Say the link is closed and stop serving |

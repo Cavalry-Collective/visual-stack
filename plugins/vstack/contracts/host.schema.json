@@ -68,6 +68,29 @@
           "description": "Optional one-liner about auto-update."
         }
       }
+    },
+    "effortLevels": {
+      "type": "object",
+      "required": ["low", "medium", "high"],
+      "additionalProperties": false,
+      "description": "The model and reasoning effort for each effort level Polish offers. Absent means the Host keeps the session's own model.",
+      "properties": {
+        "low": { "$ref": "#/$defs/effortLevel" },
+        "medium": { "$ref": "#/$defs/effortLevel" },
+        "high": { "$ref": "#/$defs/effortLevel" }
+      }
+    }
+  },
+  "$defs": {
+    "effortLevel": {
+      "type": "object",
+      "required": ["model", "modelName", "effort"],
+      "additionalProperties": false,
+      "properties": {
+        "model": { "type": "string", "minLength": 1, "description": "The model the adapter passes when it starts the work." },
+        "modelName": { "type": "string", "minLength": 1, "description": "The model's name as the page shows it." },
+        "effort": { "type": "string", "enum": ["low", "medium", "high"], "description": "The reasoning effort the adapter passes." }
+      }
     }
   }
 }

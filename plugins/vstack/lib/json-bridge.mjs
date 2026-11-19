@@ -20,7 +20,7 @@
  *        [--port 0] [--idle-timeout 90] [--name <label>] [--tool <skill>] [--host <id>]
  *        [--no-open]   (serving opens the page in the browser unless told not to)
  *   node json-bridge.mjs patch --json <doc.json> --id <nodeId> --set k=v [--set k=v ...]
- *   node json-bridge.mjs watch --json <doc.json> --tool <skill> [--seq <n>] [--stream]
+ *   node json-bridge.mjs watch --json <doc.json> --tool <skill> [--seq <n>] [--stream | --next --timeout <s>]
  *        (blocks; heartbeats presence)
  *
  * `--tool` names the calling skill — `spec`, `user-story-map`, `phase-build` —
@@ -50,6 +50,12 @@
  * under the host's stream watcher so it never has to be restarted:
  *
  *   node json-bridge.mjs watch --json <doc.json> --stream --seq <printed seq>
+ *
+ * A Host with pull delivery (contracts/host.md, watch_next) runs a bounded
+ * wait instead. It returns one event, or IDLE when the time is up, and always
+ * ends with a WAIT line holding the exact command that resumes from there:
+ *
+ *   node json-bridge.mjs watch --json <doc.json> --next --timeout 25 --seq <printed seq>
  */
 
 import fs from 'node:fs'
@@ -59,7 +65,7 @@ import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { checkForUpdate, dismissUpdate, withUpdate, withVersion } from './update-check.mjs'
 import { loadHost, resolveHostId, withHost } from './host.mjs'
-import { workDir, findWorkDir, TOOL } from './workdir.mjs'
+import { workDir, findWorkDir, TOOL, LEGACY } from './workdir.mjs'
 import { writeAtomic, watchingRecently, startHeartbeat, startPresence, openInBrowser } from './live-link.mjs'
 
 const argv = process.argv.slice(2)
@@ -76,8 +82,10 @@ const DOC = path.resolve(JSON_PATH)
    one of the TOOL values; a document opened outside a skill gets `documents`.
    A typo here would silently grow a fresh directory and a link that does
    nothing (workdir.mjs calls that the worst failure this design allows), so an
-   unknown name is refused instead. */
-const TOOL_ID = arg('--tool', TOOL.documents)
+   unknown name is refused instead. A tool's former name, such as design-review
+   for polish, still means that tool. */
+const TOOL_ARG = arg('--tool', TOOL.documents)
+const TOOL_ID = Object.keys(LEGACY).find(tool => LEGACY[tool].includes(TOOL_ARG)) || TOOL_ARG
 if (!Object.values(TOOL).includes(TOOL_ID)) {
   console.error(`unknown --tool "${TOOL_ID}" — one of: ${Object.values(TOOL).join(', ')}`)
   process.exit(2)
@@ -137,6 +145,13 @@ if (cmd === 'watch') {
      someone has to remember — and it gets forgotten. */
   const streaming = argv.includes('--stream')
   let at = from
+  /* A bounded wait has to say how to resume, because the next call must start
+     from the seq this one saw: one that re-read the file would miss a send
+     that landed between the two calls. */
+  const limit = Number(arg('--timeout', 0))
+  const deadline = limit > 0 ? Date.now() + limit * 1000 : Infinity
+  const resume = () => `node "${fileURLToPath(import.meta.url)}" watch --json "${DOC}" --tool ${TOOL_ID} --next --timeout ${limit || 25} --seq ${at}`
+  const leave = () => { stop(); if (!streaming) console.log(`WAIT      ${resume()}`); process.exit(0) }
   console.log(streaming ? `WATCHING  ${stem} from seq ${at}` : `watching ${stem} from seq ${at}`)
   /* Top-level await, deliberately: scheduling a callback here would let the
      rest of this file — the whole serve path, template check and all — run on
@@ -147,7 +162,7 @@ if (cmd === 'watch') {
       if (!announced) {
         console.log(`APPROVED  ${stem} · read ${F.approved}`)
         announced = true
-        if (!streaming) { stop(); process.exit(0) }
+        if (!streaming) leave()
       }
     } else announced = false
     if (!fs.existsSync(F.url)) { stop(); console.log(`CLOSED    ${stem} · the link is over`); process.exit(0) }
@@ -155,8 +170,9 @@ if (cmd === 'watch') {
     if (now !== at) {
       at = now
       console.log(`SENT      ${stem} · seq ${now} · read ${DOC}`)
-      if (!streaming) { stop(); process.exit(0) }
+      if (!streaming) leave()
     }
+    if (Date.now() >= deadline) { console.log(`IDLE      ${stem} · seq ${at}`); leave() }
     await new Promise(r => setTimeout(r, 1000))
   }
 }

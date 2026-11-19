@@ -36,7 +36,7 @@ assert.match(html, /"name":"Codex"/)
 for (const id of listHosts()) {
   const p = loadHost(id)
   const where = `host-profiles/${id}.json`
-  assert.deepEqual(Object.keys(p).filter(k => !['id', 'name', 'capabilities', 'install'].includes(k)), [],
+  assert.deepEqual(Object.keys(p).filter(k => !['id', 'name', 'capabilities', 'install', 'effortLevels'].includes(k)), [],
     `${where}: unknown top-level keys`)
   assert.match(p.id, /^[a-z][a-z0-9-]*$/, `${where}: id pattern`)
   assert.equal(p.id, id, `${where}: id matches filename`)
@@ -58,6 +58,15 @@ for (const id of listHosts()) {
   /* A Host that detects an update has to be able to say how to take it. The
      fallback wording in update-check.mjs is Claude Code's slash commands, and
      printing those to anyone else is worse than saying nothing. */
+  /* Effort levels name a model for each of low, medium and high, or are absent. */
+  if (p.effortLevels) {
+    assert.deepEqual(Object.keys(p.effortLevels).sort(), ['high', 'low', 'medium'], `${where}: effortLevels keys`)
+    for (const [name, run] of Object.entries(p.effortLevels)) {
+      assert.deepEqual(Object.keys(run).sort(), ['effort', 'model', 'modelName'], `${where}: effortLevels.${name} keys`)
+      assert.ok(run.model && run.modelName, `${where}: effortLevels.${name} names a model`)
+      assert.ok(['low', 'medium', 'high'].includes(run.effort), `${where}: effortLevels.${name}.effort enum`)
+    }
+  }
   if (c.updateDetect !== 'none') {
     assert.ok(p.install?.commands?.length, `${where}: updateDetect without install.commands`)
   }

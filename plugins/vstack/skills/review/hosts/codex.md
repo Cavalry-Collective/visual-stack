@@ -81,11 +81,29 @@ workspace therefore hides the public-link request. If the user needs something
 portable, attach the wireframe HTML or run `assets/bundle-artifact.mjs` to make
 an offline review copy. Do not claim that either is a hosted public URL.
 
+## Polish
+
+`$vstack:polish` serves its pages through `lib/json-bridge.mjs` rather
+than the review server. The same rules apply:
+
+- Start `serve` in a persistent `exec_command` session with `--host codex`, so
+  the page names Codex, and retain the session id.
+- Wait with the bounded form, as a foreground `exec_command` with a 30-second
+  yield: `watch --json <doc.json> --tool polish --next --timeout 25 --seq <n>`.
+- Every wait ends with a `WAIT` line. Run that exact command next; it carries
+  the seq the wait reached.
+- Keep waiting until `APPROVED` or `CLOSED`. Do not send the final response
+  while the owner is still answering.
+- The profile has no `effortLevels`, so the review runs on the session's model
+  whatever effort the owner picks.
+- `user_browser` is not available, so the Proofread experiment cannot run. Say
+  so if the owner turned it on, and carry on without it. For a site behind a
+  sign-in, ask the owner for screenshots.
+
 ## Install and discovery
 
 The plugin manifest at `plugins/vstack/.codex-plugin/plugin.json` exposes the
-Visual Stack skills to Codex; this wireframe workflow is the one with a Codex
-host adapter. Install the repository marketplace, then install the plugin:
+Visual Stack skills to Codex. This adapter covers review and Polish. Install the repository marketplace, then install the plugin:
 
 ```text
 codex plugin marketplace add Cavalry-Collective/visual-stack

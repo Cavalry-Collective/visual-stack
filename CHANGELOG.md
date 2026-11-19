@@ -8,6 +8,75 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.16.0 — 2026-11-19
+
+**Changed**
+
+- **Design review is now Polish.** Run `/vstack:polish`, or `$vstack:polish`
+  in Codex. `/vstack:design-review` still works as an alias. New rounds are
+  saved under `.vstack/local/polish/`, and rounds already under
+  `.vstack/local/design-review/` are still read where they are, with nothing
+  moved behind your back.
+- **Every page's top bar names the product and the tool,** such as Visual
+  Stack Polish and Visual Stack Review, in English in either language.
+
+**Added**
+
+- **Effort.** Polish's start page offers Low, Medium and High.
+  Each runs the review on a set model and reasoning effort; under Claude Code
+  that is Sonnet at low, Opus at medium and Fable at high. Medium is the
+  default.
+- **Polish runs under Codex.** The page waits in short, repeated calls
+  the way review does under Codex, so your answers reach Codex, and the page
+  names Codex as the agent.
+- **Two experiments, both off by default.** Proofread passes the report's
+  words and new UI copy to ChatGPT in your browser. Trim AI filler adds a
+  check that flags text explaining the screen when it does not need it.
+
+**Also changed**
+
+- **Showcase aims higher.** It now leads with animation, parallax, smooth
+  transitions, scroll interactions and playful details, proposes six to eight
+  changes with two major ones, and still gives every effect a reduced-motion
+  version and leaves the browser's own scrolling alone.
+- **Two buttons and a link.** Each finding has Approve and Reject, with
+  Steer as a link beside them. Steer opens the note box, which also offers to
+  ask for other ways to fix the problem; that needs no note, a message
+  confirms it, and the page moves to the next finding.
+- **Finishing is on the last slide.** The last slide shows Approve & finish
+  with a line saying what it builds. Send appears beside it only while
+  something is unsent.
+- **The findings list is a drawer on a phone.** Below 1100 px, the list
+  folds into the left edge behind a tab, the same handle the review
+  workspace uses for its comments panel. The tab counts the findings still
+  unanswered. It replaces the row of chips under the title.
+- **Options fold under the panels.** The start page leads with the three
+  levels. Delivery, Effort and the experiments sit underneath as one line,
+  such as "Build in this repo · Medium effort", and Change opens them. Each
+  setting's hint is one short line.
+- **A cleaner variation picker.** The variations are now a small switcher of
+  their names in the Proposed caption, right above the picture they change,
+  with a tick on the one you approved. Approve always says Approve.
+
+- **Copy decisions hands over the whole review.** A report opened as an
+  Artifact or off disk copies a brief that another agent can act on with no
+  other context. It holds the target, the delivery, the screen sizes checked,
+  and, for each section, your decision and note, the reason, both captions and
+  an exact spec of the change.
+
+- **Clean covers the whole page.** Your agent lists every section and control
+  first, opens every menu, drop-down and form step to see how each looks, and
+  gives every check a pass or a fail. It never submits a form on a site it
+  does not own.
+- **Real phone sizes.** Phone checks use iPhone screen sizes, height as well as
+  width, so the first screen is judged as an iPhone SE shows it.
+- **Only what you can see.** A failed check becomes a slide only if the problem
+  shows in the picture. The rest is listed in chat. Consistency problems, such
+  as buttons in several shapes, show every instance side by side, with Today
+  above Proposed so both stay large.
+- **Pictures match their captions.** Your agent checks each proposal picture
+  before writing its caption, and uses only pictures from the current round.
+
 ## 6.15.0 — 2026-11-18
 
 **Changed**
