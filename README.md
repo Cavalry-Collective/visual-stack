@@ -20,7 +20,7 @@
 
 Visual Stack is a collection of tools to help you review, polish, and build with your agent, right on the screen.
 
-[![A mind map of Visual Stack under the heading Pick a tool. Visual Stack sits in the middle. Review branches to the left, run with /vstack:review. Polish branches to the right, run with /vstack:polish. Below, quieter and tagged Experimental, hangs User story map.](docs/assets/stack-map.svg)](#review)
+[![A mind map of Visual Stack under the heading Pick a tool. Visual Stack sits in the middle. Review branches to the left, run with /vstack:review. Polish branches to the right, run with /vstack:polish. User story map hangs below, run with /vstack:user-story-map and marked Experimental.](docs/assets/stack-map.svg)](#review)
 
 ## Review
 
