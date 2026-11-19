@@ -34,7 +34,7 @@ Review works with new wireframes and running apps, at desktop, tablet and phone 
 
 Polish audits your UI and shows what could be improved, with before-and-after screenshots for each proposed fix.
 
-<img src="docs/assets/polish-demo.gif" alt="Polish demo on a todo app. The audit ticks off its four tasks, the owner approves three findings shown as before and after slides, and then finishes the round." width="600">
+<img src="docs/assets/polish-demo.gif" alt="Polish demo on a todo app. The owner previews the Clean, Refined and Showcase levels and picks Showcase. The audit ticks off its four tasks, the owner approves three findings shown as before and after slides, and then finishes the round." width="600">
 
 [Read about Polish →](docs/polish.md)
 
