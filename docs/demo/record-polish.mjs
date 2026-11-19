@@ -57,37 +57,56 @@ const until = async (test, what, ms = 15000) => {
 
 const browser = await chromium.launch()
 const shooter = await browser.newPage({ viewport: { width: 390, height: 760 }, deviceScaleFactor: 2 })
-const shoot = async (clipOf, change = '') => {
+// Each step is a function run in the page with its argument, so no page code is built from strings.
+const step = (fn, arg) => ({ fn, arg })
+const shoot = async (clipOf, change) => {
   await shooter.goto('file://' + path.join(HERE, 'pages/v1.html'))
-  if (change) await shooter.evaluate(change)
-  const clip = await shooter.evaluate(clipOf)
+  if (change) await shooter.evaluate(change.fn, change.arg)
+  const clip = await shooter.evaluate(clipOf.fn, clipOf.arg)
   const png = await shooter.screenshot({ clip })
   return 'data:image/png;base64,' + png.toString('base64')
 }
-const around = (selectors, pad = 12) => `(() => {
-  const boxes = ${JSON.stringify(selectors)}.map(s => document.querySelector(s).getBoundingClientRect())
-  const top = Math.min(...boxes.map(b => b.top)) - ${pad}, bottom = Math.max(...boxes.map(b => b.bottom)) + ${pad}
+const around = (selectors, pad = 12) => step(([selectors, pad]) => {
+  const boxes = selectors.map(s => document.querySelector(s).getBoundingClientRect())
+  const top = Math.min(...boxes.map(b => b.top)) - pad, bottom = Math.max(...boxes.map(b => b.bottom)) + pad
   return { x: 0, y: Math.max(0, top), width: 390, height: bottom - Math.max(0, top) }
-})()`
-const css = rules => `(() => { const s = document.createElement('style'); s.textContent = ${JSON.stringify(rules)}; document.head.append(s) })()`
-const moveDone = into => `(() => {
+}, [selectors, pad])
+const css = rules => step(rules => {
+  const style = document.createElement('style')
+  style.textContent = rules
+  document.head.append(style)
+}, rules)
+const moveDone = into => step(into => {
   const list = document.querySelector('.card ul'), done = [...list.querySelectorAll('li.done')]
-  ${into === 'section'
-    ? `const card = document.createElement('div'); card.className = 'card'; card.style.marginTop = '14px'
-       card.innerHTML = '<div style="padding:10px 17px 0;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#8b8f9a">Done</div><ul></ul>'
-       done.forEach(li => card.querySelector('ul').append(li))
-       document.querySelector('.card').after(card)`
-    : `done.forEach(li => { li.style.opacity = '.55'; list.append(li) })`}
-})()`
+  if (into === 'section') {
+    const card = document.createElement('div')
+    card.className = 'card'
+    card.style.marginTop = '14px'
+    card.innerHTML = '<div style="padding:10px 17px 0;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#8b8f9a">Done</div><ul></ul>'
+    done.forEach(li => card.querySelector('ul').append(li))
+    document.querySelector('.card').after(card)
+  } else {
+    done.forEach(li => { li.style.opacity = '.55'; list.append(li) })
+  }
+}, into)
+const bothCards = step(() => {
+  const cards = [...document.querySelectorAll('.card')].map(c => c.getBoundingClientRect())
+  const top = cards[0].top - 12, bottom = cards.at(-1).bottom + 12
+  return { x: 0, y: top, width: 390, height: bottom - top }
+})
+const footer = step(() => {
+  const li = [...document.querySelectorAll('li')].at(-2).getBoundingClientRect(), foot = document.querySelector('.foot').getBoundingClientRect()
+  return { x: 0, y: li.top - 8, width: 390, height: foot.bottom + 14 - (li.top - 8) }
+})
 
 const pictures = {
   hintToday: await shoot(around(['h1', '.compose'])),
   hintProposed: await shoot(around(['h1', '.compose']), css('.field{color:#4a4e57}')),
   orderToday: await shoot(around(['.card'])),
-  orderSection: await shoot(`(() => { const cards = [...document.querySelectorAll('.card')].map(c => c.getBoundingClientRect()); const top = cards[0].top - 12, bottom = cards.at(-1).bottom + 12; return { x: 0, y: top, width: 390, height: bottom - top } })()`, moveDone('section')),
+  orderSection: await shoot(bothCards, moveDone('section')),
   orderBottom: await shoot(around(['.card']), moveDone('bottom')),
-  footToday: await shoot(`(() => { const li = [...document.querySelectorAll('li')].at(-2).getBoundingClientRect(), foot = document.querySelector('.foot').getBoundingClientRect(); return { x: 0, y: li.top - 8, width: 390, height: foot.bottom + 14 - (li.top - 8) } })()`),
-  footProposed: await shoot(`(() => { const li = [...document.querySelectorAll('li')].at(-2).getBoundingClientRect(), foot = document.querySelector('.foot').getBoundingClientRect(); return { x: 0, y: li.top - 8, width: 390, height: foot.bottom + 14 - (li.top - 8) } })()`, css('.foot{margin-top:14px}')),
+  footToday: await shoot(footer),
+  footProposed: await shoot(footer, css('.foot{margin-top:14px}')),
 }
 await shooter.close()
 
