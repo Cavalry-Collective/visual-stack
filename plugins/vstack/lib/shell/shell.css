@@ -18,7 +18,7 @@
 .vslink{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:inherit}
 .vsmark{width:15px;height:15px;flex:none;color:var(--ink)}
 .vslink:hover .vsmark{opacity:.8}
-/* The tool's name, in the place the wordmark used to take. */
+/* Visual Stack and the tool's name, beside the mark. */
 .brand b{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;max-width:280px}
 .brand .eyebrow{font:600 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;

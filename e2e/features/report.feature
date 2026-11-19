@@ -1,4 +1,4 @@
-Feature: A design review report answered in its own tab
+Feature: A Polish report answered in its own tab
   The review opens as its own page, served over the JSON bridge. The reviewer
   picks a level, watches the audit, then answers each section of the report,
   sends, and sees when a steered section is revised.
@@ -6,7 +6,7 @@ Feature: A design review report answered in its own tab
   Rule: The reviewer starts the review in the page
 
   Background:
-    Given a design review is started on its own
+    Given a Polish review is started on its own
     And the reviewer opens the review
 
   @browser
@@ -16,9 +16,13 @@ Feature: A design review report answered in its own tab
     When the agent recommends the level "refined"
     Then the panel "refined" shows as recommended
     When the reviewer chooses Report only
-    And the reviewer picks the level "refined"
+    And the reviewer sets the effort to "high" and turns on Proofread
+    Then the effort hint names the model for "high"
+    And Done folds the options into one line under the panels, on a phone as well
+    When the reviewer picks the level "refined"
     Then the answers file holds the level "refined" in "zh"
     And the answers file asks for a report
+    And the answers file runs at "high" effort, with only Proofread on
     When the agent lists 3 tasks and ticks the first
     Then the review shows 1 of 3 tasks done
     When the agent stops with a problem
@@ -34,7 +38,7 @@ Feature: A design review report answered in its own tab
   Rule: The reviewer answers the report
 
   Background:
-    Given a design review report is served on its own
+    Given a Polish report is served on its own
     And the reviewer opens the report
 
   @browser
@@ -50,6 +54,8 @@ Feature: A design review report answered in its own tab
     And the reviewer sends the answers
     Then the answers file approves "f-example"
     And the answers file steers "f-slider" with "Make the handle bigger"
+    When on a phone the reviewer picks "f-example" from the findings drawer
+    Then the drawer closes on the section "f-example"
 
   @browser
   Scenario: R2 — a revised section asks for a fresh answer
@@ -65,7 +71,7 @@ Feature: A design review report answered in its own tab
     When the reviewer approves the section "f-example"
     And the reviewer opens the ▾ menu and presses Esc
     Then the ▾ menu is closed
-    When the reviewer presses Approve & finish twice
+    When the reviewer presses Approve & finish twice on the last slide
     Then the answers file approves "f-example"
     And the report server has closed
     And the page shows the review filed with 1 approved
@@ -85,21 +91,32 @@ Feature: A design review report answered in its own tab
   @browser
   Scenario: R5 — approving a section with variations records the one on show
     When the reviewer shows the variation "Band" of "f-variants"
-    And the reviewer approves the section "f-variants"
+    Then Approve on "f-variants" says only Approve
+    When the reviewer approves the section "f-variants"
     And the reviewer sends the answers
     Then the answers file approves "f-variants" with the variation "Band"
 
   @browser
-  Scenario: R6 — the reviewer asks for more variations
-    When the reviewer asks for more variations of "f-example" exploring "Try a denser list"
-    And the reviewer sends the answers
-    Then the answers file asks for more variations of "f-example" exploring "Try a denser list"
+  Scenario: R6 — one press asks for more variations
+    Then the bar offers Approve and Reject, with Steer as a link
+    When the reviewer asks for more variations of "f-example"
+    Then the page confirms the request for more variations
+    And the report shows the section "f-variants"
+    And the answers file asks for more variations of "f-example"
+
+  @browser
+  Scenario: R10 — a bounded wait hears each send and says how to wait again
+    When the agent waits 1 second for an answer
+    Then the wait ends IDLE with a command that resumes from seq 0
+    When the reviewer approves the section "f-example"
+    And the agent runs the wait command it was given
+    Then the wait reports the send, with a command that resumes from it
 
   Rule: A review can find nothing to change
 
   @browser
   Scenario: R7 — a report with no sections says so
-    Given a design review report with no sections is served
+    Given a Polish report with no sections is served
     When the reviewer opens the empty report
     Then the report says there is nothing to change
 
@@ -110,3 +127,14 @@ Feature: A design review report answered in its own tab
     Given a design report handoff is served
     When the reviewer opens the handoff report
     Then every section shows at once, with nothing to answer
+
+  Rule: A report opened without a server copies a brief for another agent
+
+  @browser
+  Scenario: R9 — Copy decisions carries everything another agent needs
+    Given a Polish report is opened off disk
+    When the reviewer approves the section "f-example"
+    And the reviewer steers the section "f-slider" with "Make the handle bigger"
+    And the reviewer sends the answers
+    Then the copied brief carries the context, the reason and the spec of "f-example"
+    And the copied brief steers "f-slider" with "Make the handle bigger" and leaves "f-variants" unanswered

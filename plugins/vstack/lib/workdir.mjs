@@ -32,7 +32,7 @@ export const TOOL = {
   storyMap: 'user-story-map',
   phaseBuild: 'phase-build',
   proofread: 'proofread',
-  designReview: 'design-review',
+  polish: 'polish',
   /* Fallback for a JSON document opened outside any of the skills above. */
   documents: 'documents',
 }
@@ -41,7 +41,7 @@ export const TOOL = {
     — the directory it already filled is not, because the rounds inside it are
     the user's, not ours. Writers only ever use the name in `TOOL`; readers try
     these when their own directory has nothing to say. */
-export const LEGACY = { [TOOL.review]: ['wireframe'] }
+export const LEGACY = { [TOOL.review]: ['wireframe'], [TOOL.polish]: ['design-review'] }
 
 /** Every directory name a tool's work could be under, current one first. For
     callers that enumerate rather than look one subject up. */

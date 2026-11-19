@@ -16,80 +16,81 @@
 -->
 
 
-## Stop prompting. Start pointing.
+## It’s easier to show than explain.
 
-Visual Stack adds a Figma-like feedback layer to AI coding agents.
+Visual Stack is an open-source toolbox for Claude Code and Codex. A collection of tools to help you review, polish, and build with your agent, right on the screen.
 
-Create a new screen, or open an existing app. Click anywhere and leave highly professional feedback such as:
+[![A toolbox labelled Pick a tool. Two main tools: Review, a Figma-like feedback layer for AI coding agents, run with /vstack:review; and Polish, a design audit with before-and-after previews, run with /vstack:polish. Six experimental tools: User story map, Proofread, Start, Spec, Phase preview and Phase build.](docs/assets/toolbox.svg)](#review)
 
-> "claude its 3am just align the buttons"
->
-> "why is everything a card. who hurt you"
->
-> "pls undo the series b dashboard energy we have 4 users"
->
-> "the padding is now between you and god"
+## Review
 
-Your agent applies the feedback and updates the design in the same place, hopefully without adding another gradient.
+Review works with new wireframes and running apps, at desktop, tablet and phone sizes.
 
-![Point. Comment. Iterate. No more jumping between chat and the UI.](docs/assets/wireframe-demo.gif)
-*Point. Comment. Iterate. No more jumping between chat and the UI.*
+<img src="docs/assets/wireframe-demo.gif" alt="Review demo on a todo app. The reviewer pins a comment, drags a box over the task list, strikes out words in a button and sends all three. The agent publishes the next version into the same tab." width="600">
+
+[Read about Review →](docs/review.md)
+
+## Polish
+
+Polish audits your UI and shows what could be improved, with before-and-after screenshots for each proposed fix.
+
+<img src="docs/assets/polish-demo.gif" alt="Polish demo on a todo app. The audit ticks off its four tasks, the owner approves three findings shown as before and after slides, and then finishes the round." width="600">
+
+[Read about Polish →](docs/polish.md)
 
 ## Get started
 
+Both tools come in one plugin.
+
 ### Claude Code
 
-Install, in Claude Code:
+Install in Claude Code:
 
 ```text
 /plugin marketplace add Cavalry-Collective/visual-stack
 /plugin install vstack@cavalry-collective
 ```
 
-Then run:
+Then run Review:
 
 ```text
 /vstack:review Wireframe a desktop personal task manager with minimal aesthetics.
 ```
 
+Or run Polish:
+
+```text
+/vstack:polish Audit the checkout page on localhost:3000.
+```
+
 ### Codex<sup>1</sup>
 
-Install, in your terminal:
+Install in your terminal:
 
 ```text
 codex plugin marketplace add Cavalry-Collective/visual-stack
 codex plugin add vstack@cavalry-collective
 ```
 
-Then run:
+Then run Review:
 
 ```text
 $vstack:review Wireframe a desktop personal task manager with minimal aesthetics.
 ```
 
-<sup>1</sup> Codex support is experimental. Codex does not come with a background monitor tool that allows two-way communication with Visual Stack. A deterministic polling workaround is used, but occasionally the agent stops polling prematurely. If that happens, prompt the agent to resume watching.
+Or run Polish:
 
-## What you can do
+```text
+$vstack:polish Audit the checkout page on localhost:3000.
+```
 
-- Work in a familiar, Figma-like interface.
-- Click any element and leave feedback exactly where the problem is hiding.
-- Drag a thing to where it belongs, or strike out what should go — no note required.
-- Stay in the workspace as your agent publishes each update.
-- Preview desktop, tablet, and mobile layouts before production does it for you.
-- Compare revisions and identify the exact moment things went wrong.
-- Replace “you know what I mean” with actual context.
-- Run `/vstack:design-review` to audit a UI. You pick the polish level in the page, in English or 中文, and watch the audit progress. Your agent then shows each proposed change as a before and after picture in its own browser tab. You approve, reject or steer each one, and it builds only what you approve. For a site whose code isn't in your repo, it writes a report of the approved changes for you to share instead. The page recommends a level after a quick look at the site.
-- Run `/vstack:proofread` to pass the copy your agent is writing to ChatGPT in your own browser. Your agent uses the reply to remove AI-sounding phrasing. This needs Claude Code with Claude in Chrome, and a ChatGPT sign-in.
+<sup>1</sup> Codex support is experimental. Codex has no background monitor that keeps a two-way link open, so Visual Stack has the agent check in at short intervals. Occasionally the agent stops checking too early. If that happens, ask it to resume watching.
 
-## Why Visual Stack?
+## Experimental
 
-Design feedback is spatial. Chat is linear. Humans are tired.
-
-As feedback becomes more visual, chat becomes the bottleneck. Context gets buried in long conversations. Screenshots go stale. Describing which element you mean becomes a small detective novel.
-
-Visual Stack keeps every comment attached to the element, route, and version it refers to. Your agent receives the feedback with the visual context intact.
-
-No scrolling back through the chat. No screenshot graveyard on your desktop. No describing what you could just point at.
+- **User story map** (`/vstack:user-story-map`) builds a drag-and-drop story map for splitting work across release phases.
+- **Proofread** (`/vstack:proofread`) sends the copy your agent is writing to ChatGPT in your own browser. Your agent then uses the reply to remove AI-sounding phrasing. It needs Claude Code with Claude in Chrome and a ChatGPT sign-in.
+- **Start**, **Spec**, **Phase preview** and **Phase build** are planning tools kept in `plugins/vstack/experimental/`. They are not installed as commands.
 
 ## Requirements
 
@@ -99,18 +100,6 @@ No scrolling back through the chat. No screenshot graveyard on your desktop. No 
 - A local web browser
 - At least one strong opinion about border radius
 
-## Technical Details
-
-### Live Link
-
-Each workspace is linked to one agent session. The link holds while that session is active and its heartbeat is less than 15 seconds old. Comments wait in one FIFO, and only the active comment is in the agent's hands.
-
-![The workspace page in a browser tab talks over http and SSE to the review server on 127.0.0.1. The server reads and writes a store on disk holding the state, the versions, the comments, the rounds, and the files that carry the link. The agent session watches and writes the same store.](docs/assets/live-link.svg)
-
-### Review Lifecycle
-
-![Comments enter one FIFO queue. The agent receives one comment at a time, so later comments never interrupt active work. Asking a question releases the queue while that thread waits for an answer, and the answered thread rejoins in arrival order. Each completed comment publishes into the same workspace.](docs/assets/review-lifecycle.svg)
-
 ## Security
 
 Installing this plugin runs its code on your machine, so every change to `main` passes a set of scans before it lands: static analysis, a secret scan over the whole history, a workflow audit, and a code-quality gate. The badges above report the last run. [SECURITY.md](SECURITY.md) says what each gate enforces and how to report a vulnerability.
@@ -118,8 +107,6 @@ Installing this plugin runs its code on your machine, so every change to `main` 
 ## Contribute
 
 Visual Stack is open source and under active development. Expect rough edges, breaking changes, and occasional moments of character development.
-
-Feedback and contributions are welcome.
 
 - [Report an idea or bug](https://github.com/Cavalry-Collective/visual-stack/issues)
 - [Read the contribution guide](CONTRIBUTING.md)

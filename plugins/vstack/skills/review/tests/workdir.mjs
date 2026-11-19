@@ -70,6 +70,12 @@ try {
   assert.equal(subjectDir(temp, TOOL.review, 'checkout'), now,
     'the current tool directory wins when a subject is in both')
 
+  // Polish was design-review: its rounds from before the rename are read where they lie.
+  const oldRound = path.join(temp, '.vstack', LOCAL, 'design-review', 'site')
+  fs.mkdirSync(oldRound, { recursive: true })
+  assert.equal(subjectDir(temp, TOOL.polish, 'site'), oldRound,
+    'a round written by design-review is still found under its old directory')
+
   console.log('workdir resolution: ok')
 } finally {
   fs.rmSync(temp, { recursive: true, force: true })

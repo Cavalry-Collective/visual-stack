@@ -116,10 +116,10 @@ export class ReviewWorld {
     throw new Error(`review server did not start:\n${this.serverLog}`)
   }
 
-  /** A design review report, served on its own over the JSON bridge the way
+  /** A Polish report, served on its own over the JSON bridge the way
       the skill serves it. The answers file starts empty. */
   async startReportServer (html, doc = { decisions: {}, overall: '', revised: {} }, hostId = this.hostId) {
-    const dir = path.join(this.temp, '.vstack', 'local', 'design-review')
+    const dir = path.join(this.temp, '.vstack', 'local', 'polish')
     fs.mkdirSync(dir, { recursive: true })
     this.reportPage = path.join(dir, 'target-round-1.html')
     this.answersFile = path.join(dir, 'target-round-1.json')
@@ -127,7 +127,7 @@ export class ReviewWorld {
     fs.writeFileSync(this.answersFile, JSON.stringify(doc))
     this.server = spawn(process.execPath, [
       BRIDGE, 'serve', '--json', this.answersFile, '--template', this.reportPage,
-      '--tool', 'design-review', '--port', String(this.port), '--idle-timeout', '0',
+      '--tool', 'polish', '--port', String(this.port), '--idle-timeout', '0',
       '--host', hostId, '--no-open',
     ], { cwd: this.temp, stdio: ['ignore', 'pipe', 'pipe'] })
     this.server.stdout.on('data', chunk => { this.serverLog += chunk })

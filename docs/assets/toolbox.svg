@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 530" width="960" height="530" role="img" aria-label="A toolbox labelled Pick a tool. Two main tools: Review, a Figma-like feedback layer for AI coding agents, run with /vstack:review; and Polish, a design audit with before-and-after previews, run with /vstack:polish. Six experimental tools: User story map, Proofread, Start, Spec, Phase preview and Phase build.">
+  <style>
+    .sans { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+
+    /* The cards arrive once, main tools first. */
+    .pop { transform-box: fill-box; transform-origin: center; animation: pop .5s cubic-bezier(.2, .8, .2, 1) both; }
+    @keyframes pop { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
+
+    /* Then a slow light passes over the two main tools. */
+    .sweep { animation: sweep 7s ease-in-out 1.6s infinite both; }
+    @keyframes sweep { 0% { transform: translateX(-160px); } 30%, 100% { transform: translateX(600px); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .pop, .sweep { animation: none; }
+      .sweep { display: none; }
+    }
+  </style>
+  <defs>
+    <linearGradient id="light" x1="0" x2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset=".5" stop-color="#ffffff" stop-opacity=".07"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0.5" y="0.5" width="959" height="529" rx="16" fill="#0d0e13" stroke="#1c1e25"/>
+  <text x="48" y="52" class="mono" font-size="11" letter-spacing="2.4" fill="#8b8e97">PICK A TOOL</text>
+  <clipPath id="clip-main-0"><rect x="48.0" y="76" width="420.0" height="140" rx="14"/></clipPath>
+  <g class="pop" style="animation-delay:0.15s">
+    <rect x="48.5" y="76.5" width="419.0" height="139" rx="14" fill="#17191e" stroke="#2c2f37"/>
+    <rect x="72.0" y="98" width="22" height="4" rx="2" fill="#e5322d"/>
+    <text x="72.0" y="138" class="sans" font-size="26" font-weight="700" fill="#f1f2f4">Review</text>
+    <text x="72.0" y="166" class="sans" font-size="14" fill="#bcbfc7">A Figma-like feedback layer for AI coding agents.</text>
+    <text x="72.0" y="194" class="mono" font-size="12.5" fill="#8b8e97">/vstack:review</text>
+    <g clip-path="url(#clip-main-0)"><rect class="sweep" style="animation-delay:1.6s" x="48.0" y="76" width="140" height="140" fill="url(#light)"/></g>
+  </g>
+  <clipPath id="clip-main-1"><rect x="492.0" y="76" width="420.0" height="140" rx="14"/></clipPath>
+  <g class="pop" style="animation-delay:0.25s">
+    <rect x="492.5" y="76.5" width="419.0" height="139" rx="14" fill="#17191e" stroke="#2c2f37"/>
+    <rect x="516.0" y="98" width="22" height="4" rx="2" fill="#e5322d"/>
+    <text x="516.0" y="138" class="sans" font-size="26" font-weight="700" fill="#f1f2f4">Polish</text>
+    <text x="516.0" y="166" class="sans" font-size="14" fill="#bcbfc7">A design audit, with before-and-after previews.</text>
+    <text x="516.0" y="194" class="mono" font-size="12.5" fill="#8b8e97">/vstack:polish</text>
+    <g clip-path="url(#clip-main-1)"><rect class="sweep" style="animation-delay:2.1s" x="492.0" y="76" width="140" height="140" fill="url(#light)"/></g>
+  </g>
+  <g class="pop" style="animation-delay:0.40s">
+    <rect x="48.5" y="240.5" width="276.3" height="111" rx="12" fill="#14161b" stroke="#2a2c33"/>
+    <text x="68.0" y="276" class="sans" font-size="16" font-weight="650" fill="#e6e7ea">User story map</text>
+    <rect x="217.3" y="261.5" width="88" height="19" rx="9.5" fill="none" stroke="#4a4d56"/>
+    <text x="261.3" y="274.5" text-anchor="middle" class="mono" font-size="8.5" letter-spacing="1.3" fill="#a3a6ae">EXPERIMENTAL</text>
+    <text x="68.0" y="304" class="sans" font-size="13" fill="#b4b7bf">Slice work into release phases.</text>
+    <text x="68.0" y="332" class="mono" font-size="11" fill="#7d8089">/vstack:user-story-map</text>
+  </g>
+  <g class="pop" style="animation-delay:0.47s">
+    <rect x="341.8" y="240.5" width="276.3" height="111" rx="12" fill="#14161b" stroke="#2a2c33"/>
+    <text x="361.3" y="276" class="sans" font-size="16" font-weight="650" fill="#e6e7ea">Proofread</text>
+    <rect x="510.7" y="261.5" width="88" height="19" rx="9.5" fill="none" stroke="#4a4d56"/>
+    <text x="554.7" y="274.5" text-anchor="middle" class="mono" font-size="8.5" letter-spacing="1.3" fill="#a3a6ae">EXPERIMENTAL</text>
+    <text x="361.3" y="304" class="sans" font-size="13" fill="#b4b7bf">Remove AI-sounding copy.</text>
+    <text x="361.3" y="332" class="mono" font-size="11" fill="#7d8089">/vstack:proofread</text>
+  </g>
+  <g class="pop" style="animation-delay:0.54s">
+    <rect x="635.2" y="240.5" width="276.3" height="111" rx="12" fill="#14161b" stroke="#2a2c33"/>
+    <text x="654.7" y="276" class="sans" font-size="16" font-weight="650" fill="#e6e7ea">Start</text>
+    <rect x="804.0" y="261.5" width="88" height="19" rx="9.5" fill="none" stroke="#4a4d56"/>
+    <text x="848.0" y="274.5" text-anchor="middle" class="mono" font-size="8.5" letter-spacing="1.3" fill="#a3a6ae">EXPERIMENTAL</text>
+    <text x="654.7" y="304" class="sans" font-size="13" fill="#b4b7bf">Set up a new project.</text>
+    <text x="654.7" y="332" class="mono" font-size="11" fill="#7d8089">Kept in experimental/</text>
+  </g>
+  <g class="pop" style="animation-delay:0.61s">
+    <rect x="48.5" y="368.5" width="276.3" height="111" rx="12" fill="#14161b" stroke="#2a2c33"/>
+    <text x="68.0" y="404" class="sans" font-size="16" font-weight="650" fill="#e6e7ea">Spec</text>
+    <rect x="217.3" y="389.5" width="88" height="19" rx="9.5" fill="none" stroke="#4a4d56"/>
+    <text x="261.3" y="402.5" text-anchor="middle" class="mono" font-size="8.5" letter-spacing="1.3" fill="#a3a6ae">EXPERIMENTAL</text>
+    <text x="68.0" y="432" class="sans" font-size="13" fill="#b4b7bf">Turn a wireframe into a spec.</text>
+    <text x="68.0" y="460" class="mono" font-size="11" fill="#7d8089">Kept in experimental/</text>
+  </g>
+  <g class="pop" style="animation-delay:0.68s">
+    <rect x="341.8" y="368.5" width="276.3" height="111" rx="12" fill="#14161b" stroke="#2a2c33"/>
+    <text x="361.3" y="404" class="sans" font-size="16" font-weight="650" fill="#e6e7ea">Phase preview</text>
+    <rect x="510.7" y="389.5" width="88" height="19" rx="9.5" fill="none" stroke="#4a4d56"/>
+    <text x="554.7" y="402.5" text-anchor="middle" class="mono" font-size="8.5" letter-spacing="1.3" fill="#a3a6ae">EXPERIMENTAL</text>
+    <text x="361.3" y="432" class="sans" font-size="13" fill="#b4b7bf">Watch a design fill in by phase.</text>
+    <text x="361.3" y="460" class="mono" font-size="11" fill="#7d8089">Kept in experimental/</text>
+  </g>
+  <g class="pop" style="animation-delay:0.75s">
+    <rect x="635.2" y="368.5" width="276.3" height="111" rx="12" fill="#14161b" stroke="#2a2c33"/>
+    <text x="654.7" y="404" class="sans" font-size="16" font-weight="650" fill="#e6e7ea">Phase build</text>
+    <rect x="804.0" y="389.5" width="88" height="19" rx="9.5" fill="none" stroke="#4a4d56"/>
+    <text x="848.0" y="402.5" text-anchor="middle" class="mono" font-size="8.5" letter-spacing="1.3" fill="#a3a6ae">EXPERIMENTAL</text>
+    <text x="654.7" y="432" class="sans" font-size="13" fill="#b4b7bf">Build one release phase.</text>
+    <text x="654.7" y="460" class="mono" font-size="11" fill="#7d8089">Kept in experimental/</text>
+  </g>
+</svg>

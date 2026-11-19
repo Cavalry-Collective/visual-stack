@@ -17,5 +17,22 @@
       "/reload-plugins"
     ],
     "auto": "Or turn on auto-update: /plugin → Marketplaces → cavalry-collective"
+  },
+  "effortLevels": {
+    "low": {
+      "model": "sonnet",
+      "modelName": "Sonnet",
+      "effort": "low"
+    },
+    "medium": {
+      "model": "opus",
+      "modelName": "Opus",
+      "effort": "medium"
+    },
+    "high": {
+      "model": "fable",
+      "modelName": "Fable",
+      "effort": "high"
+    }
   }
 }

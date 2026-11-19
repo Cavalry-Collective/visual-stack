@@ -126,6 +126,11 @@ The subagent applies the comments it was given and nothing else. That is one
 comment, or a group of related ones the session put together. The session that started it
 owns `publish` and `reply`, so the review still speaks with one voice.
 
+A skill may also pass a model and a reasoning effort, taken from the profile's
+`effortLevels`. Polish does this to run its work at the effort level
+the owner picked. A Host whose profile has no `effortLevels` is never passed
+them.
+
 ### `browser_capture` — **optional**
 
 Navigate, screenshot, and run in-page JS (e.g. `harvest-reference.js`). Profile:

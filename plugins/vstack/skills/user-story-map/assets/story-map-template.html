@@ -130,7 +130,7 @@
 .vslink{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:inherit}
 .vsmark{width:15px;height:15px;flex:none;color:var(--ink)}
 .vslink:hover .vsmark{opacity:.8}
-/* The tool's name, in the place the wordmark used to take. */
+/* Visual Stack and the tool's name, beside the mark. */
 .brand b{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;max-width:280px}
 .brand .eyebrow{font:600 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
@@ -483,10 +483,10 @@
         <rect x="46" y="4" width="12" height="16" fill="var(--brand)"/>
       </svg>
     </a>
-    <!-- The mark is the stack; the word beside it is this tool. Writing
-         "Visual Stack" here said what the logo already says, and pushed the
-         one thing you can't infer — which tool you are in — further right. -->
-    <b id="pageName"></b>
+    <!-- The product and the tool together are the tool's full name, such as
+         Visual Stack Polish. A page sets only the tool part, in English in
+         every language, the way a product name is not translated. -->
+    <b>Visual Stack <span id="pageName"></span></b>
     <span class="wip" id="wip" hidden></span>
     <span class="eyebrow" id="pageEyebrow"></span>
   </div>
@@ -1718,7 +1718,7 @@ window.VSScrub = (function () {
     if(BRIDGE && state.title) document.title = state.title + " · Visual Stack";
     // A map authored in Chinese opens in Chinese the first time, then the
     // reader's own choice sticks.
-    VSShell.init({ name: T("eyebrow"), defaultLang: state.lang || raw.lang });
+    VSShell.init({ name: 'User story map', defaultLang: state.lang || raw.lang });
     lang = VSShell.lang;
     applyLang();
     render();

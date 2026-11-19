@@ -1,7 +1,7 @@
 {
   "name": "vstack",
   "version": "6.16.0",
-  "description": "Stop prompting. Start pointing. Visual Stack adds a Figma-like feedback layer to Codex. Create a new screen from a prompt, screenshot, reference site, or design system, or open an app you already have running. Click any element and leave feedback exactly where the problem is hiding, and Codex publishes the next revision into the same workspace. Compare revisions on a timeline, preview desktop, tablet, and mobile layouts, and keep every comment attached to the element, route, and version it refers to. Wireframes are self-contained HTML and review state stays in your project.",
+  "description": "It’s easier to show than explain. Visual Stack is an open-source toolbox for reviewing, polishing and building with your agent, right on the screen, in a browser tab beside Codex. Review: you point, Codex fixes. Comment on a wireframe or an app you already have running, and Codex publishes each fix into the same tab, with every comment attached to the element, route, and version it refers to. Polish: a design audit, with before-and-after previews. Codex audits the UI at a Clean, Refined, or Showcase level and shows every proposed fix as a picture beside your screen today. You approve, steer, or reject each one, and nothing in your code changes until you say yes. For a site you can't edit, you get a report to share instead. Wireframes are self-contained HTML and review state stays in your project.",
   "author": {
     "name": "Cavalry Collective",
     "email": "adam@cavalry.sg",
@@ -29,15 +29,16 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Visual Stack",
-    "shortDescription": "Stop prompting. Start pointing.",
-    "longDescription": "Visual Stack adds a Figma-like feedback layer to Codex. Create a new screen, or open an app you already have running. Click any element and leave feedback exactly where the problem is hiding, and Codex publishes the next revision into the same workspace.",
+    "shortDescription": "It’s easier to show than explain.",
+    "longDescription": "Visual Stack is an open-source toolbox for reviewing, polishing and building with your agent, right on the screen. With Review you point and Codex fixes. With Polish Codex audits your UI and you approve each fix as a picture.",
     "developerName": "Cavalry Collective",
     "category": "Productivity",
     "capabilities": ["Interactive", "Write"],
     "websiteURL": "https://www.cavalry.sg/visual-stack",
     "defaultPrompt": [
       "Build a wireframe for this screen and open it for review.",
-      "Open the running app in an interactive UI review workspace."
+      "Open the running app in an interactive UI review workspace.",
+      "Polish this app: run a design review and show me the proposed fixes."
     ]
   }
 }

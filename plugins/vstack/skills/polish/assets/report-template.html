@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- FILL: "<Target> · Design review round <n>" -->
-<title>Target · Design review round 1</title>
+<!-- FILL: "<Target> · Polish round <n>" -->
+<title>Target · Polish round 1</title>
 <style>
 /* vstack:shell tokens */
 /* One palette for every vstack page. Roles, not colours: a page asks for
@@ -95,7 +95,7 @@
 .vslink{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:inherit}
 .vsmark{width:15px;height:15px;flex:none;color:var(--ink)}
 .vslink:hover .vsmark{opacity:.8}
-/* The tool's name, in the place the wordmark used to take. */
+/* Visual Stack and the tool's name, beside the mark. */
 .brand b{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;max-width:280px}
 .brand .eyebrow{font:600 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
@@ -356,10 +356,15 @@ main { min-width: 0; padding: 2rem clamp(1rem, 4vw, 3rem) 4rem; }
 .head .eyebrow { display: inline-flex; align-items: center; gap: .5rem; font: 700 12px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--brand); }
 .head .eyebrow::before { content: ""; width: 1.4rem; height: 2px; border-radius: 2px; background: var(--brand); }
 h1 { margin-top: .75rem; font-size: 1.75rem; line-height: 1.15; font-weight: 750; letter-spacing: -.02em; text-wrap: balance; }
-.index { display: none; flex-wrap: wrap; gap: .375rem; margin-top: 1rem; }
-.index li a { display: inline-flex; align-items: center; gap: .375rem; padding: .25rem .625rem .25rem .3rem; border: 1px solid var(--line); border-radius: 999px; font-size: 14px; }
-.index .n, .index .cat-label { display: none; }
-.index a.reject .t { text-decoration: line-through; color: var(--ink-3); }
+/* The findings drawer's handle is the review workspace's comments handle, mirrored to the left
+   edge: it rides the drawer's edge, its arrow points where pressing it sends the list, and its
+   badge counts the findings still unanswered while the list is away. */
+.rail-handle { display: none; }
+.rail-handle svg { width: 13px; height: 13px; display: block; transition: transform .16s ease-out; }
+.rail-badge { display: inline-grid; place-items: center; min-width: 14px; height: 14px; padding: 0 2px; border-radius: 999px; font: 700 9px/1 var(--mono); background: var(--line-2); color: var(--ink-2); }
+.rail-badge:empty, .rail-handle[aria-expanded=true] .rail-badge { display: none; }
+.rail-scrim { position: fixed; inset: var(--bar-h) 0 0 0; z-index: 44; background: rgba(0, 0, 0, .28); }
+.rail-scrim[hidden] { display: none; }
 
 /* Severity escalates by degree. Only P0 and P1 carry colour. */
 
@@ -384,7 +389,11 @@ h2 { font-size: 1.25rem; line-height: 1.3; font-weight: 700; letter-spacing: -.0
 .decide [aria-pressed=true] svg { animation: pop 300ms var(--ease-in); }
 .decide [data-d=approve][aria-pressed=true] { background: var(--ok); color: var(--surface); }
 .decide [data-d=reject][aria-pressed=true] { background: var(--ink-2); color: var(--surface); }
-.decide [data-d=steer][aria-pressed=true], .decide [data-d=vary][aria-pressed=true] { background: var(--warn); color: var(--surface); }
+.answer { display: flex; flex: none; align-items: center; gap: 1rem; }
+.steer-link, .vary-link { padding: .25rem 0; border: 0; background: none; color: var(--ink-2); font: 600 14px/1.2 var(--font); text-decoration: underline; text-decoration-color: var(--line-2); text-underline-offset: 3px; cursor: pointer; transition: color 150ms var(--ease), text-decoration-color 150ms var(--ease); }
+.steer-link:hover, .vary-link:hover { color: var(--ink); text-decoration-color: var(--ink-3); }
+.steer-link[aria-pressed=true] { color: var(--warn); text-decoration-color: var(--warn); }
+.vary-link { font-size: 12px; }
 @keyframes pop { 0% { transform: scale(.5); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
 
 /* The steer box opens in place, under the bar it answers, and closes once its note is sent. */
@@ -429,14 +438,25 @@ h2 { font-size: 1.25rem; line-height: 1.3; font-weight: 700; letter-spacing: -.0
 @keyframes pen { 0% { clip-path: inset(0 100% 100% 0); } 50% { clip-path: inset(0 0 50% 0); } 100% { clip-path: inset(0); } }
 
 /* Variations: several proposals for one problem, one shown at a time beside Today. */
-.variants { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: .375rem; }
-.variants button { display: inline-flex; align-items: center; gap: .375rem; height: 2rem; padding: 0 .75rem 0 .3rem; border: 1px solid var(--line-2); border-radius: 999px; background: var(--surface); color: var(--ink-2); font-size: 14px; font-weight: 600; cursor: pointer; transition: background 150ms var(--ease), border-color 150ms var(--ease), color 150ms var(--ease); }
-.variants button:hover { border-color: var(--ink-3); color: var(--ink); }
-.variants button[aria-pressed=true] { background: var(--ink-2); border-color: var(--ink-2); color: var(--surface); }
-.variants .vl { display: grid; place-items: center; width: 1.375rem; height: 1.375rem; border-radius: 50%; background: var(--surface-2); color: var(--ink-2); font: 700 12px/1 var(--mono); transition: background 250ms var(--ease), color 250ms var(--ease); }
-.variants button.chosen .vl { background: var(--ok); color: #fff; }
-.variants .new { font: 700 12px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--brand); }
+.variants { display: flex; flex-wrap: wrap; align-items: center; gap: .375rem; margin-left: auto; }
+.cmp:has(.variants) figcaption { flex-wrap: wrap; align-items: center; align-content: start; min-width: 0; min-height: 1.75rem; }
+/* Every caption's first line is as tall as the picker, so Today and Proposed share a baseline. */
+.cmp:has(.variants) figcaption b { display: inline-flex; align-items: center; min-height: 1.75rem; }
+/* The tabs can wrap the Proposed caption onto a second line; the captions share one row,
+   so Today and Proposed still start at the same height. */
+.cmp:has(.variants) { grid-template-rows: auto auto; }
+.cmp:has(.variants) > .side:not([hidden]) { display: grid; grid-row: span 2; grid-template-rows: subgrid; }
+/* Never wider than its column: with many variations on a phone, long names shorten with an
+   ellipsis, and each button's title carries the full name. */
+.variants.seg { flex: 0 1 auto; flex-wrap: nowrap; gap: 0; max-width: 100%; min-width: 0; background: var(--surface); }
+.variants.seg button { gap: .3rem; min-width: 0; flex: 0 1 auto; height: 1.75rem; padding: 0 .7rem; font-size: 13px; }
+.variants.seg button > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.variants .vchk { display: none; width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.variants button.chosen .vchk { display: block; color: var(--ok); }
+.variants button.chosen[aria-pressed=true] .vchk { color: currentColor; }
+.variants .new { font: 700 10px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--brand); }
 .variants [aria-pressed=true] .new { color: var(--surface); }
+@media (pointer: coarse) { .variants.seg button { height: 2.75rem; } }
 
 /* A wipe, for two pictures of one size. */
 .wipe { --pos: 50%; position: relative; margin-top: 1.25rem; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow); touch-action: pan-y; transition: opacity 250ms var(--ease), filter 250ms var(--ease); }
@@ -456,6 +476,8 @@ h2 { font-size: 1.25rem; line-height: 1.3; font-weight: 700; letter-spacing: -.0
 .closing .field:focus { border-color: var(--ink-3); box-shadow: 0 0 0 3px var(--line); }
 .closing-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 1rem; margin-top: .75rem; font-size: 14px; color: var(--ink-3); }
 .closing .btn { height: 2.125rem; padding: 0 .875rem; font-size: 14px; }
+.closing-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-left: auto; }
+.closing-actions .btn[hidden] { display: none; }
 
 /* One section at a time, under its category, so the owner always knows where a section starts and ends. */
 main { display: flex; flex-direction: column; min-height: calc(100vh - var(--bar-h)); }
@@ -478,7 +500,7 @@ main { display: flex; flex-direction: column; min-height: calc(100vh - var(--bar
 [data-handoff] .finding, [data-handoff] .area-title.cat { display: block !important; }
 [data-handoff] .finding { padding-top: 2rem; animation: none; }
 [data-handoff] .fh { position: static; }
-[data-handoff] .decide, [data-handoff] .steer, [data-handoff] .status, [data-handoff] .slidenav, [data-handoff] .closing, [data-handoff] #sendSplit, [data-handoff] .linkdot { display: none !important; }
+[data-handoff] .answer, [data-handoff] .steer, [data-handoff] .status, [data-handoff] .slidenav, [data-handoff] .closing, [data-handoff] #sendSplit, [data-handoff] .linkdot { display: none !important; }
 .empty-note { padding-top: 2rem; }
 .empty-note p { margin-top: .375rem; color: var(--ink-3); }
 .empty-note svg { display: block; margin-bottom: 1rem; }
@@ -522,25 +544,31 @@ main { display: flex; flex-direction: column; min-height: calc(100vh - var(--bar
 .lb-body img { width: auto; max-width: 100%; margin-inline: auto; border-radius: 8px; box-shadow: var(--shadow); }
 
 /* ── after Approve & finish, the page is a record ── */
-.finished .decide, .finished .steer, .finished .closing { pointer-events: none; opacity: .55; }
+.finished .answer, .finished .steer, .finished .closing { pointer-events: none; opacity: .55; }
 .banner .btn { height: 26px; }
 
 @media (max-width: 1100px) {
   .layout { grid-template-columns: minmax(0, 1fr); }
-  .rail { display: none; }
-  .index { display: flex; }
+  .rail { position: fixed; top: var(--bar-h); left: 0; bottom: 0; z-index: 45; width: min(18rem, 85vw); height: auto; background: var(--surface); box-shadow: var(--shadow-pop); transform: translateX(-100%); visibility: hidden; transition: transform 200ms var(--ease), visibility 0s linear 200ms; }
+  .rail.open { transform: none; visibility: visible; transition: transform 200ms var(--ease); }
+  .rail-handle { position: fixed; left: 0; top: calc(var(--bar-h) + 18px); z-index: 46; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 20px; padding: 9px 0; border: 1px solid var(--line-2); border-left: 0; border-radius: 0 7px 7px 0; background: var(--surface); color: var(--ink); box-shadow: var(--shadow-pop); cursor: pointer; transition: left 200ms var(--ease), background .16s; }
+  .rail-handle:hover { background: var(--surface-2); }
+  main { padding-left: max(32px, min(4vw, 3rem)); }
+  .rail-handle[aria-expanded=true] { left: min(18rem, 85vw); }
+  .rail-handle[aria-expanded=true] svg { transform: rotate(180deg); }
 }
+@media (max-width: 1100px) and (prefers-reduced-motion: reduce) { .rail, .rail.open, .rail-handle, .rail-handle svg { transition: none; } }
 @media (max-width: 760px) {
   h1 { font-size: 1.25rem; }
-  .index { display: none; }
   .cmp, .cmp.phone { grid-template-columns: minmax(0, 1fr); }
   .label { flex-basis: 100%; }
-  .decide { width: 100%; }
+  .answer { width: 100%; }
+  .decide { flex: 1; }
   .decide button { flex: 1; padding: 0 .5rem; }
   .decide svg { display: none; }
   .cmp > .side:not(.prop) { order: -1; }
 }
-@media (pointer: coarse) { .decide button, .slidenav .btn { height: 2.75rem; } }
+@media (pointer: coarse) { .decide button, .slidenav .btn { height: 2.75rem; } .steer-link, .vary-link { min-height: 2.75rem; } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
@@ -560,10 +588,10 @@ main { display: flex; flex-direction: column; min-height: calc(100vh - var(--bar
         <rect x="46" y="4" width="12" height="16" fill="var(--brand)"/>
       </svg>
     </a>
-    <!-- The mark is the stack; the word beside it is this tool. Writing
-         "Visual Stack" here said what the logo already says, and pushed the
-         one thing you can't infer — which tool you are in — further right. -->
-    <b id="pageName"></b>
+    <!-- The product and the tool together are the tool's full name, such as
+         Visual Stack Polish. A page sets only the tool part, in English in
+         every language, the way a product name is not translated. -->
+    <b>Visual Stack <span id="pageName"></span></b>
     <span class="wip" id="wip" hidden></span>
     <span class="eyebrow" id="pageEyebrow"></span>
   </div>
@@ -646,18 +674,30 @@ main { display: flex; flex-direction: column; min-height: calc(100vh - var(--bar
 <!-- /vstack:shell topbar -->
 
 <div class="layout">
-<aside class="rail" aria-label="Findings" data-t-label="findings">
+<aside class="rail" id="rail" aria-label="Findings" data-t-label="findings">
   <ol class="toc" id="toc"></ol>
 </aside>
 
 <main>
 <header class="head">
   <!-- FILL: round and polish level -->
-  <p class="eyebrow"><span data-l="en">Design review · Round 1 · Clean</span><span data-l="zh">设计审阅 · 第 1 轮 · 简洁</span></p>
+  <p class="eyebrow"><span data-l="en">Polish · Round 1 · Clean</span><span data-l="zh">打磨 · 第 1 轮 · 简洁</span></p>
   <!-- FILL: the target, by its own name -->
   <h1>Target</h1>
-  <ol class="index toc" id="index" aria-label="Findings" data-t-label="findings"></ol>
 </header>
+<div class="rail-scrim" id="railScrim" hidden></div>
+<!-- The way back to the folded-away findings, on the edge they folded into. -->
+<button class="rail-handle" id="railHandle" type="button" aria-controls="rail" aria-expanded="false" aria-label="Findings" data-t-label="findings"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg><span class="rail-badge" id="railBadge"></span></button>
+
+<!-- FILL: the review's context for an agent that has never seen it. Not shown on the page; Copy
+     decisions puts it at the top of the brief it copies. Plain text, in English. -->
+<script type="text/plain" id="handoff-context">
+Target: the address, screen or repo path reviewed.
+Delivery: build in this repo, or report only.
+Checked at: the screen sizes, themes and states.
+Built with: the stack, as far as you could tell.
+Limits: what the receiver must not do, such as submit forms on a live site.
+</script>
 
 <!-- Sections sit under a category heading: an h2.area-title.cat, one per lens with findings.
      A section is an article with data-decide and a stable id. Its .fh row holds a title of six
@@ -677,6 +717,14 @@ main { display: flex; flex-direction: column; min-height: calc(100vh - var(--bar
     <figure class="side"><figcaption><b>Today</b> <span data-l="en">One short detail</span><span data-l="zh">一句简短说明</span></figcaption><div class="shot"><img alt="What it looks like today" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='100' viewBox='0 0 160 100'%3E%3Crect width='160' height='100' fill='%23f6f4f8'/%3E%3C/svg%3E"><div class="box" data-rect="24,30,80,24"></div></div></figure>
     <figure class="side prop"><figcaption><b>Proposed</b> <span data-l="en">One short detail</span><span data-l="zh">一句简短说明</span></figcaption><div class="shot"><img alt="What it would look like" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100'%3E%3Crect width='160' height='100' fill='%23e9f9f2'/%3E%3C/svg%3E"></div></figure>
   </div>
+  <!-- The change, written for an agent with no other context. Not shown on the page; Copy
+       decisions includes it. Exact values and selectors belong here, not in the words above. -->
+  <script type="text/plain" class="spec">
+Where: the sign-up form, every screen size; .signup input::placeholder.
+Today: placeholder colour rgba(0,0,0,.25) on white, about 1.9:1.
+Change: placeholder colour rgba(0,0,0,.6), about 5.7:1. Leave typed values as they are.
+Check: every hint reads at 4.5:1 or better.
+  </script>
 </article>
 
 <!-- Two or more ways to fix one problem are variations of one section, never sections of their
@@ -706,7 +754,7 @@ main { display: flex; flex-direction: column; min-height: calc(100vh - var(--bar
 <section class="closing" aria-labelledby="overall-label">
   <label id="overall-label" for="overall" data-t="overall">Anything about the review as a whole?</label>
   <textarea class="field" id="overall" rows="2" placeholder="Optional. Included in your next send." data-t-placeholder="overallHint"></textarea>
-  <div class="closing-foot"><span data-closing-text></span><button class="btn primary" id="closingSend" type="button"></button></div>
+  <div class="closing-foot"><span data-closing-text></span><span class="closing-actions"><button class="btn primary" id="closingSend" type="button"></button><button class="btn primary" id="closingFinish" type="button"></button></span></div>
 </section>
 
 <nav class="slidenav" aria-label="Sections" data-t-label="sections"><button class="btn" id="prevBtn" type="button"><span aria-hidden="true">←</span> <span data-t="prev">Previous</span></button><span class="where" data-where></span><button class="btn" id="nextBtn" type="button"><span data-t="next">Next</span> <span aria-hidden="true">→</span></button></nav>
@@ -1187,8 +1235,10 @@ window.VSScrub = (function () {
   var $$ = function (selector, scope) { return Array.prototype.slice.call((scope || document).querySelectorAll(selector)) }
   var esc = function (text) { return window.VSShell.esc(text) }
   var agentName = function () { return (window.__VSTACK_HOST__ && window.__VSTACK_HOST__.name) || 'your agent' }
-  /* Steer and vary are requests: the agent answers them with a revised section. */
-  var CHOICES = ['approve', 'reject', 'steer', 'vary']
+  /* Steer and vary are requests: the agent answers them with a revised section. Only a steer
+     takes a note; a request for variations goes as it is. */
+  var CHOICES = ['approve', 'steer', 'vary', 'reject']
+  var BUTTONS = ['approve', 'reject']
   var REQUESTS = ['steer', 'vary']
   var KEYS = { a: 'approve', r: 'reject', s: 'steer', v: 'vary' }
   var ICONS = {
@@ -1198,20 +1248,21 @@ window.VSScrub = (function () {
     vary: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 9h11v11H9z"/><path d="M5 15H4V4h11v1"/></svg>'
   }
   var isRequest = function (choice) { return REQUESTS.indexOf(choice) !== -1 }
+  var takesNote = function (choice) { return choice === 'steer' }
 
   /* The page's own words, in both languages the shell offers. A value is a
      string, or a function of what it names. The agent's content is bilingual
      in the markup instead, as data-l="en" and data-l="zh" pairs. */
   var STR = {
-    pageName: ['Design review', '设计评审'], reportName: ['Design report', '设计报告'],
+    pageName: ['Polish', 'Polish'], reportName: ['Polish report', 'Polish report'],
     approve: ['Approve', '批准'], reject: ['Reject', '拒绝'], steer: ['Steer', '调整'], vary: ['Variations', '变体'],
     moreVariations: ['More variations', '更多变体'],
     decisionOn: [function (t) { return 'Decision on ' + t }, function (t) { return '对“' + t + '”的决定' }],
     variationsOf: [function (t) { return 'Variations of ' + t }, function (t) { return '“' + t + '”的变体' }],
     fresh: ['New', '新'],
-    askVary: ['What should the variations explore?', '变体应该往什么方向探索？'],
     askSteer: ['What should change?', '需要改什么？'],
-    hintVary: ['Optional. A direction to try.', '可选。写一个可以尝试的方向。'],
+    varyInstead: ['Or ask for other ways to fix it', '或者请它换几种改法'],
+    varyAsked: ['More variations asked', '已请求更多变体'],
     hintSteer: ['What to keep, change, or try instead.', '保留什么、改什么，或换个做法。'],
     noteSent: ['Sent.', '已发送。'],
     noteNeeded: ['Describe what should change, then send.', '先写下要改什么，再发送。'],
@@ -1221,6 +1272,7 @@ window.VSScrub = (function () {
     answered: [function (a) { return a + ' has answered.' }, function (a) { return a + ' 已回复。' }],
     revising: [function (a) { return a + ' is revising this section.' }, function (a) { return a + ' 正在修改这一部分。' }],
     drawing: [function (a) { return a + ' is drawing more variations.' }, function (a) { return a + ' 正在绘制更多变体。' }],
+    askedVary: [function (a) { return 'Asked for more variations. ' + a + ' draws them after you send.' }, function (a) { return '已请求更多变体。' + a + ' 会在发送后画出新方案。' }],
     show: ['Show', '查看'], later: ['Later', '稍后'],
     copy: ['Copy decisions', '复制决定'],
     sendCount: [function (n, a) { return 'Send ' + n + ' to ' + a }, function (n, a) { return '发送 ' + n + ' 项给 ' + a }],
@@ -1285,7 +1337,7 @@ window.VSScrub = (function () {
   var sections = $$('[data-decide]')
   var overallBox = $('#overall')
   var sendBtn = $('#sendBtn'), moreBtn = $('#moreBtn'), moreMenu = $('#moreMenu')
-  var restBtn = $('#restBtn'), finishBtn = $('#finishBtn'), closingSend = $('#closingSend')
+  var restBtn = $('#restBtn'), finishBtn = $('#finishBtn'), closingSend = $('#closingSend'), closingFinish = $('#closingFinish')
   var storageKey = 'vstack-report:' + document.title
 
   var titleOf = function (id, lang) { return textIn($('h2', document.getElementById(id)), lang) || id }
@@ -1306,7 +1358,7 @@ window.VSScrub = (function () {
   var sameDecision = function (a, b) {
     if (!a || !b) return !a && !b
     return a.choice === b.choice && (a.variant || '') === (b.variant || '') &&
-      (!isRequest(a.choice) || (a.note || '').trim() === (b.note || '').trim())
+      (!takesNote(a.choice) || (a.note || '').trim() === (b.note || '').trim())
   }
   var decisionOf = function (id) { return (id in drafts ? drafts[id] : held.decisions[id]) || null }
   var isSettled = function (choice) { return choice === 'approve' || choice === 'reject' }
@@ -1381,7 +1433,19 @@ window.VSScrub = (function () {
       '<span class="t">' + tocTitle(el) + '</span><i class="dot"></i></a></li>'
   }).join('')
   $('#toc').innerHTML = tocItems
-  $('#index').innerHTML = tocItems
+
+  /* Below 1100 px the findings list is a drawer from the left, opened from the top of the page. */
+  var rail = $('#rail'), railHandle = $('#railHandle'), railScrim = $('#railScrim')
+  var railOpen = function () { return rail.classList.contains('open') }
+  var setRail = function (open) {
+    rail.classList.toggle('open', open)
+    railScrim.hidden = !open
+    railHandle.setAttribute('aria-expanded', String(open))
+    if (open) ($('a[aria-current=true]', rail) || $('a', rail) || rail).focus()
+    else if (rail.contains(document.activeElement)) railHandle.focus()
+  }
+  railHandle.addEventListener('click', function () { setRail(!railOpen()) })
+  railScrim.addEventListener('click', function () { setRail(false) })
 
   sections.forEach(function (el, index) {
     var bar = $('.fh', el)
@@ -1392,17 +1456,21 @@ window.VSScrub = (function () {
     var group = document.createElement('div')
     group.className = 'decide'
     group.setAttribute('role', 'group')
-    group.innerHTML = CHOICES.map(function (choice) {
+    group.innerHTML = BUTTONS.map(function (choice) {
       return '<button type="button" data-d="' + choice + '" aria-pressed="false">' + ICONS[choice] + '<span></span></button>'
     }).join('')
-    bar.appendChild(group)
+    var answer = document.createElement('div')
+    answer.className = 'answer'
+    answer.appendChild(group)
+    answer.insertAdjacentHTML('beforeend', '<button type="button" class="steer-link" data-d="steer" aria-pressed="false"></button>')
+    bar.appendChild(answer)
     ;($('.why', el) || bar).insertAdjacentHTML('afterend',
       '<div class="steer" inert><div><div class="steer-box">' +
       '<label for="steer-' + el.id + '"></label>' +
       '<textarea class="field" id="steer-' + el.id + '" rows="2" autocomplete="off"></textarea>' +
-      '<div class="steer-foot"><span data-steer-state></span></div>' +
+      '<div class="steer-foot"><span data-steer-state></span><button type="button" class="vary-link" data-d="vary"></button></div>' +
       '</div></div></div><p class="status" aria-live="polite"></p>')
-    $$('.decide button', el).forEach(function (button) {
+    $$('.decide button, .steer-link, .vary-link', el).forEach(function (button) {
       button.addEventListener('click', function () { choose(el, button.dataset.d) })
     })
     var box = $('.steer textarea', el)
@@ -1427,16 +1495,21 @@ window.VSScrub = (function () {
       return { figure: figure, letter: letter, name: figure.dataset.variant || letter, fresh: figure.hasAttribute('data-new') }
     })
     var strip = document.createElement('div')
-    strip.className = 'variants'
+    strip.className = 'seg variants'
     strip.setAttribute('role', 'group')
     strip.innerHTML = variantsOf[el.id].map(function (variant) {
-        return '<button type="button" aria-pressed="false" data-v="' + esc(variant.name) + '"><span class="vl">' + variant.letter + '</span>' +
-          (variant.name !== variant.letter ? '<span data-l="en">' + esc(variant.name) + '</span><span data-l="zh">' + esc(variant.figure.dataset.variantZh || variant.name) + '</span>' : '') +
+        return '<button type="button" aria-pressed="false" data-v="' + esc(variant.name) + '" title="' + esc(variant.name) + '">' +
+          '<svg class="vchk" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>' +
+          (variant.name !== variant.letter ? '<span data-l="en">' + esc(variant.name) + '</span><span data-l="zh">' + esc(variant.figure.dataset.variantZh || variant.name) + '</span>' : '<span>' + variant.letter + '</span>') +
           (variant.fresh ? '<span class="new" data-t="fresh"></span>' : '') + '</button>'
       }).join('')
-    cmp.insertBefore(strip, cmp.firstChild)
-    $$('button', strip).forEach(function (button) {
-      button.addEventListener('click', function () { showVariant(el, button.dataset.v) })
+    /* One copy in each Proposed caption, so the tabs sit right above the picture they switch. */
+    figures.forEach(function (figure) {
+      var copy = strip.cloneNode(true)
+      $('figcaption', figure).appendChild(copy)
+      $$('button', copy).forEach(function (button) {
+        button.addEventListener('click', function () { showVariant(el, button.dataset.v) })
+      })
     })
   })
   var showVariant = function (el, name) {
@@ -1490,7 +1563,7 @@ window.VSScrub = (function () {
 
   /* ── painting ── */
   var boxOpen = function (el) {
-    return isRequest(choiceOf(decisionOf(el.id))) && (el.id in drafts || !!editing[el.id])
+    return takesNote(choiceOf(decisionOf(el.id))) && (el.id in drafts || !!editing[el.id])
   }
   var paintSection = function (el) {
     var decision = decisionOf(el.id), choice = choiceOf(decision)
@@ -1507,12 +1580,17 @@ window.VSScrub = (function () {
       var pressed = button.dataset.d === choice && (!approvedVariant || approvedVariant === shown)
       button.setAttribute('aria-pressed', String(pressed))
       $('span', button).textContent = names[button.dataset.d]
-      button.title = (button.dataset.d === 'vary' ? t('moreVariations') : names[button.dataset.d]) + ' (' + button.dataset.d[0].toUpperCase() + ')'
+      button.title = names[button.dataset.d] + ' (' + button.dataset.d[0].toUpperCase() + ')'
     })
+    var steerLink = $('.steer-link', el)
+    steerLink.textContent = choice === 'vary' ? t('varyAsked') : t('steer')
+    steerLink.setAttribute('aria-pressed', String(isRequest(choice)))
+    steerLink.title = t('steer') + ' (S)'
+    var varyLink = $('.vary-link', el)
+    varyLink.textContent = t('varyInstead')
+    varyLink.title = t('moreVariations') + ' (V)'
     if (variants) {
-      var letter = variantNamed(el.id, shown).letter
-      $('.variants', el).setAttribute('aria-label', t('variationsOf', titleOf(el.id)))
-      $('.decide [data-d=approve] span', el).textContent = names.approve + ' ' + letter
+      $$('.variants', el).forEach(function (strip) { strip.setAttribute('aria-label', t('variationsOf', titleOf(el.id))) })
       variants.forEach(function (variant) { variant.figure.classList.toggle('chosen', variant.name === approvedVariant) })
       $$('.variants button', el).forEach(function (button) { button.classList.toggle('chosen', button.dataset.v === approvedVariant) })
     }
@@ -1521,9 +1599,9 @@ window.VSScrub = (function () {
     el.classList.toggle('steer-open', open)
     steer.inert = !open
     if (!open && steer.contains(document.activeElement)) document.activeElement.blur()
-    if (document.activeElement !== box) box.value = isRequest(choice) ? decision.note || '' : ''
-    $('label', steer).textContent = choice === 'vary' ? t('askVary') : t('askSteer')
-    box.placeholder = choice === 'vary' ? t('hintVary') : t('hintSteer')
+    if (document.activeElement !== box) box.value = takesNote(choice) ? decision.note || '' : ''
+    $('label', steer).textContent = t('askSteer')
+    box.placeholder = t('hintSteer')
     var unsent = el.id in drafts
     var noteNeeded = choice === 'steer' && !(decision.note || '').trim()
     $('[data-steer-state]', el).textContent = !unsent ? t('noteSent') : noteNeeded ? t('noteNeeded') : t('noteQueued')
@@ -1566,6 +1644,7 @@ window.VSScrub = (function () {
     })
     var decided = counts.approve + counts.reject + counts.steer + counts.vary
     var open = sections.length - decided
+    $('#railBadge').textContent = open ? String(open) : ''
 
     var pending = pendingCount()
     var label = !BRIDGE ? t('copy') : pending ? t('sendCount', pending, agentName()) : t('sendTo', agentName())
@@ -1574,7 +1653,8 @@ window.VSScrub = (function () {
     var disabled = finished || (BRIDGE ? !pending : decided === 0 && !overallBox.value.trim())
     sendBtn.disabled = disabled
     closingSend.disabled = disabled
-    $('[data-closing-text]').textContent = finished ? t('isFinished') : ''
+    closingSend.classList.toggle('primary', !BRIDGE)
+    closingSend.hidden = !!BRIDGE && disabled
     restBtn.disabled = finished || open === 0
     paintFinish(counts.approve, open)
   }
@@ -1583,9 +1663,13 @@ window.VSScrub = (function () {
       approved = sections.filter(function (el) { return choiceOf(decisionOf(el.id)) === 'approve' }).length
       open = sections.filter(function (el) { return !decisionOf(el.id) }).length
     }
-    $('.t', finishBtn).textContent = finished ? t('finished') : finishArmed ? t('pressAgain') : t('finish')
+    var label = finished ? t('finished') : finishArmed ? t('pressAgain') : t('finish')
+    $('.t', finishBtn).textContent = label
     $('.d', finishBtn).textContent = finished ? '' : t('finishWhat', approved, open)
     finishBtn.disabled = finished
+    closingFinish.textContent = label
+    closingFinish.disabled = finished
+    $('[data-closing-text]').textContent = finished ? t('isFinished') : BRIDGE ? t('finishWhat', approved, open) : ''
   }
   var paintAll = function () { sections.forEach(paintSection); paintTotals() }
 
@@ -1604,31 +1688,30 @@ window.VSScrub = (function () {
   var choose = function (el, choice) {
     if (finished) return
     var current = decisionOf(el.id)
-    var box = $('.steer textarea', el)
     var shown = shownOf[el.id]
-    /* Pressing a sent request again opens its note for editing rather than clearing it. */
-    if (choiceOf(current) === choice && isRequest(choice) && !boxOpen(el)) {
+    /* Pressing a sent steer again opens its note for editing rather than clearing it. */
+    if (choiceOf(current) === choice && takesNote(choice) && !boxOpen(el)) {
       editing[el.id] = true
       paintSection(el)
       focusBox(el)
       return
     }
     var same = choiceOf(current) === choice && (choice !== 'approve' || !shown || current.variant === shown)
-    /* A note carries over between steer and variations, never from a request already answered. */
-    var note = isRequest(choice) && isRequest(choiceOf(current)) ? box.value : ''
-    var next = same ? null : { choice: choice, note: note }
-    /* A pause long enough to see the decision land, then on to the next open section. */
+    var next = same ? null : { choice: choice, note: '' }
+    /* A pause long enough to see the decision land, then on to the next open section. Only a
+       steer waits here, for its note. */
     clearTimeout(advanceTimer)
-    if (next && isSettled(choice)) advanceTimer = setTimeout(advance, 600)
+    if (next && !takesNote(choice)) advanceTimer = setTimeout(advance, 600)
     if (next && choice === 'approve' && shown) next.variant = shown
     if (next === null && !held.decisions[el.id]) next = undefined
     if (!next) delete editing[el.id]
     if (next === undefined) { delete drafts[el.id]; save(); paintSection(el); paintTotals() } else setDraft(el.id, next)
-    if (next && isRequest(choice)) focusBox(el)
+    if (next && takesNote(choice)) focusBox(el)
+    if (next && choice === 'vary') window.VSShell.toast(t('askedVary', agentName()))
   }
 
   var summary = function (ids) {
-    var lines = ['Decisions from the design review.']
+    var lines = ['Decisions from the Polish review.']
     var name = function (id) { return id + ' (' + titleOf(id, 'en') + ')' }
     var all = ids.map(function (id) { return { id: id, decision: decisionOf(id) } })
     var named = function (choice) {
@@ -1649,8 +1732,68 @@ window.VSScrub = (function () {
     return lines.join('\n')
   }
 
+  /* What Copy decisions copies: a brief another agent can act on with nothing else to go on, so
+     it carries the review's context and each section's reason, pictures in words and spec. */
+  var plainText = function (node) {
+    return node ? node.textContent.split('\n').map(function (line) { return line.trim() }).filter(Boolean).join('\n') : ''
+  }
+  var captionOf = function (side) {
+    var caption = $('figcaption', side)
+    if (!caption) return ''
+    var copy = caption.cloneNode(true)
+    $$('b, .variants', copy).forEach(function (part) { part.remove() })
+    return textIn(copy, 'en')
+  }
+  var CHOICE_NAMES = { approve: 'Approved', reject: 'Rejected', steer: 'Steer', vary: 'More variations' }
+  var sectionBrief = function (el) {
+    var decision = decisionOf(el.id)
+    var choice = choiceOf(decision)
+    var note = (decision && decision.note || '').trim()
+    var lines = ['### ' + titleOf(el.id, 'en') + ' (' + el.id + ')']
+    lines.push('Decision: ' + (choice ? CHOICE_NAMES[choice] : 'Unanswered') + (decision && decision.variant ? ', variation ' + decision.variant : ''))
+    if (note) lines.push("Owner's note: " + note)
+    var why = textIn($('.why', el), 'en')
+    if (why) lines.push('Why: ' + why)
+    var today = $('.side:not(.prop)', el)
+    if (today && captionOf(today)) lines.push('Today: ' + captionOf(today))
+    $$('.side.prop', el).forEach(function (side) {
+      var variant = side.dataset.variant
+      if (decision && decision.variant && variant !== decision.variant) return
+      lines.push('Proposed' + (variant ? ' (' + variant + ')' : '') + ': ' + captionOf(side))
+    })
+    if (el.dataset.loc) lines.push('Code: ' + el.dataset.loc)
+    var spec = plainText($('.spec', el))
+    if (spec) lines.push('Spec:\n' + spec)
+    return lines.join('\n')
+  }
+  var brief = function () {
+    var lines = ['# Polish decisions: ' + textIn($('.head h1'), 'en'), textIn($('.head .eyebrow'), 'en')]
+    var context = plainText($('#handoff-context'))
+    if (context) lines.push('', '## Context', context)
+    lines.push('', '## How to act on this',
+      '- Approved: make the change as its spec says, using the variation named.',
+      "- Steer: revise the proposal to follow the owner's note, and check with the owner before making it.",
+      '- More variations: propose new options that follow the note. Change nothing yet.',
+      '- Rejected: leave it as it is.',
+      '- Unanswered: ask the owner before acting.')
+    var groups = [['approve', 'Approved'], ['steer', 'Steer'], ['vary', 'More variations'], [null, 'Unanswered']]
+    groups.forEach(function (group) {
+      var members = sections.filter(function (el) { return choiceOf(decisionOf(el.id)) === group[0] })
+      if (!members.length) return
+      lines.push('', '## ' + group[1] + ' (' + members.length + ')')
+      members.forEach(function (el) { lines.push('', sectionBrief(el)) })
+    })
+    var rejected = sections.filter(function (el) { return choiceOf(decisionOf(el.id)) === 'reject' })
+    if (rejected.length) {
+      lines.push('', '## Rejected (' + rejected.length + ')')
+      rejected.forEach(function (el) { lines.push('- ' + titleOf(el.id, 'en') + ' (' + el.id + ')') })
+    }
+    if (overallBox.value.trim()) lines.push('', '## About the whole review', overallBox.value.trim())
+    return lines.join('\n')
+  }
+
   var copyDecisions = function () {
-    var text = summary(sections.map(function (el) { return el.id }))
+    var text = brief()
     var done = function () { window.VSShell.toast(t('copied', agentName())) }
     if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () { window.prompt(t('copyPrompt'), text) })
     else window.prompt(t('copyPrompt'), text)
@@ -1696,7 +1839,7 @@ window.VSScrub = (function () {
       var note = (draft && draft.note || '').trim()
       if (draft === null) delete next.decisions[id]
       else next.decisions[id] = { choice: draft.choice }
-      if (draft && isRequest(draft.choice) && (note || draft.choice === 'steer')) next.decisions[id].note = note
+      if (draft && takesNote(draft.choice)) next.decisions[id].note = note
       if (draft && draft.variant) next.decisions[id].variant = draft.variant
       delete next.revised[id]
     })
@@ -1775,12 +1918,14 @@ window.VSScrub = (function () {
     save(); paintAll(); closeMenu()
   })
   if (BRIDGE) {
-    window.VSShell.armConfirm(finishBtn, {
-      arm: function () { finishArmed = true; paintFinish() },
-      disarm: function () { finishArmed = false; paintFinish() },
-      onConfirm: function () { finishArmed = false; finish() }
+    ;[finishBtn, closingFinish].forEach(function (button) {
+      window.VSShell.armConfirm(button, {
+        arm: function () { finishArmed = true; paintFinish() },
+        disarm: function () { finishArmed = false; paintFinish() },
+        onConfirm: function () { finishArmed = false; finish() }
+      })
     })
-  } else finishBtn.hidden = true
+  } else { finishBtn.hidden = true; closingFinish.hidden = true }
 
   /* ── one slide at a time: each section, then the closing box ── */
   var closing = $('.closing')
@@ -1830,6 +1975,7 @@ window.VSScrub = (function () {
   $('#nextBtn').addEventListener('click', function () { move(1) })
   document.addEventListener('click', function (event) {
     var link = event.target.closest('a[data-ref]')
+    if (link && railOpen()) setRail(false)
     if (!link || HANDOFF) return
     event.preventDefault()
     show(document.getElementById(link.dataset.ref))
@@ -1839,6 +1985,7 @@ window.VSScrub = (function () {
 
   document.addEventListener('keydown', function (event) {
     clearTimeout(advanceTimer)
+    if (event.key === 'Escape' && railOpen()) { setRail(false); railHandle.focus(); return }
     if (event.key === 'Escape' && !moreMenu.hidden) { closeMenu(); moreBtn.focus(); return }
     if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') { event.preventDefault(); send(); return }
     if (event.target.closest('textarea, input, [contenteditable]')) {

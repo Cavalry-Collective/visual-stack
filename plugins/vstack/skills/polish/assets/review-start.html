@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Design review</title>
+<title>Visual Stack Polish</title>
 <style>
 /* vstack:shell tokens */
 /* One palette for every vstack page. Roles, not colours: a page asks for
@@ -94,7 +94,7 @@
 .vslink{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:inherit}
 .vsmark{width:15px;height:15px;flex:none;color:var(--ink)}
 .vslink:hover .vsmark{opacity:.8}
-/* The tool's name, in the place the wordmark used to take. */
+/* Visual Stack and the tool's name, beside the mark. */
 .brand b{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;max-width:280px}
 .brand .eyebrow{font:600 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
@@ -296,7 +296,7 @@
 }
 /* /vstack:shell css */
 
-/* The first page of a design review: the owner picks a level of polish, then
+/* The first page of a Polish review: the owner picks a level of polish, then
    watches the agent prepare the review. The agent writes the report over this
    page at the same address, and the tab reloads into it. */
 :root { --warn: #8a5c06; --warn-soft: #fef5e6; --warn-line: #fbd38d;
@@ -325,14 +325,25 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .rec-line { min-height: 1.5em; margin-top: .5rem; color: var(--ink-2); }
 .rec-line b { color: var(--ink); }
 .rec-line .spin { display: inline-block; vertical-align: -1px; margin-right: .5rem; width: 12px; height: 12px; border: 2px solid var(--line-2); border-top-color: var(--brand); border-radius: 50%; animation: spin 900ms linear infinite; }
-.delivery { display: grid; justify-items: start; gap: .375rem; }
-.delivery .seg button { height: 34px; padding: 0 14px; font-size: 14px; }
+.options { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 1rem 2.5rem; }
+.opt { display: grid; justify-items: start; gap: .375rem; min-width: 0; }
+.opt-label { font: 700 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
+.opt .seg button { height: 34px; padding: 0 14px; font-size: 14px; }
+.opt .switch { height: 36px; font-size: 14px; }
+.switches { display: flex; flex-wrap: wrap; gap: .5rem; }
 .delivery .seg button[disabled] { opacity: .45; cursor: default; }
-.delivery-hint { font-size: 12px; color: var(--ink-3); }
+.opt-hint { max-width: 40ch; font-size: 12px; color: var(--ink-3); }
+.opt-hint[hidden] { display: none; }
+.opt-foot { display: grid; justify-items: start; gap: .75rem; }
+.opt-summary { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; font-size: 14px; color: var(--ink-2); }
+.opt-summary #optSummary { min-width: 0; }
+.opt-summary .btn { height: 30px; }
+.options { padding: 1rem 1.25rem; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.options:not(.open) { display: none; }
 .p-rec { position: absolute; top: 1.25rem; right: 1.25rem; padding: 4px 8px; border-radius: 999px; background: var(--brand); color: #fff; font: 700 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
 .panel > .p-rec[hidden] { display: none; }
 .panel.rec { border-color: var(--brand-line); }
-@media (pointer: coarse) { .delivery .seg button { height: 2.75rem; } }
+@media (pointer: coarse) { .opt .seg button { height: 2.75rem; } .opt .switch, .opt-summary .btn { height: calc(2.75rem + 2px); } }
 .choose h1 { margin-top: .625rem; font-size: 1.75rem; line-height: 1.15; font-weight: 750; letter-spacing: -.02em; }
 .choose .sub { margin-top: .375rem; color: var(--ink-3); }
 .panels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
@@ -584,10 +595,10 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
         <rect x="46" y="4" width="12" height="16" fill="var(--brand)"/>
       </svg>
     </a>
-    <!-- The mark is the stack; the word beside it is this tool. Writing
-         "Visual Stack" here said what the logo already says, and pushed the
-         one thing you can't infer — which tool you are in — further right. -->
-    <b id="pageName"></b>
+    <!-- The product and the tool together are the tool's full name, such as
+         Visual Stack Polish. A page sets only the tool part, in English in
+         every language, the way a product name is not translated. -->
+    <b>Visual Stack <span id="pageName"></span></b>
     <span class="wip" id="wip" hidden></span>
     <span class="eyebrow" id="pageEyebrow"></span>
   </div>
@@ -670,12 +681,32 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
       <p class="sub" id="pickSub"></p>
       <p class="rec-line" id="recLine" aria-live="polite"></p>
     </div>
-    <div class="delivery">
-      <div class="seg" role="group" data-t-label="deliveryLabel"><button type="button" data-delivery="build" data-t="deliveryBuild"></button><button type="button" data-delivery="report" data-t="deliveryReport"></button></div>
-      <p class="delivery-hint" id="deliveryHint"></p>
-    </div>
   </header>
   <div class="panels" id="panels" role="group" aria-labelledby="pickTitle"></div>
+  <!-- The choices most reviews leave as they are, folded under the panels: one line says what they are set to. -->
+  <div class="opt-foot">
+    <div class="opt-summary"><span class="opt-label" data-t="optionsLabel"></span><span id="optSummary"></span><button class="btn" type="button" id="optToggle" aria-controls="options" aria-expanded="false"></button></div>
+    <div class="options" id="options">
+      <div class="opt delivery">
+        <p class="opt-label" id="deliveryLabel" data-t="deliveryLabel"></p>
+        <div class="seg" role="group" aria-labelledby="deliveryLabel"><button type="button" data-delivery="build" data-t="deliveryBuild"></button><button type="button" data-delivery="report" data-t="deliveryReport"></button></div>
+        <p class="opt-hint" id="deliveryHint"></p>
+      </div>
+      <div class="opt">
+        <p class="opt-label" id="effortLabel" data-t="effortLabel"></p>
+        <div class="seg" role="group" aria-labelledby="effortLabel"><button type="button" data-effort="low" data-t="effortLow"></button><button type="button" data-effort="medium" data-t="effortMedium"></button><button type="button" data-effort="high" data-t="effortHigh"></button></div>
+        <p class="opt-hint" id="effortHint"></p>
+      </div>
+      <div class="opt">
+        <p class="opt-label" id="labsLabel" data-t="labsLabel"></p>
+        <div class="switches" role="group" aria-labelledby="labsLabel">
+          <button class="switch" type="button" role="switch" aria-checked="false" data-lab="proofread"><span class="track"><span class="knob"></span></span><span data-t="labProofread"></span></button>
+          <button class="switch" type="button" role="switch" aria-checked="false" data-lab="trimCopy"><span class="track"><span class="knob"></span></span><span data-t="labTrim"></span></button>
+        </div>
+        <p class="opt-hint" id="labsHint"></p>
+      </div>
+    </div>
+  </div>
 </section>
 
 <section class="view progress" id="progress" hidden>
@@ -1179,8 +1210,8 @@ window.VSScrub = (function () {
   var fill = function (text) { return text.replace(/\{agent\}/g, agent()) }
 
   var STR = {
-    tool: ['Design review', '设计评审'],
-    eyebrow: ['Design review', '设计评审'],
+    tool: ['Polish', 'Polish'],
+    eyebrow: ['Polish', '打磨'],
     pickTitle: ['Pick a polish level', '选择打磨程度'],
     recommended: ['Recommended', '推荐'],
     recChecking: ['{agent} is checking the site to recommend a level.', '{agent} 正在检查网站，稍后推荐一个级别。'],
@@ -1190,6 +1221,22 @@ window.VSScrub = (function () {
     deliveryBuildHint: ['Approved changes are made in this repo.', '批准的修改会直接在此仓库中完成。'],
     deliveryReportHint: ['Approved changes become a report you can share.', '批准的修改会整理成一份可分享的报告。'],
     noCode: ['This site’s code is not in this repo.', '这个网站的代码不在此仓库中。'],
+    effortLabel: ['Effort', '投入程度'],
+    effortLow: ['Low', '低'],
+    effortMedium: ['Medium', '中'],
+    effortHigh: ['High', '高'],
+    runsOn: ['Runs on {model} at {effort} effort.', '使用 {model}，推理强度为{effort}。'],
+    ownModel: ['{agent} keeps its current model.', '{agent} 沿用当前模型。'],
+    labsLabel: ['Experimental', '实验功能'],
+    optionsLabel: ['Options', '选项'],
+    labProofread: ['Proofread', '校对'],
+    labTrim: ['Trim AI filler', '删减 AI 套话'],
+    labProofreadHint: ['Sends copy to ChatGPT to proofread.', '把文案发给 ChatGPT 校对。'],
+    labTrimHint: ['Flags text that explains the screen and is not needed.', '标出解释界面、但并不需要的文字。'],
+    effortSummary: ['{effort} effort', '投入程度：{effort}'],
+    labsOn: ['experiments on', '已开实验功能'],
+    change: ['Change', '更改'],
+    done: ['Done', '完成'],
     pickSub: ['Hover to preview. Click to start.', '悬停预览，点击开始。'],
     pickSubTouch: ['Tap to preview. Tap again to start.', '轻点预览，再点开始。'],
     go: ['Start', '开始'],
@@ -1222,7 +1269,7 @@ window.VSScrub = (function () {
       adds: ['Links, forms, loading and controls.', '链接、表单、加载和控件。'] },
     { id: 'showcase', name: ['Showcase', '惊艳'],
       aim: ['Refined, plus flair.', '精致之上，锦上添花。'],
-      adds: ['A signature idea, depth, motion and delight.', '标志性创意、层次、动效和惊喜。'] }
+      adds: ['Animation, parallax, transitions and playful details.', '动画、视差、过渡和趣味细节。'] }
   ]
   var pick = function (pair) { return pair[lang() === 'zh' ? 1 : 0] }
   var levelOf = function (id) { return LEVELS.filter(function (level) { return level.id === id })[0] || null }
@@ -1320,7 +1367,8 @@ window.VSScrub = (function () {
     if (!BRIDGE) { window.VSShell.toast(t('offline'), 3200); return }
     if (choosing) return
     choosing = true
-    var next = Object.assign({}, doc, { level: id, lang: lang(), delivery: deliveryOf() })
+    var labs = labsOf()
+    var next = Object.assign({}, doc, { level: id, lang: lang(), delivery: deliveryOf(), effort: effortOf(), proofread: labs.proofread, trimCopy: labs.trimCopy })
     post(BRIDGE.save, next).then(function () {
       doc = next
       render()
@@ -1408,12 +1456,63 @@ window.VSScrub = (function () {
     $('#deliveryHint').textContent = (doc.canBuild === false ? t('noCode') + ' ' : '') + t(delivery === 'report' ? 'deliveryReportHint' : 'deliveryBuildHint')
   }
   $$('[data-delivery]').forEach(function (button) {
-    button.addEventListener('click', function () { chosenDelivery = button.dataset.delivery; paintDelivery() })
+    button.addEventListener('click', function () { chosenDelivery = button.dataset.delivery; paintDelivery(); paintSummary() })
+  })
+  /* Effort picks the model and reasoning effort the review runs at, from the host profile. */
+  var EFFORTS = ['low', 'medium', 'high']
+  var chosenEffort = null
+  var effortOf = function () { return chosenEffort || (EFFORTS.indexOf(doc.effort) !== -1 ? doc.effort : 'medium') }
+  var effortKey = function (effort) { return 'effort' + effort.charAt(0).toUpperCase() + effort.slice(1) }
+  var paintEffort = function () {
+    var effort = effortOf()
+    $$('[data-effort]').forEach(function (button) { button.setAttribute('aria-pressed', String(button.dataset.effort === effort)) })
+    var levels = window.__VSTACK_HOST__ && window.__VSTACK_HOST__.effortLevels
+    var run = levels && levels[effort]
+    var how = run ? t('runsOn').replace('{model}', run.modelName).replace('{effort}', t(effortKey(run.effort)).toLowerCase()) : t('ownModel')
+    $('#effortHint').textContent = how
+    paintSummary()
+  }
+  $$('[data-effort]').forEach(function (button) {
+    button.addEventListener('click', function () { chosenEffort = button.dataset.effort; paintEffort() })
+  })
+  /* Experiments are off until the owner turns them on. */
+  var chosenLabs = null
+  var labsOf = function () { return chosenLabs || { proofread: doc.proofread === true, trimCopy: doc.trimCopy === true } }
+  var paintLabs = function () {
+    var labs = labsOf()
+    $$('[data-lab]').forEach(function (button) { button.setAttribute('aria-checked', String(!!labs[button.dataset.lab])) })
+    $('[data-lab="proofread"]').title = t('labProofreadHint')
+    $('[data-lab="trimCopy"]').title = t('labTrimHint')
+    $('#labsHint').textContent = t('labProofreadHint')
+    $('#labsHint').hidden = !labs.proofread
+    paintSummary()
+  }
+  /* On a phone the settings fold into one line, so the levels stay on the first screen. */
+  var optionsOpen = false
+  var paintSummary = function () {
+    var labs = labsOf()
+    var parts = [t(deliveryOf() === 'report' ? 'deliveryReport' : 'deliveryBuild'), t('effortSummary').replace('{effort}', t(effortKey(effortOf())))]
+    if (labs.proofread || labs.trimCopy) parts.push(t('labsOn'))
+    $('#optSummary').textContent = parts.join(' · ')
+    $('#optToggle').textContent = optionsOpen ? t('done') : t('change')
+    $('#optToggle').setAttribute('aria-expanded', String(optionsOpen))
+    $('#options').classList.toggle('open', optionsOpen)
+  }
+  $('#optToggle').addEventListener('click', function () { optionsOpen = !optionsOpen; paintSummary() })
+  $$('[data-lab]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var labs = Object.assign({}, labsOf())
+      labs[button.dataset.lab] = !labs[button.dataset.lab]
+      chosenLabs = labs
+      paintLabs()
+    })
   })
   var paintChooser = function () {
     $('#pickSub').textContent = touchUI ? t('pickSubTouch') : t('pickSub')
     paintRecommendation()
     paintDelivery()
+    paintEffort()
+    paintLabs()
     panelList.forEach(function (panel) {
       var level = levelOf(panel.dataset.level)
       $$('[data-l]', panel).forEach(function (el) { el.textContent = pick(level[el.dataset.l]) })
@@ -1425,7 +1524,7 @@ window.VSScrub = (function () {
   var render = function () {
     $$('[data-t]').forEach(function (el) { el.textContent = t(el.dataset.t) })
     window.VSShell.name(t('tool'))
-    document.title = t('tool')
+    document.title = 'Visual Stack ' + t('tool')
     var choosingView = !doc.level
     $('#choose').hidden = !choosingView
     $('#progress').hidden = choosingView

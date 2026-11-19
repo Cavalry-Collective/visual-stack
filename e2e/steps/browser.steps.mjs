@@ -8,10 +8,10 @@ import * as agent from '../support/mock-agent.mjs'
 import { PAGES } from '../support/world.mjs'
 
 const START_PAGE = path.resolve(path.dirname(fileURLToPath(import.meta.url)),
-  '../../plugins/vstack/skills/design-review/assets/review-start.html')
+  '../../plugins/vstack/skills/polish/assets/review-start.html')
 const BRIDGE_CLI = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../plugins/vstack/lib/json-bridge.mjs')
 const REPORT_TEMPLATE = path.resolve(path.dirname(fileURLToPath(import.meta.url)),
-  '../../plugins/vstack/skills/design-review/assets/report-template.html')
+  '../../plugins/vstack/skills/polish/assets/report-template.html')
 
 const HOST_NAMES = { claude: 'Claude', codex: 'Codex' }
 
@@ -495,9 +495,9 @@ Then('the server records {string} as handed out', async function (note) {
   }, `"${note}" is handed out`)
 })
 
-/* ── a design review report, answered in its own tab ── */
+/* ── a Polish report, answered in its own tab ── */
 
-Given('a design review is started on its own', async function () {
+Given('a Polish review is started on its own', async function () {
   await this.startReportServer(fs.readFileSync(START_PAGE, 'utf8'), { stage: 'choose', decisions: {}, overall: '', revised: {} })
 })
 
@@ -582,7 +582,7 @@ Then('the answers file still holds the level {string}', async function (level) {
   await eventually(() => { assert.equal(this.answers().level, level) }, `the level ${level} survives a send`)
 })
 
-Given('a design review report is served on its own', async function () {
+Given('a Polish report is served on its own', async function () {
   await this.startReportServer(fs.readFileSync(REPORT_TEMPLATE, 'utf8'))
 })
 
@@ -604,7 +604,7 @@ When('the reviewer approves the section {string}', async function (id) {
 
 When('the reviewer steers the section {string} without a note', async function (id) {
   await openSection(this.browserPage, id)
-  await this.browserPage.locator(`#${id} .decide [data-d="steer"]`).click()
+  await this.browserPage.locator(`#${id} .steer-link`).click()
 })
 
 When('the reviewer adds the note {string} to {string}', async function (note, id) {
@@ -612,9 +612,32 @@ When('the reviewer adds the note {string} to {string}', async function (note, id
 })
 
 Then('the report asks for a note on {string}', async function (id) {
+  assert.equal((await this.browserPage.locator(`#${id} .steer label`).innerText()).trim(), 'What should change?')
   await this.browserPage.locator(`#${id}.current [data-steer-state].needed`).waitFor()
   await this.browserPage.locator(`#${id} .steer textarea:focus`).waitFor()
   assert.equal(this.answers().decisions?.[id], undefined, 'nothing was sent')
+})
+
+// Below 1100 px the findings list is a drawer from the left, behind a handle on its edge.
+When('on a phone the reviewer picks {string} from the findings drawer', async function (id) {
+  const page = this.browserPage
+  this.wideViewport = page.viewportSize()
+  await page.setViewportSize({ width: 375, height: 667 })
+  await eventually(async () => { assert.equal(await page.locator('#rail').isVisible(), false, 'the drawer starts closed') }, 'the drawer is tucked away')
+  assert.equal(await page.locator('#railBadge').innerText(), '1', 'the handle counts the unanswered finding')
+  await page.locator('#railHandle').click()
+  await page.locator('#rail.open').waitFor()
+  await eventually(async () => { assert.ok(await page.locator('#rail').isVisible(), 'the drawer opens') }, 'the drawer slides in')
+  await page.locator(`#rail a[data-ref="${id}"]`).click()
+})
+
+Then('the drawer closes on the section {string}', async function (id) {
+  const page = this.browserPage
+  await page.locator(`#${id}.current`).waitFor()
+  assert.equal(await page.locator('#rail.open').count(), 0, 'the drawer closes')
+  assert.equal(await page.locator('#railScrim').isVisible(), false, 'the shade goes')
+  await page.setViewportSize(this.wideViewport)
+  assert.equal(await page.locator('#railHandle').isVisible(), false, 'a wide screen shows the list beside the page')
 })
 
 When('the reviewer opens a picture full size and goes back', async function () {
@@ -644,19 +667,32 @@ When('the reviewer presses the right arrow key', async function () {
 
 When('the reviewer steers the section {string} with {string}', async function (id, note) {
   await openSection(this.browserPage, id)
-  await this.browserPage.locator(`#${id} .decide [data-d="steer"]`).click()
+  await this.browserPage.locator(`#${id} .steer-link`).click()
   await this.browserPage.locator(`#${id} .steer textarea`).fill(note)
 })
 
 When('the reviewer shows the variation {string} of {string}', async function (name, id) {
   await openSection(this.browserPage, id)
-  await this.browserPage.locator(`#${id} .variants button[data-v="${name}"]`).click()
+  // Each Proposed caption carries the tabs; the one on show is the one to press.
+  await this.browserPage.locator(`#${id} .side.prop:not([hidden]) .variants button[data-v="${name}"]`).click()
 })
 
-When('the reviewer asks for more variations of {string} exploring {string}', async function (id, note) {
+// Two buttons answer a section; Steer is a link beside them, and variations are asked for inside Steer.
+Then('the bar offers Approve and Reject, with Steer as a link', async function () {
+  const order = await this.browserPage.locator('#f-example .decide button').evaluateAll(buttons => buttons.map(button => button.dataset.d))
+  assert.deepEqual(order, ['approve', 'reject'])
+  assert.equal((await this.browserPage.locator('#f-example .steer-link').innerText()).trim(), 'Steer')
+})
+
+Then('Approve on {string} says only Approve', async function (id) {
+  assert.equal((await this.browserPage.locator(`#${id} .decide [data-d="approve"]`).innerText()).trim(), 'Approve')
+})
+
+When('the reviewer asks for more variations of {string}', async function (id) {
   await openSection(this.browserPage, id)
-  await this.browserPage.locator(`#${id} .decide [data-d="vary"]`).click()
-  await this.browserPage.locator(`#${id} .steer textarea`).fill(note)
+  await this.browserPage.locator(`#${id} .steer-link`).click()
+  await this.browserPage.locator(`#${id}.steer-open .vary-link`).click()
+  assert.equal(await this.browserPage.locator(`#${id}.steer-open`).count(), 0, 'asking for variations needs no note')
 })
 
 When('the reviewer sends the answers', async function () {
@@ -679,10 +715,18 @@ When('the reviewer shows the revision', async function () {
   await this.browserPage.waitForLoadState('load')
 })
 
-When('the reviewer presses Approve & finish twice', async function () {
-  await this.browserPage.locator('#moreBtn').click()
-  await this.browserPage.locator('#finishBtn').click()
-  await this.browserPage.locator('#finishBtn').click()
+// The last slide carries the finish itself, beside a Send that shows only while something is unsent.
+When('the reviewer presses Approve & finish twice on the last slide', async function () {
+  const page = this.browserPage
+  await page.locator('#nextBtn').click()
+  await page.locator('#nextBtn').click()
+  await page.locator('#nextBtn').click()
+  await page.locator('.closing.current').waitFor()
+  await eventually(async () => { assert.equal(await page.locator('#closingSend').isVisible(), false, 'nothing is left to send') }, 'Send hides once everything is sent')
+  assert.match(await page.locator('[data-closing-text]').innerText(), /Builds the 1 approved/)
+  await page.locator('#closingFinish').click()
+  assert.match(await page.locator('#closingFinish').innerText(), /Press again/)
+  await page.locator('#closingFinish').click()
 })
 
 Then('the answers file approves {string}', async function (id) {
@@ -703,9 +747,13 @@ Then('the answers file approves {string} with the variation {string}', async fun
   }, `${id} is approved with ${name} in the answers file`)
 })
 
-Then('the answers file asks for more variations of {string} exploring {string}', async function (id, note) {
+Then('the page confirms the request for more variations', async function () {
+  await this.browserPage.locator('.vs-toast.on', { hasText: 'Asked for more variations' }).waitFor()
+})
+
+Then('the answers file asks for more variations of {string}', async function (id) {
   await eventually(() => {
-    assert.deepEqual(this.answers().decisions[id], { choice: 'vary', note })
+    assert.deepEqual(this.answers().decisions[id], { choice: 'vary' })
   }, `${id} asks for more variations in the answers file`)
 })
 
@@ -750,7 +798,7 @@ Then('the page announces the revision of {string}', async function (id) {
 
 Then('steering {string} again starts with an empty note', async function (id) {
   await openSection(this.browserPage, id)
-  await this.browserPage.locator(`#${id} .decide [data-d="steer"]`).click()
+  await this.browserPage.locator(`#${id} .steer-link`).click()
   assert.equal(await this.browserPage.locator(`#${id} .steer textarea`).inputValue(), '')
 })
 
@@ -761,7 +809,7 @@ Then('the page shows the review filed with {int} approved', async function (coun
   assert.equal(await filed.locator('.filed-stack img').count(), count)
 })
 
-Given('a design review report with no sections is served', async function () {
+Given('a Polish report with no sections is served', async function () {
   const template = fs.readFileSync(REPORT_TEMPLATE, 'utf8')
   await this.startReportServer(template.replace(/<!-- Sections sit under a category heading[\s\S]*?(?=<section class="closing")/, ''))
 })
@@ -793,7 +841,49 @@ Then('the panel {string} shows as recommended', async function (level) {
 })
 
 When('the reviewer chooses Report only', async function () {
+  // The options sit folded under the panels until Change opens them.
+  assert.equal(await this.browserPage.locator('#options').isVisible(), false, 'the options start folded')
+  await this.browserPage.locator('#optToggle').click()
   await this.browserPage.locator('[data-delivery="report"]').click()
+})
+
+When('the reviewer sets the effort to {string} and turns on Proofread', async function (effort) {
+  const page = this.browserPage
+  assert.equal(await page.locator('[data-effort="medium"]').getAttribute('aria-pressed'), 'true', 'Medium is the default')
+  assert.equal(await page.locator('[data-lab][aria-checked="true"]').count(), 0, 'experiments start off')
+  await page.locator(`[data-effort="${effort}"]`).click()
+  await page.locator('[data-lab="proofread"]').click()
+})
+
+Then('Done folds the options into one line under the panels, on a phone as well', async function () {
+  const page = this.browserPage
+  await page.locator('#optToggle').click()
+  assert.equal(await page.locator('#options').isVisible(), false, 'Done folds the options')
+  assert.match(await page.locator('#optSummary').innerText(), /只出报告 · 投入程度：高 · 已开实验功能/)
+  const size = page.viewportSize()
+  await page.setViewportSize({ width: 375, height: 667 })
+  const panel = await page.locator('.panel').first().boundingBox()
+  assert.ok(panel.y < 300, `the first level starts at ${Math.round(panel.y)}, on the first screen`)
+  const panels = await page.locator('#panels').boundingBox(), summary = await page.locator('.opt-summary').boundingBox()
+  assert.ok(summary.y > panels.y + panels.height, 'the options line sits under the panels')
+  await page.setViewportSize(size)
+})
+
+Then('the effort hint names the model for {string}', async function (effort) {
+  const profile = JSON.parse(fs.readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), `../../plugins/vstack/host-profiles/${this.hostId}.json`), 'utf8'))
+  const hint = await this.browserPage.locator('#effortHint').innerText()
+  const run = profile.effortLevels?.[effort]
+  if (run) assert.ok(hint.includes(run.modelName), `"${hint}" names ${run.modelName}`)
+  else assert.match(hint, /沿用当前模型/, `"${hint}" says the model stays as it is`)
+})
+
+Then('the answers file runs at {string} effort, with only Proofread on', async function (effort) {
+  await eventually(() => {
+    const doc = this.answers()
+    assert.equal(doc.effort, effort)
+    assert.equal(doc.proofread, true)
+    assert.equal(doc.trimCopy, false)
+  }, 'the answers file holds the effort and the experiments')
 })
 
 Then('the answers file asks for a report', async function () {
@@ -817,6 +907,66 @@ Then('every section shows at once, with nothing to answer', async function () {
   for (let index = 0; index < total; index++) assert.ok(await sections.nth(index).isVisible(), `section ${index + 1} shows`)
   assert.equal(await this.browserPage.locator('.decide:visible').count(), 0, 'no decision buttons')
   assert.equal(await this.browserPage.locator('.slidenav').isVisible(), false, 'no slide controls')
+})
+
+// A Host with pull delivery, such as Codex, waits in bounded calls and resumes from the WAIT line.
+function runWait (world, command) {
+  const result = spawnSync('/bin/sh', ['-c', command], { cwd: world.temp, encoding: 'utf8', timeout: 30000 })
+  world.waitOutput = result.stdout
+  world.waitCommand = (result.stdout.match(/^WAIT +(.+)$/m) || [])[1]
+}
+
+When('the agent waits {int} second for an answer', function (seconds) {
+  // Under the tool's former name, which an agent on an older copy of the skill still passes.
+  runWait(this, `node "${BRIDGE_CLI}" watch --json "${this.answersFile}" --tool design-review --next --timeout ${seconds} --seq 0`)
+})
+
+Then('the wait ends IDLE with a command that resumes from seq 0', function () {
+  assert.match(this.waitOutput, /^IDLE +target-round-1 · seq 0$/m)
+  assert.match(this.waitCommand, / watch --json .+ --tool polish --next --timeout 1 --seq 0$/, 'the resume command uses the current name')
+})
+
+When('the agent runs the wait command it was given', async function () {
+  await eventually(() => { assert.equal(this.answers().decisions['f-example']?.choice, 'approve') }, 'the approval is sent')
+  runWait(this, this.waitCommand)
+})
+
+Then('the wait reports the send, with a command that resumes from it', function () {
+  const sent = this.waitOutput.match(/^SENT +target-round-1 · seq (\d+) · read /m)
+  assert.ok(sent, `a SENT line in:\n${this.waitOutput}`)
+  assert.ok(Number(sent[1]) > 0, 'the seq moved on')
+  assert.match(this.waitCommand, new RegExp(` --seq ${sent[1]}$`))
+})
+
+// Off disk or in an Artifact there is no bridge; Send copies a brief. The clipboard is captured
+// in the page, so the run never touches the machine's real clipboard.
+Given('a Polish report is opened off disk', async function () {
+  await this.browserPage.addInitScript(() => {
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: (text) => { window.__copied = text; return Promise.resolve() } } })
+  })
+  await this.browserPage.goto('file://' + REPORT_TEMPLATE)
+  await this.browserPage.locator('#f-example .decide').waitFor()
+})
+
+Then('the copied brief carries the context, the reason and the spec of {string}', async function (id) {
+  const brief = await this.browserPage.evaluate(() => window.__copied)
+  assert.match(brief, /^# Polish decisions: Target/)
+  assert.match(brief, /## Context\nTarget: the address, screen or repo path reviewed\./)
+  assert.match(brief, /## How to act on this/)
+  const section = brief.split('\n### ').find(part => part.includes(`(${id})`))
+  assert.ok(section, `${id} is in the brief`)
+  assert.match(section, /Decision: Approved/)
+  assert.match(section, /Why: The grey hints in the form are too pale to read/)
+  assert.match(section, /Today: One short detail\nProposed: One short detail/)
+  assert.match(section, /Spec:\nWhere: the sign-up form/)
+  assert.doesNotMatch(section, /六个词|一句简短/, 'English only')
+})
+
+Then('the copied brief steers {string} with {string} and leaves {string} unanswered', async function (steered, note, open) {
+  const brief = await this.browserPage.evaluate(() => window.__copied)
+  assert.match(brief, new RegExp(`## Steer \\(1\\)\\n\\n### [^\\n]+\\(${steered}\\)\\nDecision: Steer\\nOwner's note: ${note}`))
+  assert.match(brief, new RegExp(`## Unanswered \\(1\\)\\n\\n### [^\\n]+\\(${open}\\)\\nDecision: Unanswered`))
+  assert.match(brief, /Proposed \(Lanes\): One short detail\nProposed \(Band\): One short detail/, 'an unanswered section lists every variation')
 })
 
 Then('the report server has closed', async function () {
