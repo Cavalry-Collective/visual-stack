@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 30 960 390" width="960" height="390" role="img" aria-label="A mind map of Visual Stack under the heading Pick a tool. Visual Stack sits in the middle. Review branches to the left, run with /vstack:review. Polish branches to the right, run with /vstack:polish. Below, quieter and tagged Experimental, hang User story map, Proofread, Start, Spec, Phase preview and Phase build.">
+  <style>
+    .sans { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+    .name { font-size: 21px; font-weight: 700; fill: #f1f2f4; }
+    .cmd { font-size: 11.5px; fill: #8b8e97; }
+    .faint rect { fill: none; stroke: #1f2126; }
+    .faint text { font-size: 10.5px; fill: #5b5e66; text-anchor: middle; }
+
+    /* The map builds once, from the centre out. */
+    .pop { transform-box: fill-box; transform-origin: center; animation: pop .55s cubic-bezier(.2, .8, .2, 1) both; }
+    @keyframes pop { from { opacity: 0; transform: scale(.86); } to { opacity: 1; transform: none; } }
+    .wire { fill: none; stroke: #3a3d46; stroke-width: 1.5; stroke-dasharray: 1; animation: draw .6s ease-out both; }
+    .wire.faint-wire { stroke: #1c1e23; stroke-width: 1; }
+    @keyframes draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+
+    /* Then it keeps a little life: the centre breathes and a pulse runs out to each tool. */
+    .ring { transform-box: fill-box; transform-origin: center; animation: breathe 4s ease-in-out 2s infinite both; }
+    @keyframes breathe { 0%, 100% { opacity: 0; transform: scale(1); } 50% { opacity: .55; transform: scale(1.08); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .pop, .wire, .ring { animation: none; }
+      .ring, .pulse { display: none; }
+    }
+  </style>
+
+  <rect x="0.5" y="30.5" width="959" height="389" rx="16" fill="#0d0e13" stroke="#1c1e25"/>
+
+  <rect x="56" y="70" width="22" height="4" rx="2" fill="#e5322d"/>
+  <text x="56" y="104" class="mono" font-size="17" font-weight="700" letter-spacing="3.5" fill="#f1f2f4">PICK A TOOL</text>
+
+  <path id="to-review" class="wire" pathLength="1" style="animation-delay:.35s" d="M395 256 C362 256 368 195 336 195"/>
+  <path id="to-polish" class="wire" pathLength="1" style="animation-delay:.35s" d="M565 256 C598 256 592 195 624 195"/>
+  <path class="wire faint-wire" pathLength="1" style="animation-delay:0.60s" d="M480 284 C480 326 338 324 338 366"/>
+  <path class="wire faint-wire" pathLength="1" style="animation-delay:0.65s" d="M480 284 C480 326 430 324 430 366"/>
+  <path class="wire faint-wire" pathLength="1" style="animation-delay:0.70s" d="M480 284 C480 326 498 324 498 366"/>
+  <path class="wire faint-wire" pathLength="1" style="animation-delay:0.75s" d="M480 284 C480 326 553 324 553 366"/>
+  <path class="wire faint-wire" pathLength="1" style="animation-delay:0.80s" d="M480 284 C480 326 629 324 629 366"/>
+  <path class="wire faint-wire" pathLength="1" style="animation-delay:0.85s" d="M480 284 C480 326 722 324 722 366"/>
+
+  <rect class="ring" x="395" y="228" width="170" height="56" rx="28" fill="none" stroke="#e5322d" stroke-width="1.5"/>
+  <g class="pop">
+    <rect x="395.5" y="228.5" width="169" height="55" rx="27.5" fill="#1d2027" stroke="#3a3d46"/>
+    <rect x="419" y="243" width="18" height="5" rx="1.5" fill="#f1f2f4"/>
+    <rect x="419" y="251" width="18" height="5" rx="1.5" fill="#8b8e97"/>
+    <rect x="419" y="259" width="18" height="5" rx="1.5" fill="#e5322d"/>
+    <text x="447" y="261" class="sans" font-size="15" font-weight="650" fill="#f1f2f4">Visual Stack</text>
+  </g>
+
+  <!-- Review -->
+  <g class="pop" style="animation-delay:.6s">
+    <rect x="146.5" y="157.5" width="189" height="75" rx="12" fill="#17191e" stroke="#2c2f37"/>
+    <text x="170" y="189" class="sans name">Review</text>
+    <text x="170" y="214" class="mono cmd">/vstack:review</text>
+  </g>
+
+  <!-- Polish -->
+  <g class="pop" style="animation-delay:.6s">
+    <rect x="624.5" y="157.5" width="189" height="75" rx="12" fill="#17191e" stroke="#2c2f37"/>
+    <text x="648" y="189" class="sans name">Polish</text>
+    <text x="648" y="214" class="mono cmd">/vstack:polish</text>
+  </g>
+
+  <!-- Experimental -->
+  <g class="pop" style="animation-delay:.9s"><text x="240.0" y="381" text-anchor="middle" class="mono" font-size="8.5" letter-spacing="1.4" fill="#4c4f57">EXPERIMENTAL</text></g>
+  <g class="leaf faint sans">
+    <g class="pop" style="animation-delay:1.00s"><rect x="290.5" y="366.5" width="96" height="23" rx="11.5"/><text x="338.0" y="381.5">User story map</text></g>
+    <g class="pop" style="animation-delay:1.06s"><rect x="394.5" y="366.5" width="72" height="23" rx="11.5"/><text x="430.0" y="381.5">Proofread</text></g>
+    <g class="pop" style="animation-delay:1.12s"><rect x="474.5" y="366.5" width="48" height="23" rx="11.5"/><text x="498.0" y="381.5">Start</text></g>
+    <g class="pop" style="animation-delay:1.18s"><rect x="530.5" y="366.5" width="46" height="23" rx="11.5"/><text x="553.0" y="381.5">Spec</text></g>
+    <g class="pop" style="animation-delay:1.24s"><rect x="584.5" y="366.5" width="90" height="23" rx="11.5"/><text x="629.0" y="381.5">Phase preview</text></g>
+    <g class="pop" style="animation-delay:1.30s"><rect x="682.5" y="366.5" width="80" height="23" rx="11.5"/><text x="722.0" y="381.5">Phase build</text></g>
+  </g>
+
+  <!-- a pulse runs out from the centre to each main tool in turn -->
+  <g class="pulse" fill="#e5322d">
+    <circle r="3.5" opacity="0">
+      <animateMotion dur="6s" begin="2.2s" repeatCount="indefinite" keyPoints="0;1;1" keyTimes="0;.12;1" calcMode="linear"><mpath xlink:href="#to-review" href="#to-review"/></animateMotion>
+      <animate attributeName="opacity" dur="6s" begin="2.2s" repeatCount="indefinite" values="0;1;1;0;0" keyTimes="0;.02;.1;.12;1"/>
+    </circle>
+    <circle r="3.5" opacity="0">
+      <animateMotion dur="6s" begin="3.4s" repeatCount="indefinite" keyPoints="0;1;1" keyTimes="0;.12;1" calcMode="linear"><mpath xlink:href="#to-polish" href="#to-polish"/></animateMotion>
+      <animate attributeName="opacity" dur="6s" begin="3.4s" repeatCount="indefinite" values="0;1;1;0;0" keyTimes="0;.02;.1;.12;1"/>
+    </circle>
+  </g>
+</svg>

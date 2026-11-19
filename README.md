@@ -20,7 +20,7 @@
 
 Visual Stack is an open-source toolbox for Claude Code and Codex. A collection of tools to help you review, polish, and build with your agent, right on the screen.
 
-[![A toolbox labelled Pick a tool. Two main tools: Review, a Figma-like feedback layer for AI coding agents, run with /vstack:review; and Polish, a design audit with before-and-after previews, run with /vstack:polish. Six experimental tools: User story map, Proofread, Start, Spec, Phase preview and Phase build.](docs/assets/toolbox.svg)](#review)
+[![A mind map of Visual Stack under the heading Pick a tool. Visual Stack sits in the middle. Review branches to the left, run with /vstack:review. Polish branches to the right, run with /vstack:polish. Below, quieter and tagged Experimental, hang User story map, Proofread, Start, Spec, Phase preview and Phase build.](docs/assets/stack-map.svg)](#review)
 
 ## Review
 
