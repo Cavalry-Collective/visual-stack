@@ -568,14 +568,21 @@ so the two GIFs tell one story. The report's pictures are taken of that page
 during the run, today and with each proposed change applied. To change what the
 report proposes, edit the findings near the top of the script.
 
+**Every proposed picture must look different from its Today picture at GIF
+size.** A change a viewer cannot see in the thumbnail does not belong in the
+demo. Showcase findings carry colour, a new component, or a celebration.
+
 What the recording shows, in order:
 
-1. The audit's tasks tick off. The recording opens here, with Clean already
-   picked.
-2. The report replaces the start page.
-3. The owner approves the first finding, shows variation B of the second and
+1. The level chooser, with the pointer already on Clean and Showcase marked
+   Recommended.
+2. The pointer moves to Refined, then drifts across Showcase so the card tilts,
+   and clicks Showcase.
+3. The audit's tasks tick off.
+4. The report replaces the start page.
+5. The owner approves the first finding, shows variation B of the second and
    approves it, then approves the third.
-4. The owner presses Approve & finish twice, and the review is filed.
+6. The owner presses Approve & finish twice, and the review is filed.
 
 Keep these settings:
 
@@ -583,7 +590,8 @@ Keep these settings:
 - **Holds capped at 500ms,** except a report slide's first appearance, which may
   hold for up to 900ms so the pictures can be compared.
 - **A 1.4s closing hold on the filed review.**
-- **Target:** under about 18 seconds and 2.5 MB.
+- **Target:** under about 19 seconds and 3.5 MB. Showcase's moving glow redraws
+  every frame, so its preview costs more than the rest of the recording.
 
 ## UI tweaks and composition reuse
 

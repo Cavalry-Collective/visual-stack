@@ -5,7 +5,8 @@
  * headless Chrome drives it the way an owner would: watch the audit, answer
  * the report, finish. The agent's turn is played by writing the answers file,
  * as the skill does: tick the tasks, then write the report over the start
- * page. It opens with the level already picked, on the audit's progress. The report reviews the same todo page
+ * page. It opens on the level chooser, previews each level in turn, and picks
+ * Showcase. The report reviews the same todo page
  * the review demo uses, with pictures taken of it here, today and with each
  * proposed change applied.
  *
@@ -76,37 +77,91 @@ const css = rules => step(rules => {
   style.textContent = rules
   document.head.append(style)
 }, rules)
+// Done tasks turn green in both variants, so the move reads at a glance.
 const moveDone = into => step(into => {
   const list = document.querySelector('.card ul'), done = [...list.querySelectorAll('li.done')]
+  const style = document.createElement('style')
+  style.textContent = 'li.done .tick{background-color:#16a34a;border-color:#16a34a} li.done .task{color:#15803d}'
+  document.head.append(style)
+  const label = `<div style="padding:9px 17px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#15803d">✓ Done · ${done.length}</div>`
   if (into === 'section') {
     const card = document.createElement('div')
     card.className = 'card'
-    card.style.marginTop = '14px'
-    card.innerHTML = '<div style="padding:10px 17px 0;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#8b8f9a">Done</div><ul></ul>'
-    done.forEach(li => card.querySelector('ul').append(li))
+    card.style.cssText = 'margin-top:14px;background:#ecfdf3;border-color:#bbf7d0'
+    card.innerHTML = label + '<ul></ul>'
+    done.forEach(li => { li.style.borderColor = '#d1fadf'; card.querySelector('ul').append(li) })
     document.querySelector('.card').after(card)
   } else {
-    done.forEach(li => { li.style.opacity = '.55'; list.append(li) })
+    // No label here: it would make the picture taller than the slide shows.
+    done.forEach(li => { li.style.background = '#ecfdf3'; list.append(li) })
   }
 }, into)
+// A solid card rather than a gradient: an undithered GIF bands a gradient.
+const progressHeader = step(() => {
+  const total = document.querySelectorAll('li').length, done = document.querySelectorAll('li.done').length
+  const h1 = document.querySelector('h1'), sub = document.querySelector('.sub')
+  const head = document.createElement('div')
+  head.className = 'head'
+  head.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px;' +
+    'border-radius:18px;background:#4b5bf7;color:#fff;box-shadow:0 12px 28px rgba(75,91,247,.35)'
+  h1.before(head)
+  const words = document.createElement('div')
+  words.append(sub, h1)
+  sub.textContent = 'Monday, 3 August'
+  sub.style.cssText = 'margin:0 0 2px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.75)'
+  h1.style.cssText = 'font-size:36px;color:#fff'
+  const circumference = 2 * Math.PI * 24
+  const ring = document.createElement('div')
+  ring.style.cssText = 'position:relative;width:64px;height:64px;flex:none'
+  ring.innerHTML = `<svg viewBox="0 0 60 60" width="64" height="64" style="transform:rotate(-90deg)">
+    <circle cx="30" cy="30" r="24" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="7"/>
+    <circle cx="30" cy="30" r="24" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"
+      stroke-dasharray="${circumference * done / total} ${circumference}"/></svg>
+    <b style="position:absolute;inset:0;display:grid;place-items:center;font-size:15px">${done}/${total}</b>`
+  head.append(words, ring)
+}, null)
+const celebrate = step(() => {
+  const card = document.querySelector('.card')
+  card.style.position = 'relative'
+  card.style.boxShadow = '0 10px 30px rgba(75,91,247,.12)'
+  const row = document.querySelectorAll('li')[2]
+  row.classList.add('done')
+  // A flat tint: an undithered GIF bands a gradient.
+  row.style.cssText = 'background:#eef0fe'
+  row.querySelector('.task').style.color = '#4b5bf7'
+  const tick = row.querySelector('.tick')
+  tick.style.cssText = 'transform:scale(1.25);background-color:#4b5bf7;box-shadow:0 0 0 7px rgba(75,91,247,.22)'
+  // The burst sits on the card, so it can spill into the rows around the ticked one.
+  const origin = { x: row.offsetLeft + 28, y: row.offsetTop + row.offsetHeight / 2 }
+  const colours = ['#4b5bf7', '#7c5cff', '#ff9a5c', '#ffd36b', '#22c55e', '#ef5da8']
+  const bits = [[-12, -30], [14, -38], [44, -30], [78, -40], [112, -26], [150, -36], [190, -22], [228, -32],
+    [-16, 28], [18, 36], [52, 26], [90, 38], [130, 28], [170, 36], [210, 24], [250, 34], [262, -10], [236, 6]]
+  bits.forEach(([dx, dy], index) => {
+    const bit = document.createElement('i')
+    const size = 6 + (index % 3) * 2
+    bit.style.cssText = `position:absolute;left:${origin.x + dx}px;top:${origin.y + dy}px;width:${size}px;height:${index % 2 ? size : size * 2}px;` +
+      `border-radius:${index % 2 ? '50%' : '2px'};background:${colours[index % colours.length]};transform:rotate(${index * 41}deg)`
+    card.append(bit)
+  })
+  const toast = document.createElement('div')
+  toast.textContent = '✓  Nice! 3 of 6 done'
+  toast.style.cssText = 'position:absolute;left:50%;bottom:12px;transform:translateX(-50%);padding:9px 18px;border-radius:999px;' +
+    'background:#4b5bf7;color:#fff;font-size:14px;font-weight:700;box-shadow:0 8px 22px rgba(75,91,247,.35);white-space:pre'
+  card.append(toast)
+}, null)
 const bothCards = step(() => {
   const cards = [...document.querySelectorAll('.card')].map(c => c.getBoundingClientRect())
   const top = cards[0].top - 12, bottom = cards.at(-1).bottom + 12
   return { x: 0, y: top, width: 390, height: bottom - top }
 })
-const footer = step(() => {
-  const li = [...document.querySelectorAll('li')].at(-2).getBoundingClientRect(), foot = document.querySelector('.foot').getBoundingClientRect()
-  return { x: 0, y: li.top - 8, width: 390, height: foot.bottom + 14 - (li.top - 8) }
-})
-
 const pictures = {
-  hintToday: await shoot(around(['h1', '.compose'])),
-  hintProposed: await shoot(around(['h1', '.compose']), css('.field{color:#4a4e57}')),
+  headToday: await shoot(around(['h1', '.compose'])),
+  headProposed: await shoot(around(['.head', '.compose']), progressHeader),
   orderToday: await shoot(around(['.card'])),
   orderSection: await shoot(bothCards, moveDone('section')),
   orderBottom: await shoot(around(['.card']), moveDone('bottom')),
-  footToday: await shoot(footer),
-  footProposed: await shoot(footer, css('.foot{margin-top:14px}')),
+  tickToday: await shoot(around(['.card'])),
+  tickProposed: await shoot(around(['.card']), celebrate),
 }
 await shooter.close()
 
@@ -119,24 +174,25 @@ const finding = (id, title, why, figures) =>
   `<article class="finding" id="${id}" data-decide><div class="fh"><h2>${title}</h2></div>` +
   `<p class="why">${why}</p><div class="cmp">${figures.join('')}</div></article>\n`
 const sections =
-  '<h2 class="area-title cat">Readability</h2>\n' +
-  finding('f-hint', 'The task hint is hard to read',
-    'The grey words in the empty task box are pale enough to miss. A darker grey reads easily and still looks like a hint.',
-    [figure('Today', 'Pale hint', pictures.hintToday), figure('Proposed', 'Darker hint', pictures.hintProposed)]) +
   '<h2 class="area-title cat">What stands out</h2>\n' +
+  finding('f-head', 'The header hides your progress',
+    'How much of the day is done sits in small grey text. A bold header card with a progress ring shows it at a glance.',
+    [figure('Today', 'Progress in small text', pictures.headToday), figure('Proposed', 'A header card with a progress ring', pictures.headProposed)]) +
+  '<h2 class="area-title cat">Clarity</h2>\n' +
   finding('f-order', 'Done tasks sit among open ones',
     'Ticked tasks are mixed in with the ones still to do, so the list reads as one block. Moving them apart puts the open tasks first.',
     [figure('Today', 'Done and open mixed', pictures.orderToday),
       figure('Proposed', 'A Done section', pictures.orderSection, 'Section'),
       figure('Proposed', 'Done tasks at the bottom', pictures.orderBottom, 'Bottom')]) +
-  '<h2 class="area-title cat">Layout</h2>\n' +
-  finding('f-foot', 'The footer floats away from the list',
-    'A wide gap separates the count and Clear from the list they belong to. Bringing them closer keeps them with the tasks.',
-    [figure('Today', 'A wide gap', pictures.footToday), figure('Proposed', 'Close to the list', pictures.footProposed)])
+  '<h2 class="area-title cat">Delight</h2>\n' +
+  finding('f-tick', 'Ticking a task feels flat',
+    'Finishing a task only fills a circle. A short burst of confetti and a progress note make each tick feel earned.',
+    [figure('Today', 'A plain tick', pictures.tickToday), figure('Proposed', 'A tick that celebrates', pictures.tickProposed)])
 
 let report = fs.readFileSync(path.join(SKILL, 'report-template.html'), 'utf8')
 report = report.replace(/<title>.*?<\/title>/, '<title>Todo app · Polish round 1</title>')
 report = report.replace('<h1>Target</h1>', '<h1>Todo app</h1>')
+report = report.replace('Polish · Round 1 · Clean', 'Polish · Round 1 · Showcase').replace('打磨 · 第 1 轮 · 简洁', '打磨 · 第 1 轮 · 惊艳')
 report = report.replace(/(<script type="text\/plain" id="handoff-context">)[\s\S]*?(<\/script>)/,
   '$1\nTarget: docs/demo/pages/v1.html, the todo page the review demo uses.\nDelivery: build in this repo.\n$2')
 const from = report.indexOf('<!-- Sections sit under a category heading')
@@ -152,7 +208,9 @@ const tasks = [
   ['draw', 'Draw the proposed fixes'],
 ].map(([id, en]) => ({ id, text: { en, zh: en }, done: false }))
 fs.copyFileSync(path.join(SKILL, 'review-start.html'), HTML)
-fs.writeFileSync(DOC, JSON.stringify({ stage: 'audit', level: 'clean', lang: 'en', delivery: 'build', canBuild: true, tasks, decisions: {}, overall: '', revised: {} }))
+// The recommendation is already in, so the pick of Showcase follows it.
+const recommend = { level: 'showcase', reason: { en: 'An app people open every day. A little delight keeps them coming back.', zh: '每天都会打开的应用，一点惊喜能留住用户。' } }
+fs.writeFileSync(DOC, JSON.stringify({ stage: 'choose', delivery: 'build', canBuild: true, recommend, decisions: {}, overall: '', revised: {} }))
 const server = spawn(process.execPath, [BRIDGE, 'serve', '--json', DOC, '--template', HTML,
   '--tool', 'polish', '--port', String(PORT), '--host', 'claude', '--no-open', '--idle-timeout', '0'],
 { cwd: WORK, stdio: ['ignore', 'pipe', 'pipe'] })
@@ -171,19 +229,35 @@ children.push(spawn(process.execPath, [BRIDGE, 'watch', '--json', DOC, '--stream
 const page = await browser.newPage({ viewport: VIEWPORT })
 await drawPointer(page)
 await page.goto(url)
-await page.locator('#progress:not([hidden])').waitFor()
-const mouse = hand(page, { x: 760, y: 640 })
+await page.locator('#choose:not([hidden])').waitFor()
+const panel = async level => page.locator(`[data-level="${level}"]`).boundingBox()
+const over = (box, x, y) => ({ x: box.x + box.width * x, y: box.y + box.height * y })
+// The pointer starts on Clean, so the first frame is already a preview.
+const mouse = hand(page, over(await panel('clean'), 0.5, 0.45))
 await mouse.moveTo(mouse.at)
 await page.locator('.linkdot.on, #linkDot.on').first().waitFor({ timeout: 20000 }).catch(() => {})
 
 const { frames, stop } = capture(page, path.join(WORK, 'frames'))
 const reading = []
 const read_ = () => { const now = Date.now(); reading.push({ from: now, to: now + 2500, capMs: READ_CAP_MS }) }
-await sleep(300)
+await sleep(450)
+
+/* ── the level, previewed and picked ── */
+await mouse.glide(over(await panel('refined'), 0.5, 0.45), 340)
+await sleep(280)
+// Showcase tilts toward the pointer, so the pointer drifts across it rather than parking.
+const showcase = await panel('showcase')
+await mouse.glide(over(showcase, 0.3, 0.35), 340)
+await mouse.glide(over(showcase, 0.65, 0.6), 520)
+await sleep(120)
+await mouse.click()
+await until(() => read().level === 'showcase', 'the page to save the level')
+write({ stage: 'audit', tasks })
+await sleep(150)
 
 /* ── the audit, ticking off ── */
 for (const task of tasks) {
-  await sleep(450)
+  await sleep(320)
   task.done = true
   write({ tasks })
 }
@@ -192,11 +266,11 @@ await sleep(900)
 /* ── the report, written over the start page ── */
 fs.writeFileSync(HTML, report)
 write({ stage: 'report' })
-await page.locator('#f-hint.current .decide').waitFor({ timeout: 15000 })
+await page.locator('#f-head.current .decide').waitFor({ timeout: 15000 })
 read_()
 await sleep(1200)
 
-await mouse.glideTo('#f-hint .decide [data-d="approve"]', 420)
+await mouse.glideTo('#f-head .decide [data-d="approve"]', 420)
 await mouse.click()
 await page.locator('#f-order.current').waitFor()
 read_()
@@ -207,10 +281,10 @@ read_()
 await sleep(900)
 await mouse.glideTo('#f-order .decide [data-d="approve"]', 380)
 await mouse.click()
-await page.locator('#f-foot.current').waitFor()
+await page.locator('#f-tick.current').waitFor()
 read_()
 await sleep(1000)
-await mouse.glideTo('#f-foot .decide [data-d="approve"]', 380)
+await mouse.glideTo('#f-tick .decide [data-d="approve"]', 380)
 await mouse.click()
 await page.locator('.closing.current').waitFor()
 await sleep(600)
