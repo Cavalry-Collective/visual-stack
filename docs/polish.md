@@ -8,7 +8,7 @@ Polish audits your UI, identifies what could be improved, and shows each propose
 
 Give your agent a screen to review. It checks the layout, interactions, and visual consistency, then presents its findings. You can approve, steer, or reject each fix. Nothing in your code changes without your approval.
 
-<img src="assets/polish-demo.gif" alt="A Polish audit. The checks tick off, the findings arrive as before-and-after slides, and three fixes are approved." width="600">
+<img src="assets/polish-demo.gif" alt="A Polish audit. The owner picks the Showcase level, the checks tick off, the findings arrive as before-and-after slides, and three fixes are approved." width="600">
 
 ## Run it
 
