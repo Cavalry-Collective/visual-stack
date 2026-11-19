@@ -18,7 +18,7 @@
 
 ## It’s easier to show than explain.
 
-Visual Stack is an open-source toolbox for Claude Code and Codex. A collection of tools to help you review, polish, and build with your agent, right on the screen.
+Visual Stack is a collection of tools to help you review, polish, and build with your agent, right on the screen.
 
 [![A mind map of Visual Stack under the heading Pick a tool. Visual Stack sits in the middle. Review branches to the left, run with /vstack:review. Polish branches to the right, run with /vstack:polish. Below, quieter and tagged Experimental, hang User story map, Proofread, Start, Spec, Phase preview and Phase build.](docs/assets/stack-map.svg)](#review)
 
@@ -85,12 +85,6 @@ $vstack:polish Audit the checkout page on localhost:3000.
 ```
 
 <sup>1</sup> Codex support is experimental. Codex has no background monitor that keeps a two-way link open, so Visual Stack has the agent check in at short intervals. Occasionally the agent stops checking too early. If that happens, ask it to resume watching.
-
-## Experimental
-
-- **User story map** (`/vstack:user-story-map`) builds a drag-and-drop story map for splitting work across release phases.
-- **Proofread** (`/vstack:proofread`) sends the copy your agent is writing to ChatGPT in your own browser. Your agent then uses the reply to remove AI-sounding phrasing. It needs Claude Code with Claude in Chrome and a ChatGPT sign-in.
-- **Start**, **Spec**, **Phase preview** and **Phase build** are planning tools kept in `plugins/vstack/experimental/`. They are not installed as commands.
 
 ## Requirements
 
