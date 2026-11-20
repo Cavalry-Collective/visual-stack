@@ -77,7 +77,7 @@ Pick the mode for each flow:
 - **C5 · Type.** No more than two font families. Each text role, such as body, label or heading, has one size at a given screen size, and the sizes form a scale of about five steps. No size is under 12 px. Body text is at least 16 px on a website and at least 14 px in a web app, with a line height between 1.4 and 1.6.
 - **C6 · Colour.** Each status colour has one meaning. If the brand colour is also the error colour, offer the fix as variations, one of which keeps the brand colour. Text has at least 4.5:1 contrast, and large text at least 3:1. Status never depends on colour alone.
 - **C7 · Link style.** All text links share one style, and nothing else uses it.
-- **C8 · Components.** Each kind of component looks the same everywhere it appears. All buttons share one set of heights, radii and padding. The same applies to inputs, cards, chips and menus. Open menus, focus rings and selected states use the product's own colours and shapes, never a library's defaults.
+- **C8 · Components.** Each kind of component looks the same everywhere it appears. All buttons share one set of heights, radii and padding. The same applies to inputs, cards, chips, menus, error banners and toasts. Open menus, focus rings and selected states use the product's own colours and shapes, never a library's defaults.
 - **C9 · Imagery.** The product uses one icon set with one stroke weight. Images are sharp and never stretched. Images in the same role share one aspect ratio and crop.
 - **C10 · Responsive.** At each listed screen size:
   - nothing scrolls sideways, clips or overlaps;
@@ -128,7 +128,18 @@ Drive the product as a user would:
 - click every link and button;
 - submit each form empty, then again with wrong values;
 - open every menu, modal and state;
-- press Back and refresh.
+- press Back and refresh;
+- force each failure: go offline, block or fail a request, let a request time out, and pay with a test card that declines. On a site we do not own, force only the failures that need no submit.
+
+To force a failure, use the browser's developer tools:
+
+| Failure | How |
+|---|---|
+| Offline or slow network | Set network throttling to Offline or Slow 4G. |
+| Backend error | Block the request, or override its response with a 500. |
+| Timeout | Delay the response past the product's own timeout. |
+| Expired session | Delete the session cookie, then submit. |
+| Declined payment | Use the payment provider's test cards in its test mode, such as Stripe's `4000 0000 0000 0002`, generic decline, `4000 0000 0000 9995`, insufficient funds, and `4000 0000 0000 0127`, wrong security code. |
 
 ### Both modes
 
@@ -150,11 +161,14 @@ Drive the product as a user would:
   - An error first appears when the user leaves the field or submits, never while they are typing.
   - Once an error shows, it clears as soon as the value is valid.
   - Each error sits under its field and says how to fix it.
+  - A screen reader announces each error, and pressing submit moves focus to the first one.
 - **R7 · Submit.**
   - The submit button stays enabled until it is pressed.
   - Pressing it with errors shows every error and scrolls to the first one.
   - Enter submits.
   - A failed submit keeps everything the user typed, and says what went wrong and what to do.
+  - A submit that hangs stops waiting and says so, such as "This is taking longer than usual". The loader never spins forever.
+  - Retrying a failed submit never creates a duplicate or sends the action twice.
   - A successful submit shows a confirmation.
 - **R8 · Loading, by action.**
   - **Links:** a link opens its page straight away, with no spinner or request first.
@@ -174,6 +188,11 @@ Drive the product as a user would:
   - A loading control keeps its normal colour. It does not also grey out.
   - A control on a cooldown looks disabled and says when it will be ready.
 - **R11 · No library defaults.** No library default ships, such as Ant Design's spinner or its empty-state image. The product uses one branded loader everywhere.
+- **R12 · Error messages.** Every error the user can meet, in a form or not:
+  - shows beside what caused it, where the user is looking;
+  - says what happened and what to do next, in plain words, without blaming the user;
+  - never shows a status code, stack trace or internal name, such as "Error 500" or "ECONNRESET";
+  - stays on screen until the user acts, if the user must act. A toast that fades is only for news the user can miss.
 
 ### Website
 
@@ -191,10 +210,28 @@ Drive the product as a user would:
   - Loading, empty, error, no match, read-only and signed-out states are each designed.
   - An empty or no-match state says what to do next, such as how to clear a filter.
   - No label claims data that failed to load, such as "All 0" over an error.
+  - A screen that fails to load shows a designed error with a way to retry. It never goes blank.
+  - When one panel fails, only that panel shows the error, and the rest of the screen still works.
   - A destructive action asks for confirmation or offers Undo.
-- **RA5 · Failures.** A lost connection says so and recovers without a reload. An expired session keeps what the user typed, and returns them to the same place after sign-in.
+- **RA5 · Failures.**
+  - A lost connection says so and recovers without a reload. An action taken offline is either queued, and shown as waiting, or refused with a message.
+  - An expired session keeps what the user typed, and returns them to the same place after sign-in.
+  - Missing permission says so, and offers a way to ask for access or switch account.
+  - A deleted or missing record shows a page with a route back.
+  - A rate limit says when the user can try again.
+  - A serious error shows a reference the user can copy, and a way to contact support.
 - **RA6 · Unsaved work.** Leaving a form with edits warns first. A saved change shows without a reload.
 - **RA7 · Lists.** A long list can be searched, sorted and filtered, and it pages or scrolls without losing its header. Active filters show, and each one can be removed.
+- **RA8 · Payment.** Apply this check only to a flow that takes payment.
+  - A decline says why, such as a wrong security code, not enough funds, or refused by the bank.
+  - After a decline, the card details stay filled in except the security code, and the page scrolls to the field to fix.
+  - Other payment methods stay available after a decline.
+  - Cancelling or failing a bank check or a payment redirect, such as 3-D Secure or PayPal, returns the user to checkout with the cart intact.
+  - When the outcome is unknown, such as after a timeout, the page tells the user not to pay again and how they will hear the result.
+  - The card is charged or refused before the user sees "Order placed".
+- **RA9 · Uploads.**
+  - A file that is too large or of the wrong type is refused before it uploads, and the message states the limit.
+  - A failed upload can be retried without choosing the file again.
 
 ## Showcase: bring it to life
 
