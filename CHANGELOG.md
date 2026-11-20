@@ -8,6 +8,24 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.17.0 — 2026-11-20
+
+**Added**
+
+- **Polish checks how the product handles failure.** A Refined review now
+  forces each failure on purpose: it goes offline, fails or delays a request,
+  and pays with a test card that declines. It then checks that:
+  - every error says what happened and what to do, in plain words;
+  - a hung submit stops waiting, and a retry never sends twice;
+  - a screen or panel that fails to load offers a retry;
+  - missing access, a missing record and a rate limit each have their own
+    message;
+  - a declined payment says why, keeps the card details, and offers another
+    way to pay;
+  - a failed upload can be retried without choosing the file again.
+
+  On a site you do not own, Polish still never submits a form or pays.
+
 ## 6.16.0 — 2026-11-19
 
 **Changed**
