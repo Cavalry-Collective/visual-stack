@@ -88,6 +88,7 @@ Split Steps 2 to 5 across workers, so independent parts run at the same time. If
 Start each worker with Host op `subagent`:
 
 - Pass the model and reasoning effort that the profile's `effortLevels` names for `effort`. If the profile has no `effortLevels`, pass neither.
+- Start the reader at `medium`, the default. It starts before the owner picks, so their `effort` is not saved yet.
 - Give it one narrow task, the target, the files it must read, and a folder of its own for output: `$R-work/<worker id>/`.
 - Say exactly what it returns, as in the table below.
 - Tell it not to write the answers file or `$R.html`, and not to start workers of its own.
