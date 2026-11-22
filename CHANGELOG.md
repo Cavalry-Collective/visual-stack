@@ -8,6 +8,14 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.18.1 — 2026-11-22
+
+**Fixed**
+
+- **The Polish start page groups its switches in a way screen readers
+  recognise everywhere.** The Checks and Experimental switches now sit in
+  native fieldsets.
+
 ## 6.18.0 — 2026-11-22
 
 **Added**

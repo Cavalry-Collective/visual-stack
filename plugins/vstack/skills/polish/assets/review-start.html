@@ -330,7 +330,7 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .opt-label { font: 700 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
 .opt .seg button { height: 34px; padding: 0 14px; font-size: 14px; }
 .opt .switch { height: 36px; font-size: 14px; }
-.switches { display: flex; flex-wrap: wrap; gap: .5rem; }
+.switches { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0; padding: 0; border: 0; min-width: 0; }
 .delivery .seg button[disabled] { opacity: .45; cursor: default; }
 .opt-hint { max-width: 40ch; font-size: 12px; color: var(--ink-3); }
 .opt-hint[hidden] { display: none; }
@@ -699,17 +699,17 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
       </div>
       <div class="opt">
         <p class="opt-label" id="checksLabel" data-t="checksLabel"></p>
-        <div class="switches" role="group" aria-labelledby="checksLabel">
+        <fieldset class="switches" aria-labelledby="checksLabel">
           <button class="switch" type="button" role="switch" aria-checked="false" data-switch="failures"><span class="track"><span class="knob"></span></span><span data-t="checkFailures"></span></button>
-        </div>
+        </fieldset>
         <p class="opt-hint" data-t="checkFailuresHint"></p>
       </div>
       <div class="opt">
         <p class="opt-label" id="labsLabel" data-t="labsLabel"></p>
-        <div class="switches" role="group" aria-labelledby="labsLabel">
+        <fieldset class="switches" aria-labelledby="labsLabel">
           <button class="switch" type="button" role="switch" aria-checked="false" data-switch="proofread"><span class="track"><span class="knob"></span></span><span data-t="labProofread"></span></button>
           <button class="switch" type="button" role="switch" aria-checked="false" data-switch="trimCopy"><span class="track"><span class="knob"></span></span><span data-t="labTrim"></span></button>
-        </div>
+        </fieldset>
         <p class="opt-hint" id="labsHint"></p>
       </div>
     </div>
@@ -1379,7 +1379,7 @@ window.VSScrub = (function () {
     if (choosing) return
     choosing = true
     var switches = switchesOf()
-    var next = Object.assign({}, doc, { level: id, lang: lang(), delivery: deliveryOf(), effort: effortOf(), proofread: switches.proofread, trimCopy: switches.trimCopy, failures: switches.failures })
+    var next = { ...doc, level: id, lang: lang(), delivery: deliveryOf(), effort: effortOf(), proofread: switches.proofread, trimCopy: switches.trimCopy, failures: switches.failures }
     post(BRIDGE.save, next).then(function () {
       doc = next
       render()
@@ -1513,7 +1513,7 @@ window.VSScrub = (function () {
   $('#optToggle').addEventListener('click', function () { optionsOpen = !optionsOpen; paintSummary() })
   $$('[data-switch]').forEach(function (button) {
     button.addEventListener('click', function () {
-      var switches = Object.assign({}, switchesOf())
+      var switches = { ...switchesOf() }
       switches[button.dataset.switch] = !switches[button.dataset.switch]
       chosenSwitches = switches
       paintSwitches()
