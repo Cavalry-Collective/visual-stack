@@ -8,6 +8,14 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.18.2 — 2026-11-22
+
+**Fixed**
+
+- **Polish says which effort its first worker runs at.** The worker that reads
+  the project starts before you pick a level, so it runs at Medium, the
+  default. Every worker after the pick runs at the effort you chose.
+
 ## 6.18.1 — 2026-11-22
 
 **Fixed**
