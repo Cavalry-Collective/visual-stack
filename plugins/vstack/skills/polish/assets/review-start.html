@@ -698,10 +698,17 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
         <p class="opt-hint" id="effortHint"></p>
       </div>
       <div class="opt">
+        <p class="opt-label" id="checksLabel" data-t="checksLabel"></p>
+        <div class="switches" role="group" aria-labelledby="checksLabel">
+          <button class="switch" type="button" role="switch" aria-checked="false" data-switch="failures"><span class="track"><span class="knob"></span></span><span data-t="checkFailures"></span></button>
+        </div>
+        <p class="opt-hint" data-t="checkFailuresHint"></p>
+      </div>
+      <div class="opt">
         <p class="opt-label" id="labsLabel" data-t="labsLabel"></p>
         <div class="switches" role="group" aria-labelledby="labsLabel">
-          <button class="switch" type="button" role="switch" aria-checked="false" data-lab="proofread"><span class="track"><span class="knob"></span></span><span data-t="labProofread"></span></button>
-          <button class="switch" type="button" role="switch" aria-checked="false" data-lab="trimCopy"><span class="track"><span class="knob"></span></span><span data-t="labTrim"></span></button>
+          <button class="switch" type="button" role="switch" aria-checked="false" data-switch="proofread"><span class="track"><span class="knob"></span></span><span data-t="labProofread"></span></button>
+          <button class="switch" type="button" role="switch" aria-checked="false" data-switch="trimCopy"><span class="track"><span class="knob"></span></span><span data-t="labTrim"></span></button>
         </div>
         <p class="opt-hint" id="labsHint"></p>
       </div>
@@ -1227,6 +1234,10 @@ window.VSScrub = (function () {
     effortHigh: ['High', '高'],
     runsOn: ['Runs on {model} at {effort} effort.', '使用 {model}，推理强度为{effort}。'],
     ownModel: ['{agent} keeps its current model.', '{agent} 沿用当前模型。'],
+    checksLabel: ['Checks', '检查项'],
+    checkFailures: ['Failure handling', '故障处理'],
+    checkFailuresHint: ['Takes services down on purpose and checks the product copes.', '故意让服务中断，检查产品能否妥善应对。'],
+    failuresOn: ['failure checks on', '已开故障检查'],
     labsLabel: ['Experimental', '实验功能'],
     optionsLabel: ['Options', '选项'],
     labProofread: ['Proofread', '校对'],
@@ -1367,8 +1378,8 @@ window.VSScrub = (function () {
     if (!BRIDGE) { window.VSShell.toast(t('offline'), 3200); return }
     if (choosing) return
     choosing = true
-    var labs = labsOf()
-    var next = Object.assign({}, doc, { level: id, lang: lang(), delivery: deliveryOf(), effort: effortOf(), proofread: labs.proofread, trimCopy: labs.trimCopy })
+    var switches = switchesOf()
+    var next = Object.assign({}, doc, { level: id, lang: lang(), delivery: deliveryOf(), effort: effortOf(), proofread: switches.proofread, trimCopy: switches.trimCopy, failures: switches.failures })
     post(BRIDGE.save, next).then(function () {
       doc = next
       render()
@@ -1475,36 +1486,37 @@ window.VSScrub = (function () {
   $$('[data-effort]').forEach(function (button) {
     button.addEventListener('click', function () { chosenEffort = button.dataset.effort; paintEffort() })
   })
-  /* Experiments are off until the owner turns them on. */
-  var chosenLabs = null
-  var labsOf = function () { return chosenLabs || { proofread: doc.proofread === true, trimCopy: doc.trimCopy === true } }
-  var paintLabs = function () {
-    var labs = labsOf()
-    $$('[data-lab]').forEach(function (button) { button.setAttribute('aria-checked', String(!!labs[button.dataset.lab])) })
-    $('[data-lab="proofread"]').title = t('labProofreadHint')
-    $('[data-lab="trimCopy"]').title = t('labTrimHint')
+  /* Failure checks and experiments are off until the owner turns them on. */
+  var chosenSwitches = null
+  var switchesOf = function () { return chosenSwitches || { proofread: doc.proofread === true, trimCopy: doc.trimCopy === true, failures: doc.failures === true } }
+  var paintSwitches = function () {
+    var switches = switchesOf()
+    $$('[data-switch]').forEach(function (button) { button.setAttribute('aria-checked', String(!!switches[button.dataset.switch])) })
+    $('[data-switch="proofread"]').title = t('labProofreadHint')
+    $('[data-switch="trimCopy"]').title = t('labTrimHint')
     $('#labsHint').textContent = t('labProofreadHint')
-    $('#labsHint').hidden = !labs.proofread
+    $('#labsHint').hidden = !switches.proofread
     paintSummary()
   }
   /* On a phone the settings fold into one line, so the levels stay on the first screen. */
   var optionsOpen = false
   var paintSummary = function () {
-    var labs = labsOf()
+    var switches = switchesOf()
     var parts = [t(deliveryOf() === 'report' ? 'deliveryReport' : 'deliveryBuild'), t('effortSummary').replace('{effort}', t(effortKey(effortOf())))]
-    if (labs.proofread || labs.trimCopy) parts.push(t('labsOn'))
+    if (switches.failures) parts.push(t('failuresOn'))
+    if (switches.proofread || switches.trimCopy) parts.push(t('labsOn'))
     $('#optSummary').textContent = parts.join(' · ')
     $('#optToggle').textContent = optionsOpen ? t('done') : t('change')
     $('#optToggle').setAttribute('aria-expanded', String(optionsOpen))
     $('#options').classList.toggle('open', optionsOpen)
   }
   $('#optToggle').addEventListener('click', function () { optionsOpen = !optionsOpen; paintSummary() })
-  $$('[data-lab]').forEach(function (button) {
+  $$('[data-switch]').forEach(function (button) {
     button.addEventListener('click', function () {
-      var labs = Object.assign({}, labsOf())
-      labs[button.dataset.lab] = !labs[button.dataset.lab]
-      chosenLabs = labs
-      paintLabs()
+      var switches = Object.assign({}, switchesOf())
+      switches[button.dataset.switch] = !switches[button.dataset.switch]
+      chosenSwitches = switches
+      paintSwitches()
     })
   })
   var paintChooser = function () {
@@ -1512,7 +1524,7 @@ window.VSScrub = (function () {
     paintRecommendation()
     paintDelivery()
     paintEffort()
-    paintLabs()
+    paintSwitches()
     panelList.forEach(function (panel) {
       var level = levelOf(panel.dataset.level)
       $$('[data-l]', panel).forEach(function (el) { el.textContent = pick(level[el.dataset.l]) })

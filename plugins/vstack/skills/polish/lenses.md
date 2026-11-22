@@ -128,18 +128,7 @@ Drive the product as a user would:
 - click every link and button;
 - submit each form empty, then again with wrong values;
 - open every menu, modal and state;
-- press Back and refresh;
-- force each failure: go offline, block or fail a request, let a request time out, and pay with a test card that declines. On a site we do not own, force only the failures that need no submit.
-
-To force a failure, use the browser's developer tools:
-
-| Failure | How |
-|---|---|
-| Offline or slow network | Set network throttling to Offline or Slow 4G. |
-| Backend error | Block the request, or override its response with a 500. |
-| Timeout | Delay the response past the product's own timeout. |
-| Expired session | Delete the session cookie, then submit. |
-| Declined payment | Use the payment provider's test cards in its test mode, such as Stripe's `4000 0000 0000 0002`, generic decline, `4000 0000 0000 9995`, insufficient funds, and `4000 0000 0000 0127`, wrong security code. |
+- press Back and refresh.
 
 ### Both modes
 
@@ -167,8 +156,6 @@ To force a failure, use the browser's developer tools:
   - Pressing it with errors shows every error and scrolls to the first one.
   - Enter submits.
   - A failed submit keeps everything the user typed, and says what went wrong and what to do.
-  - A submit that hangs stops waiting and says so, such as "This is taking longer than usual". The loader never spins forever.
-  - Retrying a failed submit never creates a duplicate or sends the action twice.
   - A successful submit shows a confirmation.
 - **R8 · Loading, by action.**
   - **Links:** a link opens its page straight away, with no spinner or request first.
@@ -191,7 +178,8 @@ To force a failure, use the browser's developer tools:
 - **R12 · Error messages.** Every error the user can meet, in a form or not:
   - shows beside what caused it, where the user is looking;
   - says what happened and what to do next, in plain words, without blaming the user;
-  - never shows a status code, stack trace or internal name, such as "Error 500" or "ECONNRESET";
+  - never shows a status code, stack trace, raw library message or internal name, such as "Error 500", "Network Error" or "ECONNRESET";
+  - uses one wording for the same failure everywhere, such as "This service is temporarily unavailable. Please try again in a few minutes.";
   - stays on screen until the user acts, if the user must act. A toast that fades is only for news the user can miss.
 
 ### Website
@@ -209,27 +197,59 @@ To force a failure, use the browser's developer tools:
 - **RA4 · States.**
   - Loading, empty, error, no match, read-only and signed-out states are each designed.
   - An empty or no-match state says what to do next, such as how to clear a filter.
-  - No label claims data that failed to load, such as "All 0" over an error.
+  - A destructive action asks for confirmation or offers Undo.
+- **RA5 · Unsaved work.** Leaving a form with edits warns first. A saved change shows without a reload.
+- **RA6 · Lists.** A long list can be searched, sorted and filtered, and it pages or scrolls without losing its header. Active filters show, and each one can be removed.
+
+## Option: Failure handling
+
+Run this section only when `failures` is true in the answers file. It adds to any level, and its checks apply in both modes unless a check says otherwise. Drive the flows it needs, even in a Clean round.
+
+Force each failure on purpose: go offline, fail a request, let a request time out or hang, take down each embedded service and third-party script, expire the session, and pay with a test card that declines. On a site we do not own, force only the failures that need no submit.
+
+To force a failure, use the browser's developer tools:
+
+| Failure | How |
+|---|---|
+| Offline or slow network | Set network throttling to Offline or Slow 4G. |
+| Backend error | Block the request, or override its response with a 500. |
+| Timeout | Delay the response past the product's own timeout. |
+| Hung request | Hold the response open so it never arrives. |
+| Embedded service or third-party script down | Block its domain, or block its requests and its script files. |
+| Service back | After a failure, unblock the request and retry without reloading the page. |
+| Expired session | Delete the session cookie, then submit. |
+| Declined payment | Use the payment provider's test cards in its test mode, such as Stripe's `4000 0000 0000 0002`, generic decline, `4000 0000 0000 9995`, insufficient funds, and `4000 0000 0000 0127`, wrong security code. |
+
+- **F1 · Failed dependencies.** Apply this check to every backend, embedded service and third-party script the page depends on. Take each one down in turn, then let it hang.
+  - The rest of the page still renders, navigates and works. No dependency causes a blank or white page.
+  - No third-party script blocks the page from rendering.
+  - Every loader and skeleton turns into content or an error within about 10 seconds.
+  - A feature that fails says so where it would have appeared. It never disappears without a message.
   - A screen that fails to load shows a designed error with a way to retry. It never goes blank.
   - When one panel fails, only that panel shows the error, and the rest of the screen still works.
-  - A destructive action asks for confirmation or offers Undo.
-- **RA5 · Failures.**
+  - A failure never shows an empty state, such as "No data", "All 0" or "No classes available". A list or selector tells "none available" apart from "could not load".
+  - A control that needs data that failed to load is disabled, and says why.
+  - The failed feature offers a retry that works without reloading the page.
+  - Once the service is back, the feature recovers on retry or on its own, without a new browser session or a fresh sign-in.
+- **F2 · Failed submits.**
+  - A submit that hangs stops waiting and says so, such as "This is taking longer than usual". The loader never spins forever.
+  - Retrying a failed submit never creates a duplicate or sends the action twice.
+  - In a flow with steps, a failure keeps the choices made in earlier steps, and a retry resumes at the failed step.
+- **F3 · Connection, session and access.**
   - A lost connection says so and recovers without a reload. An action taken offline is either queued, and shown as waiting, or refused with a message.
   - An expired session keeps what the user typed, and returns them to the same place after sign-in.
   - Missing permission says so, and offers a way to ask for access or switch account.
   - A deleted or missing record shows a page with a route back.
   - A rate limit says when the user can try again.
   - A serious error shows a reference the user can copy, and a way to contact support.
-- **RA6 · Unsaved work.** Leaving a form with edits warns first. A saved change shows without a reload.
-- **RA7 · Lists.** A long list can be searched, sorted and filtered, and it pages or scrolls without losing its header. Active filters show, and each one can be removed.
-- **RA8 · Payment.** Apply this check only to a flow that takes payment.
+- **F4 · Payment.** Apply this check only to a flow that takes payment.
   - A decline says why, such as a wrong security code, not enough funds, or refused by the bank.
   - After a decline, the card details stay filled in except the security code, and the page scrolls to the field to fix.
   - Other payment methods stay available after a decline.
   - Cancelling or failing a bank check or a payment redirect, such as 3-D Secure or PayPal, returns the user to checkout with the cart intact.
   - When the outcome is unknown, such as after a timeout, the page tells the user not to pay again and how they will hear the result.
   - The card is charged or refused before the user sees "Order placed".
-- **RA9 · Uploads.**
+- **F5 · Uploads.**
   - A file that is too large or of the wrong type is refused before it uploads, and the message states the limit.
   - A failed upload can be retried without choosing the file again.
 
