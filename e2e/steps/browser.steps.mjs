@@ -847,19 +847,20 @@ When('the reviewer chooses Report only', async function () {
   await this.browserPage.locator('[data-delivery="report"]').click()
 })
 
-When('the reviewer sets the effort to {string} and turns on Proofread', async function (effort) {
+When('the reviewer sets the effort to {string} and turns on failure handling and Proofread', async function (effort) {
   const page = this.browserPage
   assert.equal(await page.locator('[data-effort="medium"]').getAttribute('aria-pressed'), 'true', 'Medium is the default')
-  assert.equal(await page.locator('[data-lab][aria-checked="true"]').count(), 0, 'experiments start off')
+  assert.equal(await page.locator('[data-switch][aria-checked="true"]').count(), 0, 'failure checks and experiments start off')
   await page.locator(`[data-effort="${effort}"]`).click()
-  await page.locator('[data-lab="proofread"]').click()
+  await page.locator('[data-switch="failures"]').click()
+  await page.locator('[data-switch="proofread"]').click()
 })
 
 Then('Done folds the options into one line under the panels, on a phone as well', async function () {
   const page = this.browserPage
   await page.locator('#optToggle').click()
   assert.equal(await page.locator('#options').isVisible(), false, 'Done folds the options')
-  assert.match(await page.locator('#optSummary').innerText(), /只出报告 · 投入程度：高 · 已开实验功能/)
+  assert.match(await page.locator('#optSummary').innerText(), /只出报告 · 投入程度：高 · 已开故障检查 · 已开实验功能/)
   const size = page.viewportSize()
   await page.setViewportSize({ width: 375, height: 667 })
   const panel = await page.locator('.panel').first().boundingBox()
@@ -877,13 +878,14 @@ Then('the effort hint names the model for {string}', async function (effort) {
   else assert.match(hint, /沿用当前模型/, `"${hint}" says the model stays as it is`)
 })
 
-Then('the answers file runs at {string} effort, with only Proofread on', async function (effort) {
+Then('the answers file runs at {string} effort, with only failure handling and Proofread on', async function (effort) {
   await eventually(() => {
     const doc = this.answers()
     assert.equal(doc.effort, effort)
     assert.equal(doc.proofread, true)
     assert.equal(doc.trimCopy, false)
-  }, 'the answers file holds the effort and the experiments')
+    assert.equal(doc.failures, true)
+  }, 'the answers file holds the effort, the failure checks and the experiments')
 })
 
 Then('the answers file asks for a report', async function () {

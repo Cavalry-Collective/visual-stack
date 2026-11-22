@@ -16,13 +16,13 @@ Feature: A Polish report answered in its own tab
     When the agent recommends the level "refined"
     Then the panel "refined" shows as recommended
     When the reviewer chooses Report only
-    And the reviewer sets the effort to "high" and turns on Proofread
+    And the reviewer sets the effort to "high" and turns on failure handling and Proofread
     Then the effort hint names the model for "high"
     And Done folds the options into one line under the panels, on a phone as well
     When the reviewer picks the level "refined"
     Then the answers file holds the level "refined" in "zh"
     And the answers file asks for a report
-    And the answers file runs at "high" effort, with only Proofread on
+    And the answers file runs at "high" effort, with only failure handling and Proofread on
     When the agent lists 3 tasks and ticks the first
     Then the review shows 1 of 3 tasks done
     When the agent stops with a problem

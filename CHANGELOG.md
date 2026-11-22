@@ -8,6 +8,38 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.18.0 — 2026-11-22
+
+**Added**
+
+- **Failure handling is an option in Polish, off by default.** Turn it on under
+  Options, beside Effort, and it works at any level. Polish then takes down
+  each backend, embedded service and third-party script in turn, and lets each
+  one hang. It checks that:
+  - the rest of the page still loads and works, with no white screen;
+  - every loader turns into content or an error within about 10 seconds;
+  - a feature that fails says so, and never disappears without a message;
+  - a failure never reads as an empty result, such as "No classes available";
+  - a control that needs missing data is disabled, and says why;
+  - a retry works without reloading the page, and the feature recovers once the
+    service is back;
+  - a flow with steps keeps earlier choices after a failure.
+
+  The option also runs the failure checks that 6.17.0 added to Refined: hung
+  submits, lost connections, expired sessions, missing access, payment declines
+  and failed uploads.
+- **Polish runs its work in parallel.** On a host that can start helper agents,
+  Polish reads the project while you pick a level. It then walks each flow,
+  forces each failure, and builds each report section in a separate worker, so
+  a round finishes sooner. The workers run at the effort you pick. Codex, which
+  cannot start helpers, runs each step in turn as before.
+
+**Changed**
+
+- **Refined no longer forces failures.** Turn on Failure handling to get the
+  checks 6.17.0 added to Refined. Refined still checks that error messages are
+  plain and helpful, and that a failed submit keeps what you typed.
+
 ## 6.17.0 — 2026-11-20
 
 **Added**
