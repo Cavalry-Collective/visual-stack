@@ -8,6 +8,33 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.19.0 — 2026-11-24
+
+**Added**
+
+- **Live view in Polish, experimental and off by default.** Turn it on under
+  Experimental. While the audit runs, the progress page shows the latest frame
+  from each of the agent's browsers in place of the animation. The newest frame
+  is outlined. The animation stays when the audit runs in your own browser tab.
+- **Refined checks tooltips and hover content.** Polish hovers, focuses and
+  long-presses every element that reveals something, such as a tooltip, a hover
+  card or row actions. It checks that each one also works by keyboard and on a
+  touch screen, stays on screen, and is never the only way to reach an action.
+- **Refined operates every input.** Polish opens every select and drop-down,
+  types into search fields and comboboxes, picks dates, toggles checkboxes,
+  radio buttons and switches, drags sliders and chooses files, first with the
+  mouse and then with the keyboard. It checks that each one responds to the
+  keys users expect, shows what was chosen, and works on a phone.
+
+**Changed**
+
+- **Clean opens modals, drawers and panels, and steps through stepped forms.**
+  Clean judges how each one looks. It fills each form step with valid sample
+  values and stops before the step that submits, pays or sends.
+- **The Polish survey records what each element opens,** with a screenshot of
+  each state, so every modal, drawer, panel, menu, form step and tooltip gets a
+  verdict.
+
 ## 6.18.2 — 2026-11-22
 
 **Fixed**

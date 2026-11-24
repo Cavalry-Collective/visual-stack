@@ -546,6 +546,28 @@ Then('the review shows {int} of {int} tasks done', async function (done, total) 
   }, `${done} of ${total} tasks are ticked`)
 })
 
+When('a browser worker saves the frame {string}', async function (worker) {
+  const live = this.answersFile.replace(/\.json$/, '.live')
+  fs.mkdirSync(live, { recursive: true })
+  const onePixel = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+  fs.writeFileSync(path.join(live, `${worker}.png`), Buffer.from(onePixel, 'base64'))
+})
+
+Then('the review shows the live frame captioned {string}', async function (caption) {
+  const page = this.browserPage
+  await page.locator('#stage.on-air').waitFor({ timeout: 5000 })
+  await eventually(async () => {
+    assert.equal(await page.locator('#liveGrid figcaption').innerText(), caption)
+    assert.ok(await page.locator('#liveGrid img').evaluate(img => img.complete && img.naturalWidth > 0), 'the frame has loaded')
+  }, `the live frame "${caption}" shows`)
+  assert.equal(await page.locator('.win').isVisible(), false, 'the frame replaces the scene')
+})
+
+Then('the live view gives way to the problem', async function () {
+  await this.browserPage.locator('#stage:not(.on-air)').waitFor({ timeout: 5000 })
+  assert.equal(await this.browserPage.locator('.win').isVisible(), true, 'the scene is back')
+})
+
 When('the agent stops with a problem', async function () {
   fs.writeFileSync(this.answersFile, JSON.stringify({ ...this.answers(), problem: '请先登录网站。' }, null, 2))
   await this.browserPage.locator('#problem:not([hidden])').waitFor({ timeout: 5000 })
@@ -847,13 +869,14 @@ When('the reviewer chooses Report only', async function () {
   await this.browserPage.locator('[data-delivery="report"]').click()
 })
 
-When('the reviewer sets the effort to {string} and turns on failure handling and Proofread', async function (effort) {
+When('the reviewer sets the effort to {string} and turns on failure handling, Proofread and Live view', async function (effort) {
   const page = this.browserPage
   assert.equal(await page.locator('[data-effort="medium"]').getAttribute('aria-pressed'), 'true', 'Medium is the default')
   assert.equal(await page.locator('[data-switch][aria-checked="true"]').count(), 0, 'failure checks and experiments start off')
   await page.locator(`[data-effort="${effort}"]`).click()
   await page.locator('[data-switch="failures"]').click()
   await page.locator('[data-switch="proofread"]').click()
+  await page.locator('[data-switch="liveView"]').click()
 })
 
 Then('Done folds the options into one line under the panels, on a phone as well', async function () {
@@ -878,13 +901,14 @@ Then('the effort hint names the model for {string}', async function (effort) {
   else assert.match(hint, /沿用当前模型/, `"${hint}" says the model stays as it is`)
 })
 
-Then('the answers file runs at {string} effort, with only failure handling and Proofread on', async function (effort) {
+Then('the answers file runs at {string} effort, with only failure handling, Proofread and Live view on', async function (effort) {
   await eventually(() => {
     const doc = this.answers()
     assert.equal(doc.effort, effort)
     assert.equal(doc.proofread, true)
     assert.equal(doc.trimCopy, false)
     assert.equal(doc.failures, true)
+    assert.equal(doc.liveView, true)
   }, 'the answers file holds the effort, the failure checks and the experiments')
 })
 

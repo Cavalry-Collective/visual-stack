@@ -16,16 +16,19 @@ Feature: A Polish report answered in its own tab
     When the agent recommends the level "refined"
     Then the panel "refined" shows as recommended
     When the reviewer chooses Report only
-    And the reviewer sets the effort to "high" and turns on failure handling and Proofread
+    And the reviewer sets the effort to "high" and turns on failure handling, Proofread and Live view
     Then the effort hint names the model for "high"
     And Done folds the options into one line under the panels, on a phone as well
     When the reviewer picks the level "refined"
     Then the answers file holds the level "refined" in "zh"
     And the answers file asks for a report
-    And the answers file runs at "high" effort, with only failure handling and Proofread on
+    And the answers file runs at "high" effort, with only failure handling, Proofread and Live view on
     When the agent lists 3 tasks and ticks the first
     Then the review shows 1 of 3 tasks done
+    When a browser worker saves the frame "home-phone"
+    Then the review shows the live frame captioned "home phone"
     When the agent stops with a problem
+    Then the live view gives way to the problem
     And the reviewer presses Retry
     Then the answers file asks the agent to retry
     When the agent publishes the report

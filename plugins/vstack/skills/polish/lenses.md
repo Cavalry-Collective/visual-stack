@@ -6,7 +6,7 @@ Each level includes every level below it.
 
 | Level | What you do | How you work |
 |---|---|---|
-| **Clean** | Find what looks wrong. | Walk the whole page on an iPhone SE and at 1440 px. Open every menu, drop-down, accordion, tab, carousel and form step, and judge only how each looks. Check the other screen sizes below for overflow and clipping. |
+| **Clean** | Find what looks wrong. | Walk the whole page on an iPhone SE and at 1440 px. Open every menu, drop-down, accordion, tab, carousel, modal, drawer and panel, and step through every stepped form. Judge only how each looks. Check the other screen sizes below for overflow and clipping. |
 | **Refined** | Find what behaves wrong. | Drive every flow. |
 | **Showcase** | Bring it to life. | Start from one idea the brand already owns, and make it move. |
 
@@ -23,6 +23,8 @@ Screen sizes, as width × height:
 | Desktop | 1440 × 900 and 1920 × 1080 |
 
 On a site we do not own, never submit a form, pay or send a message.
+
+To step through a stepped form, fill each step with valid sample values and go to the next. Stop before the step that submits, pays or sends.
 
 ## Recommending a level
 
@@ -53,7 +55,7 @@ Pick the mode for each flow:
 
 ## Covering the page
 
-1. **Survey first.** List every section, component, form and interactive element at each screen size. Save the list beside the answers file as `<target>-round-<n>-survey.md`. Run every check against it.
+1. **Survey first.** List every section, component, form and interactive element at each screen size. For each element that opens something, name what it opens, such as a modal, drawer, panel, menu, form step or tooltip, and screenshot that state. Save the list beside the answers file as `<target>-round-<n>-survey.md`. Run every check against it.
 2. **Give every check a verdict.** Pass with its evidence, fail with each instance, or not applicable with the reason. Save the verdicts as `<target>-round-<n>-checks.md`, and summarise them in chat.
 3. **Report what a visitor can see.** A failed check becomes a report section only if someone who is not a designer can see the problem in the Today picture without reading the caption. List the other failures in chat.
 4. **Confirm what you measure.** A measured failure is a lead. Confirm it in a screenshot before you report it. A fluid type scale or a centred block is not a failure on its own.
@@ -77,7 +79,7 @@ Pick the mode for each flow:
 - **C5 · Type.** No more than two font families. Each text role, such as body, label or heading, has one size at a given screen size, and the sizes form a scale of about five steps. No size is under 12 px. Body text is at least 16 px on a website and at least 14 px in a web app, with a line height between 1.4 and 1.6.
 - **C6 · Colour.** Each status colour has one meaning. If the brand colour is also the error colour, offer the fix as variations, one of which keeps the brand colour. Text has at least 4.5:1 contrast, and large text at least 3:1. Status never depends on colour alone.
 - **C7 · Link style.** All text links share one style, and nothing else uses it.
-- **C8 · Components.** Each kind of component looks the same everywhere it appears. All buttons share one set of heights, radii and padding. The same applies to inputs, cards, chips, menus, error banners and toasts. Open menus, focus rings and selected states use the product's own colours and shapes, never a library's defaults.
+- **C8 · Components.** Each kind of component looks the same everywhere it appears. All buttons share one set of heights, radii and padding. The same applies to inputs, cards, chips, menus, modals, drawers, panels, tooltips, error banners and toasts. Open menus, focus rings and selected states use the product's own colours and shapes, never a library's defaults.
 - **C9 · Imagery.** The product uses one icon set with one stroke weight. Images are sharp and never stretched. Images in the same role share one aspect ratio and crop.
 - **C10 · Responsive.** At each listed screen size:
   - nothing scrolls sideways, clips or overlaps;
@@ -126,8 +128,10 @@ Drive the product as a user would:
 
 - throttle the network, so loaders have time to show;
 - click every link and button;
+- operate every input with the mouse, then with the keyboard: open every select and drop-down, type into every search field and combobox, pick a date, toggle every checkbox, radio button and switch, drag every slider, and choose a file;
 - submit each form empty, then again with wrong values;
-- open every menu, modal and state;
+- open every menu, modal, drawer, panel and state;
+- hover and focus every element that reveals something, such as a tooltip, a hover card or row actions, and long-press it on a phone;
 - press Back and refresh.
 
 ### Both modes
@@ -181,6 +185,19 @@ Drive the product as a user would:
   - never shows a status code, stack trace, raw library message or internal name, such as "Error 500", "Network Error" or "ECONNRESET";
   - uses one wording for the same failure everywhere, such as "This service is temporarily unavailable. Please try again in a few minutes.";
   - stays on screen until the user acts, if the user must act. A toast that fades is only for news the user can miss.
+- **R13 · Tooltips and hover content.** Everything that appears on hover:
+  - also appears on keyboard focus, and has a tap or long-press equivalent on a touch screen;
+  - appears after a short delay and stays open while the pointer moves into it;
+  - fits on screen at every listed size, and never covers the control it describes;
+  - is never the only way to reach an action.
+- **R14 · Input controls.**
+  - **Selects and drop-downs:** open on click, Enter, Space and the arrow keys. The arrow keys move through the options, typing a letter jumps to a match, and Esc closes without changing the value. The chosen value shows after it closes. A long list scrolls, and no option text is clipped. On a phone, a select uses the native picker or a sheet.
+  - **Search fields and comboboxes:** filter as the user types, say when nothing matches, and offer a way to clear. The arrow keys and Enter pick a result.
+  - **Multi-selects and tags:** each chosen item can be removed with a click, and Backspace removes the last one.
+  - **Dates and times:** the user can type a date as well as pick one. Dates outside the allowed range cannot be picked. The format matches the user's locale.
+  - **Checkboxes, radio buttons and switches:** the whole label is clickable, and Space toggles. The arrow keys move between radio buttons in a group.
+  - **Sliders:** the arrow keys move the value, and the current value shows.
+  - **File pickers:** accept a click and a drag and drop. The chosen file's name shows, and the user can remove it.
 
 ### Website
 
