@@ -17,11 +17,13 @@ compares against to decide an update is available. See the release checklist in
   large web app, where one pass finds too little.
   - Polish first maps the product: its pages, and the modals, popups and
     slide-in panels each page opens. Pages that share one layout, such as 200
-    product pages, appear once.
-  - The map opens in your tab. Open any screen to see what sits under it, tick
-    the screens to review, and set the depth to Quick, Standard or Deep.
-  - Each screen you tick gets its own agent, and the map shows each one's
-    progress. The findings then come back as one Polish report.
+    product pages, appear once, and Polish checks one of them.
+  - The map opens in your tab. Rest the pointer on a screen to see a preview,
+    and open it to see what sits under it.
+  - Every screen is reviewed. Set each one to Quick, Standard or Deep, skip
+    it, or set them all at once.
+  - Each screen gets its own agent, and the map shows each one's progress.
+    The findings then come back as one Polish report.
 
   While it maps a site you do not own, Polish never submits a form or pays.
 

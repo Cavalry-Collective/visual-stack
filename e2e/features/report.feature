@@ -36,16 +36,18 @@ Feature: A Polish report answered in its own tab
     And the answers file still holds the level "refined"
 
   @browser
-  Scenario: R0b — an in-depth review picks its screens on a site map
+  Scenario: R0b — an in-depth review sets a depth for every screen on a site map
     When the reviewer turns on In depth and picks the level "clean"
     Then the answers file asks for an in-depth review
     When the agent publishes a site map of a page with a modal and a panel
-    Then the same tab shows the site map with all 3 screens ticked
+    Then the same tab shows the site map with all 3 screens at "standard"
+    When the reviewer rests the pointer on "s-signin"
+    Then the map shows a preview of "s-signin"
     When the reviewer closes the page "s-home" in the map
     Then the map hides what opens on "s-home"
-    When the reviewer unticks "s-cart" and sets the depth to "deep"
+    When the reviewer sets every screen to "deep" and skips "s-cart"
     And the reviewer starts the review
-    Then the answers file focuses on "s-home,s-signin" at "deep" depth
+    Then the answers file plans "s-home:deep,s-signin:deep,s-cart:skip"
     When the agent marks "s-home" done with 3 findings
     Then the map shows 1 of 2 screens done
     When the agent publishes the report

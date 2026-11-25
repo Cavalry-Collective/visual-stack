@@ -603,6 +603,8 @@ Then('the answers file asks for an in-depth review', async function () {
   }, 'the answers file holds indepth')
 })
 
+const PREVIEW = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="250"><rect width="400" height="250" fill="#ddd"/></svg>')
+
 When('the agent publishes a site map of a page with a modal and a panel', async function () {
   fs.writeFileSync(this.reportPage, fs.readFileSync(SITE_MAP_PAGE, 'utf8'))
   const sitemap = {
@@ -610,7 +612,7 @@ When('the agent publishes a site map of a page with a modal and a panel', async 
     screens: [{
       id: 's-home', kind: 'page', path: '/', title: { en: 'Home', zh: '首页' },
       children: [
-        { id: 's-signin', kind: 'modal', title: { en: 'Sign in', zh: '登录' }, open: 'Click Sign in.' },
+        { id: 's-signin', kind: 'modal', title: { en: 'Sign in', zh: '登录' }, open: 'Click Sign in.', shot: PREVIEW },
         { id: 's-cart', kind: 'panel', title: { en: 'Cart', zh: '购物车' }, open: 'Click the cart.' },
       ],
     }],
@@ -618,12 +620,23 @@ When('the agent publishes a site map of a page with a modal and a panel', async 
   fs.writeFileSync(this.answersFile, JSON.stringify({ ...this.answers(), stage: 'map', sitemap }, null, 2))
 })
 
-Then('the same tab shows the site map with all {int} screens ticked', async function (count) {
+Then('the same tab shows the site map with all {int} screens at {string}', async function (count, depth) {
   const page = this.browserPage
   await page.locator('#tree .node').first().waitFor({ timeout: 5000 })
   assert.equal(await page.locator('#tree .node').count(), count)
-  assert.equal(await page.locator('#tree input:checked').count(), count)
+  assert.equal(await page.locator(`#tree [data-depth="${depth}"][aria-pressed="true"]`).count(), count)
   assert.match(await page.locator('#start').innerText(), new RegExp(`Review ${count} screens`))
+})
+
+When('the reviewer rests the pointer on {string}', async function (id) {
+  await this.browserPage.locator(`.node[data-id="${id}"] > .row .title`).hover()
+})
+
+Then('the map shows a preview of {string}', async function (id) {
+  const preview = this.browserPage.locator('#preview.on')
+  await preview.waitFor({ timeout: 2000 })
+  assert.equal(await preview.locator('img').getAttribute('src'), PREVIEW)
+  await this.browserPage.mouse.move(0, 0)
 })
 
 When('the reviewer closes the page {string} in the map', async function (id) {
@@ -639,24 +652,23 @@ Then('the map hides what opens on {string}', async function (id) {
   await page.locator(`.node[data-id="${id}"] .node`).first().waitFor()
 })
 
-When('the reviewer unticks {string} and sets the depth to {string}', async function (id, depth) {
+When('the reviewer sets every screen to {string} and skips {string}', async function (depth, id) {
   const page = this.browserPage
-  await page.locator(`.node[data-id="${id}"] > .row input`).click()
+  await page.locator(`#allSeg [data-depth="${depth}"]`).click()
+  await page.locator(`.node[data-id="${id}"] > .row [data-depth="skip"]`).click()
   assert.match(await page.locator('#start').innerText(), /Review 2 screens/)
-  await page.locator(`#stops [data-depth="${depth}"]`).click()
 })
 
 When('the reviewer starts the review', async function () {
   await this.browserPage.locator('#start').click()
 })
 
-Then('the answers file focuses on {string} at {string} depth', async function (ids, depth) {
+Then('the answers file plans {string}', async function (entries) {
   await eventually(() => {
     const doc = this.answers()
-    assert.deepEqual(doc.focus, ids.split(','))
-    assert.equal(doc.depth, depth)
-    assert.equal(doc.level, 'clean', 'the level survives the pick')
-  }, 'the answers file holds the focus and the depth')
+    assert.deepEqual(doc.plan, Object.fromEntries(entries.split(',').map(entry => entry.split(':'))))
+    assert.equal(doc.level, 'clean', 'the level survives the plan')
+  }, 'the answers file holds the plan')
   await this.browserPage.locator('#start').waitFor({ state: 'hidden' })
 })
 
@@ -670,7 +682,7 @@ When('the agent marks {string} done with {int} findings', async function (id, fo
 Then('the map shows {int} of {int} screens done', async function (done, total) {
   await eventually(async () => {
     assert.equal(await this.browserPage.locator('#tally').innerText(), `${done} of ${total} screens done`)
-    assert.match(await this.browserPage.locator('.node[data-id="s-home"] > .row .status').innerText(), /Done · 3 found/)
+    assert.match(await this.browserPage.locator('.node[data-id="s-home"] > .row .status').innerText(), /Deep · Done · 3 found/)
   }, `${done} of ${total} screens are done`)
 })
 

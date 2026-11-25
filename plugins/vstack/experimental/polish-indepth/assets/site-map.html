@@ -297,9 +297,9 @@
 /* /vstack:shell css */
 
 /* The site map of an in-depth Polish review: every page, modal, popup and
-   panel the agent found, for the owner to pick where the review looks. The
-   agent writes the report over this page at the same address, and the tab
-   reloads into it. */
+   panel the agent found. Every screen is reviewed unless the owner skips it,
+   and each one can take its own depth. The agent writes the report over this
+   page at the same address, and the tab reloads into it. */
 :root { --warn: #8a5c06; --warn-soft: #fef5e6; --warn-line: #fbd38d;
   --k-page: #3b5bdb; --k-modal: #9c36b5; --k-popup: #c2410c; --k-panel: #0b8157;
   --ease: cubic-bezier(0.2, 0, 0, 1); }
@@ -332,49 +332,57 @@ h1 { margin-top: .75rem; font-size: 1.75rem; line-height: 1.2; letter-spacing: -
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) 20rem; gap: 1.5rem; align-items: start; }
 
 /* ── the map ── */
-.map { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); overflow: hidden; }
+.map { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
 .map-head { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; padding: .75rem 1rem; border-bottom: 1px solid var(--line); }
 .legend { display: flex; flex-wrap: wrap; gap: .375rem .875rem; flex: 1; min-width: 0; color: var(--ink-2); font-size: 13px; }
 .legend span { display: inline-flex; align-items: center; gap: .375rem; }
 .legend i, .kind i { width: 8px; height: 8px; border-radius: 2px; background: var(--k); flex: none; }
-.bulk { display: flex; gap: .5rem; }
-.bulk .btn { height: 28px; }
 .tree { padding: .5rem 0; }
 .tree ul { margin-left: 1.375rem; border-left: 1px dashed var(--line-2); }
 .node { position: relative; }
 .tree ul > .node::before { content: ""; position: absolute; left: 0; top: 1.25rem; width: .75rem; border-top: 1px dashed var(--line-2); }
-.row { display: flex; align-items: center; gap: .5rem; min-height: 2.5rem; padding: .25rem 1rem .25rem .75rem; cursor: pointer; }
+.row { display: flex; align-items: center; gap: .5rem; min-height: 2.5rem; padding: .25rem .75rem; }
 .tree ul .row { padding-left: 1rem; }
-.row:hover { background: var(--surface-2); }
-.node.off > .row .title, .node.off > .row .path { color: var(--ink-3); }
-.node.off > .row .kind { opacity: .55; }
+.row:hover, .row.peek { background: var(--surface-2); }
+.node.skip > .row .title, .node.skip > .row .path { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--line-2); }
+.node.skip > .row .kind { opacity: .45; }
 .chev { width: 1.25rem; height: 1.25rem; flex: none; display: grid; place-items: center; border: 0; padding: 0; background: none; border-radius: 4px; color: var(--ink-3); cursor: pointer; }
 .chev svg { width: 10px; height: 10px; transition: transform 160ms var(--ease); }
 .node.open > .row .chev svg { transform: rotate(90deg); }
 .chev.none { visibility: hidden; }
-.row input { width: 1rem; height: 1rem; margin: 0; flex: none; accent-color: var(--brand); cursor: pointer; }
 .kind { --k: var(--k-page); display: inline-flex; align-items: center; gap: .3rem; flex: none; padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--k) 12%, transparent); color: var(--k); font: 600 11px/1.4 var(--mono); letter-spacing: .04em; text-transform: uppercase; }
 .k-modal { --k: var(--k-modal); } .k-popup { --k: var(--k-popup); } .k-panel { --k: var(--k-panel); }
-.title { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.name { display: flex; align-items: center; gap: .5rem; min-width: 0; flex: 1; border: 0; padding: 0; background: none; text-align: left; cursor: pointer; }
+.title { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: none; max-width: 60%; }
 .path { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 12px/1.4 var(--mono); color: var(--ink-3); }
-.many { flex: none; padding: 1px 6px; border-radius: 6px; border: 1px solid var(--line-2); font: 500 11px/1.4 var(--mono); color: var(--ink-2); }
-.status { flex: none; display: inline-flex; align-items: center; gap: .375rem; font: 500 12px/1 var(--mono); color: var(--ink-3); }
+.alike { flex: none; padding: 1px 6px; border-radius: 6px; border: 1px solid var(--line-2); font: 500 11px/1.4 var(--mono); color: var(--ink-2); white-space: nowrap; }
+.row .seg { flex: none; }
+.row .seg button { height: 26px; padding: 0 8px; font-size: 12px; }
+.row .seg button[data-depth="skip"][aria-pressed="true"] { background: var(--surface-2); color: var(--ink-3); }
+.status { flex: none; display: inline-flex; align-items: center; gap: .375rem; font: 500 12px/1 var(--mono); color: var(--ink-3); white-space: nowrap; }
 .status.done { color: var(--ok); }
 .status.failed { color: var(--warn); }
 .status.running { color: var(--brand); }
 .status .spin { width: .75rem; height: .75rem; }
-.note { margin: 0 1rem .5rem 3.5rem; padding: .5rem .75rem; border-radius: 8px; background: var(--surface-2); color: var(--ink-2); font-size: 13px; }
-.tree ul .note { margin-left: 3.75rem; }
-.node:not(.open) > .note, .node:not(.open) > ul { display: none; }
+.detail { display: flex; gap: .75rem; align-items: flex-start; margin: 0 1rem .5rem 3.25rem; padding: .5rem .75rem; border-radius: 8px; background: var(--surface-2); color: var(--ink-2); font-size: 13px; }
+.tree ul .detail { margin-left: 3.5rem; }
+.detail img { width: 9rem; flex: none; border-radius: 6px; border: 1px solid var(--line); }
+.node:not(.open) > .detail, .node:not(.open) > ul { display: none; }
+
+/* The preview that follows the pointer. Touch screens show the picture in the opened row instead. */
+.preview { position: fixed; z-index: 20; width: 22rem; pointer-events: none; padding: .5rem; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: var(--window-shadow); opacity: 0; transform: translateY(4px); transition: opacity 120ms var(--ease), transform 120ms var(--ease); }
+.preview.on { opacity: 1; transform: none; }
+.preview img { display: block; width: 100%; border-radius: 8px; }
+.preview p { margin-top: .375rem; padding: 0 .25rem; font-size: 12px; color: var(--ink-2); }
+@media (hover: none) { .preview { display: none; } }
 
 /* ── the plan ── */
 .plan { position: sticky; top: calc(46px + 1rem); display: grid; gap: 1rem; padding: 1.25rem; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); }
 .plan-label { font: 700 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
-.depth input { width: 100%; margin: .75rem 0 .25rem; accent-color: var(--brand); }
-.stops { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-3); }
-.stops button { border: 0; padding: 2px 0; background: none; cursor: pointer; color: inherit; }
-.stops button[aria-pressed="true"] { color: var(--ink); font-weight: 700; }
-.depth-hint { margin-top: .5rem; font-size: 13px; color: var(--ink-2); min-height: 3em; }
+.plan .seg { margin-top: .625rem; display: flex; }
+.plan .seg button { flex: 1; height: 32px; }
+.depths { margin-top: .625rem; display: grid; gap: .25rem; font-size: 12px; color: var(--ink-2); }
+.depths b { color: var(--ink); }
 .tally { font-size: 1rem; }
 .tally b { font-size: 1.5rem; margin-right: .25rem; }
 .tally-sub { margin-top: .125rem; font-size: 12px; color: var(--ink-3); }
@@ -387,7 +395,7 @@ h1 { margin-top: .75rem; font-size: 1.75rem; line-height: 1.2; letter-spacing: -
 .waiting { display: flex; align-items: center; gap: .5rem; color: var(--ink-2); }
 .waiting[hidden] { display: none; }
 
-@media (pointer: coarse) { .row { min-height: 2.75rem; } .row input { width: 1.25rem; height: 1.25rem; } .start, .bulk .btn { height: 2.75rem; } }
+@media (pointer: coarse) { .row { min-height: 2.75rem; } .row .seg button { height: 2.25rem; } .start { height: 2.75rem; } }
 @media (max-width: 860px) {
   .layout { grid-template-columns: minmax(0, 1fr); }
   .plan { position: static; order: -1; }
@@ -396,8 +404,13 @@ h1 { margin-top: .75rem; font-size: 1.75rem; line-height: 1.2; letter-spacing: -
   main { padding: 1rem 1rem 2rem; gap: 1rem; }
   h1 { font-size: 1.25rem; }
   .path { display: none; }
+  .title { max-width: none; flex: 0 1 auto; }
+  .kind { font-size: 0; gap: 0; padding: 4px; }
+  .row { flex-wrap: wrap; }
+  .row .seg { flex-basis: 100%; display: flex; padding: 0 0 .25rem 1.75rem; }
+  .row .seg button { flex: 1; }
   .tree ul { margin-left: .875rem; }
-  .note, .tree ul .note { margin-left: 1rem; }
+  .detail, .tree ul .detail { margin-left: 1rem; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
 </style>
@@ -502,18 +515,14 @@ h1 { margin-top: .75rem; font-size: 1.75rem; line-height: 1.2; letter-spacing: -
   <div class="problem" id="problem" hidden><p><b data-t="stopped"></b><span></span></p><button class="btn primary retry" id="retry" type="button" data-t="retry"></button></div>
   <div class="layout">
     <section class="map" aria-labelledby="mapTitle">
-      <div class="map-head">
-        <p class="legend" id="legend"></p>
-        <div class="bulk" id="bulk"><button class="btn" type="button" id="all" data-t="all"></button><button class="btn" type="button" id="none" data-t="none"></button></div>
-      </div>
+      <div class="map-head"><p class="legend" id="legend"></p></div>
       <ul class="tree" id="tree"></ul>
     </section>
     <aside class="plan" id="plan">
-      <div class="depth" id="depth">
-        <p class="plan-label" id="depthLabel" data-t="depthLabel"></p>
-        <input type="range" min="0" max="2" step="1" id="depthRange" aria-labelledby="depthLabel">
-        <div class="stops" id="stops"></div>
-        <p class="depth-hint" id="depthHint"></p>
+      <div id="setAll">
+        <p class="plan-label" id="allLabel" data-t="allLabel"></p>
+        <div class="seg" role="group" aria-labelledby="allLabel" id="allSeg"></div>
+        <div class="depths" id="depths"></div>
       </div>
       <div>
         <p class="tally" id="tally"></p>
@@ -524,6 +533,7 @@ h1 { margin-top: .75rem; font-size: 1.75rem; line-height: 1.2; letter-spacing: -
       <button class="btn primary start" type="button" id="start"></button>
     </aside>
   </div>
+  <div class="preview" id="preview" aria-hidden="true"><img alt=""><p></p></div>
 </main>
 
 <script>
@@ -993,26 +1003,26 @@ window.VSScrub = (function () {
   var STR = {
     tool: ['Polish', 'Polish'],
     eyebrow: ['Polish · In depth', '打磨 · 深度模式'],
-    title: ['Where should {agent} look?', '{agent} 应该重点看哪里？'],
-    titleAudit: ['Reviewing the screens you picked', '正在评审你选的界面'],
-    sub: ['{agent} found {total} screens on {origin}. Tick the ones to review.', '{agent} 在 {origin} 上找到 {total} 个界面。勾选要评审的界面。'],
-    subAudit: ['{agent} is reviewing each screen you picked. This page becomes the report.', '{agent} 正在逐个评审你选的界面，完成后此页即为报告。'],
+    title: ['How deep should {agent} look?', '{agent} 每个界面看多深？'],
+    titleAudit: ['Reviewing the screens', '正在评审各个界面'],
+    sub: ['{agent} found {total} screens on {origin}. Every screen is reviewed. Set how deep, or skip one.', '{agent} 在 {origin} 上找到 {total} 个界面，每个都会评审。可以调整深度，或跳过某个界面。'],
+    subAudit: ['{agent} is reviewing each screen. This page becomes the report.', '{agent} 正在逐个评审界面，完成后此页即为报告。'],
     page: ['Page', '页面'], modal: ['Modal', '对话框'], popup: ['Popup', '弹出层'], panel: ['Panel', '侧滑面板'],
     pages: ['Pages', '页面'], modals: ['Modals', '对话框'], popups: ['Popups', '弹出层'], panels: ['Panels', '侧滑面板'],
-    all: ['All', '全选'], none: ['None', '全不选'],
-    many: ['× {n}', '× {n}'],
-    manyTitle: ['{n} pages share this layout. One is reviewed for all.', '{n} 个页面共用此布局，评审其中一个即可。'],
-    depthLabel: ['Depth', '深度'],
-    quick: ['Quick', '快速'], standard: ['Standard', '标准'], deep: ['Deep', '深入'],
-    quickHint: ['Each screen at desktop size, as it first appears.', '每个界面只看桌面尺寸和初始状态。'],
-    standardHint: ['Every check at phone, tablet and desktop sizes.', '在手机、平板和桌面尺寸上做全部检查。'],
-    deepHint: ['Standard, plus every state: empty, long text, errors, hover and both themes.', '在标准之上，再看每种状态：空白、长文本、出错、悬停和深浅两种主题。'],
+    alike: ['1 checked of {n} alike', '{n} 个同类，查 1 个'],
+    alikeTitle: ['{n} pages share this layout. {agent} checks one, the one with the most content, for all of them.', '{n} 个页面共用此布局。{agent} 只查其中内容最多的一个，结果适用于全部。'],
+    allLabel: ['Set every screen to', '全部设为'],
+    skip: ['Skip', '跳过'], quick: ['Quick', '快速'], standard: ['Standard', '标准'], deep: ['Deep', '深入'],
+    quickHint: ['Desktop size, as it first appears.', '只看桌面尺寸和初始状态。'],
+    standardHint: ['Every check at phone, tablet and desktop.', '在手机、平板和桌面上做全部检查。'],
+    deepHint: ['Standard, plus every state and both themes.', '在标准之上，再看每种状态和深浅主题。'],
     screens: ['screens', '个界面'],
     screen: ['screen', '个界面'],
     tallySub: ['One agent reviews each screen.', '每个界面由一个智能体评审。'],
+    skipped: ['{n} skipped.', '跳过 {n} 个。'],
     start: ['Review {n} screens', '评审 {n} 个界面'],
     startOne: ['Review 1 screen', '评审 1 个界面'],
-    pickOne: ['Pick at least one screen', '至少选择一个界面'],
+    pickOne: ['Every screen is skipped', '所有界面都已跳过'],
     progress: ['{done} of {total} screens done', '已完成 {done}/{total} 个界面'],
     waiting: ['Waiting for {agent}…', '正在等待 {agent}…'],
     queued: ['Queued', '排队中'], running: ['Reviewing', '评审中'], done: ['Done', '完成'], failed: ['Stopped', '已停止'],
@@ -1031,80 +1041,79 @@ window.VSScrub = (function () {
 
   var KINDS = ['page', 'modal', 'popup', 'panel']
   var DEPTHS = ['quick', 'standard', 'deep']
+  var CHOICES = ['skip'].concat(DEPTHS)
   var doc = { decisions: {}, overall: '', revised: {} }
-  var picked = null
-  var chosenDepth = null
+  var chosen = null
   var open = {}
+  /* Without hover there is no preview, so an opened row shows the picture instead. */
+  var touch = window.matchMedia('(hover: none)').matches
 
   var screensOf = function () { return doc.sitemap && Array.isArray(doc.sitemap.screens) ? doc.sitemap.screens : [] }
-  var walk = function (list, visit, parent) {
+  var walk = function (list, visit) {
     list.forEach(function (screen) {
-      visit(screen, parent)
-      if (Array.isArray(screen.children)) walk(screen.children, visit, screen)
+      visit(screen)
+      if (Array.isArray(screen.children)) walk(screen.children, visit)
     })
   }
   var allScreens = function () { var out = []; walk(screensOf(), function (screen) { out.push(screen) }); return out }
+  var findScreen = function (id) { return allScreens().filter(function (screen) { return screen.id === id })[0] || null }
   var kindOf = function (screen) { return KINDS.indexOf(screen.kind) !== -1 ? screen.kind : 'page' }
-  var started = function () { return Array.isArray(doc.focus) }
+  var started = function () { return !!doc.plan && typeof doc.plan === 'object' }
 
-  /* The agent may mark the screens it suggests. With none marked, every screen starts ticked. */
-  var initialPick = function () {
-    var screens = allScreens()
-    var suggested = screens.filter(function (screen) { return screen.suggested === true })
-    var out = {}
-    ;(suggested.length ? suggested : screens).forEach(function (screen) { out[screen.id] = true })
-    return out
+  /* Every screen starts at the depth the agent suggested for it, or Standard. */
+  var planNow = function () {
+    if (started()) return doc.plan
+    if (!chosen) {
+      chosen = {}
+      allScreens().forEach(function (screen) { chosen[screen.id] = CHOICES.indexOf(screen.depth) !== -1 ? screen.depth : 'standard' })
+    }
+    return chosen
   }
-  var pickedNow = function () {
-    if (started()) { var out = {}; doc.focus.forEach(function (id) { out[id] = true }); return out }
-    if (!picked) picked = initialPick()
-    return picked
-  }
-  var depthOf = function () { return chosenDepth || (DEPTHS.indexOf(doc.depth) !== -1 ? doc.depth : 'standard') }
+  var reviewed = function () { var plan = planNow(); return allScreens().filter(function (screen) { return plan[screen.id] && plan[screen.id] !== 'skip' }) }
 
-  var nodeHtml = function (screen, chosen) {
+  var segHtml = function (id, value) {
+    return '<span class="seg" role="group">' + CHOICES.map(function (choice) {
+      return '<button type="button" data-depth="' + choice + '"' + (id ? ' data-for="' + esc(id) + '"' : '') + ' aria-pressed="' + String(choice === value) + '">' + esc(t(choice)) + '</button>'
+    }).join('') + '</span>'
+  }
+
+  var nodeHtml = function (screen, plan) {
     var kind = kindOf(screen)
     var kids = Array.isArray(screen.children) ? screen.children : []
     var note = textOf(screen.note)
-    var expandable = kids.length > 0 || !!note
-    var isOpen = open[screen.id] !== undefined ? open[screen.id] : kids.length > 0
-    var on = !!chosen[screen.id]
-    var status = started() && on ? (['queued', 'running', 'done', 'failed'].indexOf(screen.status) !== -1 ? screen.status : 'queued') : ''
-    var statusHtml = ''
-    if (status) {
-      var label = t(status)
-      if (status === 'done' && typeof screen.found === 'number') label += ' · ' + t('found').replace('{n}', screen.found)
-      statusHtml = '<span class="status ' + status + '">' + (status === 'running' ? '<span class="spin" aria-hidden="true"></span>' : '') + esc(label) + '</span>'
-    }
+    var shot = touch && screen.shot ? screen.shot : ''
+    var expandable = kids.length > 0 || !!note || !!shot
+    var isOpen = expandable && (open[screen.id] !== undefined ? open[screen.id] : kids.length > 0)
+    var value = plan[screen.id] || 'skip'
+    var right = ''
+    if (started()) {
+      if (value !== 'skip') {
+        var status = ['queued', 'running', 'done', 'failed'].indexOf(screen.status) !== -1 ? screen.status : 'queued'
+        var label = t(value) + ' · ' + t(status)
+        if (status === 'done' && typeof screen.found === 'number') label += ' · ' + t('found').replace('{n}', screen.found)
+        right = '<span class="status ' + status + '">' + (status === 'running' ? '<span class="spin" aria-hidden="true"></span>' : '') + esc(label) + '</span>'
+      } else right = '<span class="status">' + esc(t('skip')) + '</span>'
+    } else right = segHtml(screen.id, value)
     var count = typeof screen.count === 'number' && screen.count > 1 ? screen.count : 0
-    return '<li class="node' + (on ? '' : ' off') + (isOpen && expandable ? ' open' : '') + '" data-id="' + esc(screen.id) + '">' +
+    return '<li class="node' + (value === 'skip' ? ' skip' : '') + (isOpen ? ' open' : '') + '" data-id="' + esc(screen.id) + '">' +
       '<div class="row">' +
-        '<button class="chev' + (expandable ? '' : ' none') + '" type="button" aria-label="' + esc(t('expand')) + '" aria-expanded="' + String(isOpen && expandable) + '"' + (expandable ? '' : ' tabindex="-1"') + '><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M3 1.5 7 5 3 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
-        '<input type="checkbox"' + (on ? ' checked' : '') + (started() ? ' disabled' : '') + ' aria-label="' + esc(textOf(screen.title)) + '">' +
-        '<span class="kind k-' + kind + '"><i></i>' + esc(t(kind)) + '</span>' +
-        '<span class="title">' + esc(textOf(screen.title) || screen.id) + '</span>' +
-        (count ? '<span class="many" title="' + esc(t('manyTitle').replace('{n}', count)) + '">' + esc(t('many').replace('{n}', count)) + '</span>' : '') +
-        '<span class="path">' + esc(screen.path || '') + '</span>' +
-        statusHtml +
+        '<button class="chev' + (expandable ? '' : ' none') + '" type="button" aria-label="' + esc(t('expand')) + '" aria-expanded="' + String(isOpen) + '"' + (expandable ? '' : ' tabindex="-1"') + '><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M3 1.5 7 5 3 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
+        '<button class="name" type="button" tabindex="-1">' +
+          '<span class="kind k-' + kind + '"><i></i>' + esc(t(kind)) + '</span>' +
+          '<span class="title">' + esc(textOf(screen.title) || screen.id) + '</span>' +
+          (count ? '<span class="alike" title="' + esc(t('alikeTitle').replace('{n}', count)) + '">' + esc(t('alike').replace('{n}', count)) + '</span>' : '') +
+          '<span class="path">' + esc(screen.path || '') + '</span>' +
+        '</button>' +
+        right +
       '</div>' +
-      (note ? '<p class="note">' + esc(note) + '</p>' : '') +
-      (kids.length ? '<ul>' + kids.map(function (kid) { return nodeHtml(kid, chosen) }).join('') + '</ul>' : '') +
+      (note || shot ? '<div class="detail">' + (shot ? '<img src="' + esc(shot) + '" alt="">' : '') + (note ? '<p>' + esc(note) + '</p>' : '') + '</div>' : '') +
+      (kids.length ? '<ul>' + kids.map(function (kid) { return nodeHtml(kid, plan) }).join('') + '</ul>' : '') +
       '</li>'
   }
 
-  /* An unticked parent's box is mixed when some of what sits under it is ticked. */
-  var paintMixed = function (chosen) {
-    $$('#tree .node').forEach(function (node) {
-      var box = $('.row input', node)
-      var below = $$('.node', node).map(function (kid) { return !!chosen[kid.dataset.id] })
-      box.indeterminate = !chosen[node.dataset.id] && below.some(Boolean)
-    })
-  }
-
   var paintTree = function () {
-    var chosen = pickedNow()
-    $('#tree').innerHTML = screensOf().map(function (screen) { return nodeHtml(screen, chosen) }).join('')
-    paintMixed(chosen)
+    var plan = planNow()
+    $('#tree').innerHTML = screensOf().map(function (screen) { return nodeHtml(screen, plan) }).join('')
   }
 
   var paintLegend = function () {
@@ -1116,28 +1125,26 @@ window.VSScrub = (function () {
   }
 
   var paintPlan = function () {
-    var chosen = pickedNow()
-    var ids = allScreens().filter(function (screen) { return chosen[screen.id] })
-    var n = ids.length
-    var depth = depthOf()
-    $('#depthRange').value = String(DEPTHS.indexOf(depth))
-    $('#depthRange').disabled = started()
-    $('#stops').innerHTML = DEPTHS.map(function (id) {
-      return '<button type="button" data-depth="' + id + '" aria-pressed="' + String(id === depth) + '"' + (started() ? ' disabled' : '') + '>' + esc(t(id)) + '</button>'
-    }).join('')
-    $('#depthHint').textContent = t(depth + 'Hint')
-    $('#bulk').hidden = started()
-    var done = ids.filter(function (screen) { return screen.status === 'done' || screen.status === 'failed' }).length
+    var plan = planNow()
+    var picked = reviewed()
+    var n = picked.length
+    var skipped = allScreens().length - n
+    var values = allScreens().map(function (screen) { return plan[screen.id] })
+    var same = values.every(function (value) { return value === values[0] }) ? values[0] : null
+    $('#setAll').hidden = started()
+    $('#allSeg').innerHTML = segHtml(null, same).replace(/^<span class="seg" role="group">|<\/span>$/g, '')
+    $('#depths').innerHTML = DEPTHS.map(function (depth) { return '<p><b>' + esc(t(depth)) + '</b> ' + esc(t(depth + 'Hint')) + '</p>' }).join('')
+    var done = picked.filter(function (screen) { return screen.status === 'done' || screen.status === 'failed' }).length
     if (started()) {
-      $('#tally').innerHTML = esc(t('progress').replace('{done}', done).replace('{total}', n))
-      $('#tallySub').textContent = ''
+      $('#tally').textContent = t('progress').replace('{done}', done).replace('{total}', n)
+      $('#tallySub').textContent = skipped ? t('skipped').replace('{n}', skipped) : ''
     } else {
       $('#tally').innerHTML = '<b>' + n + '</b>' + esc(t(n === 1 ? 'screen' : 'screens'))
-      $('#tallySub').textContent = t('tallySub')
+      $('#tallySub').textContent = t('tallySub') + (skipped ? ' ' + t('skipped').replace('{n}', skipped) : '')
     }
     $('#bar').hidden = !started()
     $('#barFill').style.width = (n ? done / n * 100 : 0) + '%'
-    $('#waiting').hidden = !started() || ids.some(function (screen) { return screen.status })
+    $('#waiting').hidden = !started() || picked.some(function (screen) { return screen.status })
     $('#waiting span:last-child').textContent = t('waiting')
     var startButton = $('#start')
     startButton.hidden = started()
@@ -1160,37 +1167,61 @@ window.VSScrub = (function () {
     paintPlan()
   }
 
-  var findScreen = function (id) { return allScreens().filter(function (screen) { return screen.id === id })[0] || null }
+  /* Setting a page's depth sets everything under it too; a modal or panel can then take its own. */
+  var setDepth = function (id, depth) {
+    if (started()) return
+    var plan = Object.assign({}, planNow())
+    if (id) walk([findScreen(id)], function (screen) { plan[screen.id] = depth })
+    else allScreens().forEach(function (screen) { plan[screen.id] = depth })
+    chosen = plan
+    paintTree()
+    paintPlan()
+  }
 
   $('#tree').addEventListener('click', function (event) {
+    var choice = event.target.closest('[data-depth]')
+    if (choice) { setDepth(choice.dataset.for, choice.dataset.depth); return }
     var node = event.target.closest('.node')
-    if (!node) return
-    var id = node.dataset.id
-    if (event.target.matches('input[type="checkbox"]')) {
-      if (started()) return
-      var chosen = Object.assign({}, pickedNow())
-      var on = event.target.checked
-      var screen = findScreen(id)
-      /* Ticking a page takes everything under it along; a modal or panel can still be picked on its own. */
-      walk([screen], function (each) { chosen[each.id] = on })
-      picked = chosen
-      paintTree()
-      paintPlan()
-      return
-    }
+    if (!node || !event.target.closest('.chev, .name')) return
     if ($('.chev', node).classList.contains('none')) return
-    open[id] = !node.classList.contains('open')
+    open[node.dataset.id] = !node.classList.contains('open')
     paintTree()
   })
-
-  var setDepth = function (depth) { if (!started()) { chosenDepth = depth; paintPlan() } }
-  $('#depthRange').addEventListener('input', function (event) { setDepth(DEPTHS[Number(event.target.value)] || 'standard') })
-  $('#stops').addEventListener('click', function (event) {
-    var button = event.target.closest('[data-depth]')
-    if (button) setDepth(button.dataset.depth)
+  $('#allSeg').addEventListener('click', function (event) {
+    var choice = event.target.closest('[data-depth]')
+    if (choice) setDepth(null, choice.dataset.depth)
   })
-  $('#all').addEventListener('click', function () { picked = {}; allScreens().forEach(function (screen) { picked[screen.id] = true }); paintTree(); paintPlan() })
-  $('#none').addEventListener('click', function () { picked = {}; paintTree(); paintPlan() })
+
+  /* The preview sits beside the row under the pointer, kept inside the window. */
+  var preview = $('#preview')
+  var peeked = null
+  var hidePreview = function () {
+    preview.classList.remove('on')
+    if (peeked) peeked.classList.remove('peek')
+    peeked = null
+  }
+  $('#tree').addEventListener('pointerover', function (event) {
+    if (event.pointerType === 'touch') return
+    var row = event.target.closest('.row')
+    if (row === peeked) return
+    hidePreview()
+    if (!row) return
+    var screen = findScreen(row.parentElement.dataset.id)
+    if (!screen || !screen.shot) return
+    peeked = row
+    row.classList.add('peek')
+    $('img', preview).src = screen.shot
+    $('p', preview).textContent = textOf(screen.title) + (screen.path ? ' · ' + screen.path : '')
+    var box = $('.title', row).getBoundingClientRect()
+    var width = preview.offsetWidth, height = preview.offsetHeight || 240
+    var left = Math.min(box.right + 16, window.innerWidth - width - 16)
+    var top = Math.max(56, Math.min(box.top - 16, window.innerHeight - height - 16))
+    preview.style.left = Math.max(16, left) + 'px'
+    preview.style.top = top + 'px'
+    preview.classList.add('on')
+  })
+  $('#tree').addEventListener('pointerleave', hidePreview)
+  window.addEventListener('scroll', hidePreview, { passive: true })
 
   var post = function (path, body) {
     return fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-VSTACK-Token': BRIDGE.token }, body: JSON.stringify(body) })
@@ -1210,10 +1241,10 @@ window.VSScrub = (function () {
     }).then(function () { sending = false })
   }
   $('#start').addEventListener('click', function () {
-    var chosen = pickedNow()
-    var focus = allScreens().filter(function (screen) { return chosen[screen.id] }).map(function (screen) { return screen.id })
-    if (!focus.length) return
-    send({ focus: focus, depth: depthOf() })
+    if (!reviewed().length) return
+    var plan = {}
+    allScreens().forEach(function (screen) { plan[screen.id] = planNow()[screen.id] || 'standard' })
+    send({ plan: plan })
   })
   $('#retry').addEventListener('click', function () { send({ problem: '', retry: true }) })
 
