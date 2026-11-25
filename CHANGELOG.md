@@ -36,6 +36,12 @@ compares against to decide an update is available. See the release checklist in
 
   While it maps a site you do not own, Polish never submits a form or pays.
 
+**Changed**
+
+- **A Polish report won't let you finish too early.** While the agent is still
+  revising a section you steered, or a section has no answer, the last slide
+  names it and offers Go to it in place of Approve & finish.
+
 ## 6.19.0 — 2026-11-24
 
 **Added**

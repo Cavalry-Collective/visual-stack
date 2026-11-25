@@ -89,7 +89,8 @@ Feature: A Polish report answered in its own tab
   Scenario: R2 — a revised section asks for a fresh answer
     When the reviewer steers the section "f-slider" with "Make the handle bigger"
     And the reviewer sends the answers
-    And the agent revises the section "f-slider"
+    Then the closing box points at "f-slider" while it is revised, in place of Approve & finish
+    When the agent revises the section "f-slider"
     Then the page announces the revision of "f-slider"
     When the reviewer shows the revision
     Then the section "f-slider" shows the revision, quoting "Make the handle bigger"
@@ -99,7 +100,9 @@ Feature: A Polish report answered in its own tab
     When the reviewer approves the section "f-example"
     And the reviewer opens the ▾ menu and presses Esc
     Then the ▾ menu is closed
-    When the reviewer presses Approve & finish twice on the last slide
+    And the closing box points at "f-variants" while it is unanswered, in place of Approve & finish
+    When the reviewer rejects the sections "f-variants" and "f-slider"
+    And the reviewer presses Approve & finish twice on the last slide
     Then the answers file approves "f-example"
     And the report server has closed
     And the page shows the review filed with 1 approved

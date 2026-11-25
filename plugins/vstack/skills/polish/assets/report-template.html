@@ -754,7 +754,7 @@ Check: every hint reads at 4.5:1 or better.
 <section class="closing" aria-labelledby="overall-label">
   <label id="overall-label" for="overall" data-t="overall">Anything about the review as a whole?</label>
   <textarea class="field" id="overall" rows="2" placeholder="Optional. Included in your next send." data-t-placeholder="overallHint"></textarea>
-  <div class="closing-foot"><span data-closing-text></span><span class="closing-actions"><button class="btn primary" id="closingSend" type="button"></button><button class="btn primary" id="closingFinish" type="button"></button></span></div>
+  <div class="closing-foot"><span data-closing-text></span><span class="closing-actions"><button class="btn primary" id="closingSend" type="button"></button><button class="btn primary" id="closingFinish" type="button"></button><button class="btn primary" id="closingGo" type="button" hidden></button></span></div>
 </section>
 
 <nav class="slidenav" aria-label="Sections" data-t-label="sections"><button class="btn" id="prevBtn" type="button"><span aria-hidden="true">←</span> <span data-t="prev">Previous</span></button><span class="where" data-where></span><button class="btn" id="nextBtn" type="button"><span data-t="next">Next</span> <span aria-hidden="true">→</span></button></nav>
@@ -1279,6 +1279,9 @@ window.VSScrub = (function () {
     sendTo: [function (a) { return 'Send to ' + a }, function (a) { return '发送给 ' + a }],
     isFinished: ['This review is finished.', '本次审阅已结束。'],
     finished: ['Finished', '已结束'], pressAgain: ['Press again to finish', '再按一次以结束'], finish: ['Approve & finish', '批准并结束'],
+    stillRevising: [function (a, n) { return a + ' is still revising ' + (n === 1 ? '1 section.' : n + ' sections.') }, function (a, n) { return a + ' 仍在修改 ' + n + ' 个部分。' }],
+    stillOpen: [function (n) { return n === 1 ? '1 section has no answer yet.' : n + ' sections have no answer yet.' }, function (n) { return '还有 ' + n + ' 个部分未回答。' }],
+    goToIt: ['Go to it', '前往'],
     finishWhat: [function (approved, open) { return 'Ends the review. Builds the ' + approved + ' approved' + (open ? ' and skips the ' + open + ' unanswered.' : '.') },
       function (approved, open) { return '结束审阅。构建已批准的 ' + approved + ' 项' + (open ? '，跳过未回答的 ' + open + ' 项。' : '。') }],
     copied: [function (a) { return 'Copied. Paste it to ' + a + '.' }, function (a) { return '已复制。请粘贴给 ' + a + '。' }],
@@ -1337,7 +1340,7 @@ window.VSScrub = (function () {
   var sections = $$('[data-decide]')
   var overallBox = $('#overall')
   var sendBtn = $('#sendBtn'), moreBtn = $('#moreBtn'), moreMenu = $('#moreMenu')
-  var restBtn = $('#restBtn'), finishBtn = $('#finishBtn'), closingSend = $('#closingSend'), closingFinish = $('#closingFinish')
+  var restBtn = $('#restBtn'), finishBtn = $('#finishBtn'), closingSend = $('#closingSend'), closingFinish = $('#closingFinish'), closingGo = $('#closingGo')
   var storageKey = 'vstack-report:' + document.title
 
   var titleOf = function (id, lang) { return textIn($('h2', document.getElementById(id)), lang) || id }
@@ -1670,6 +1673,21 @@ window.VSScrub = (function () {
     closingFinish.textContent = label
     closingFinish.disabled = finished
     $('[data-closing-text]').textContent = finished ? t('isFinished') : BRIDGE ? t('finishWhat', approved, open) : ''
+    /* While a section is being revised, or still has no answer, the closing box points at it rather than
+       offering to finish: finishing then would build without the change the owner asked for. */
+    var waiting = BRIDGE && !finished ? waitingSections() : []
+    var unanswered = BRIDGE && !finished ? sections.filter(function (el) { return !decisionOf(el.id) && waiting.indexOf(el) === -1 }) : []
+    var blocked = waiting.length > 0 || unanswered.length > 0
+    closingFinish.hidden = !BRIDGE || blocked
+    closingGo.hidden = !blocked
+    closingGo.textContent = t('goToIt')
+    finishBtn.disabled = finished || waiting.length > 0
+    if (blocked) $('[data-closing-text]').textContent = waiting.length ? t('stillRevising', agentName(), waiting.length) : t('stillOpen', unanswered.length)
+    closingGo.dataset.target = blocked ? (waiting[0] || unanswered[0]).id : ''
+  }
+  /* A section the owner steered or asked variations for, sent, and not yet answered by the agent. */
+  var waitingSections = function () {
+    return sections.filter(function (el) { return !(el.id in drafts) && isRequest(choiceOf(held.decisions[el.id])) })
   }
   var paintAll = function () { sections.forEach(paintSection); paintTotals() }
 
@@ -1902,6 +1920,7 @@ window.VSScrub = (function () {
 
   sendBtn.addEventListener('click', function () { send() })
   closingSend.addEventListener('click', function () { send() })
+  closingGo.addEventListener('click', function () { var target = document.getElementById(closingGo.dataset.target); if (target) show(target) })
   overallBox.addEventListener('input', function () { save(); paintTotals() })
   moreBtn.addEventListener('click', function (event) {
     event.stopPropagation()

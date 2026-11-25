@@ -158,7 +158,7 @@ The page then shows the section as **Revised**, quotes the note, and asks for a 
 
 The page shows one section at a time, under its category heading. The owner moves with Previous and Next, the arrow keys or the index. Approve and Reject move on to the next section with no answer. The closing box is the last slide.
 
-**Approve & finish**, on the last slide and under the ▾ beside Send, sends any answers left, then ends the review. It asks for a second press. The watcher reports `APPROVED` and the server closes. Build only what `decisions` approves, and only the variation it names. When `delivery` is `report`, write the report in Step 5 of `SKILL.md` in place of a build.
+**Approve & finish**, on the last slide and under the ▾ beside Send, sends any answers left, then ends the review. It asks for a second press. While you are still revising a section, or a section has no answer, the last slide names it and offers **Go to it** in place of Approve & finish, and the ▾ menu's Approve & finish waits until the revision is in. The watcher reports `APPROVED` and the server closes. Build only what `decisions` approves, and only the variation it names. When `delivery` is `report`, write the report in Step 5 of `SKILL.md` in place of a build.
 
 | Status | Meaning |
 |---|---|

@@ -890,12 +890,35 @@ When('the reviewer shows the revision', async function () {
 })
 
 // The last slide carries the finish itself, beside a Send that shows only while something is unsent.
+/** Move to the closing box, the last slide, from wherever the report is. */
+async function toClosing (page) {
+  while (!(await page.locator('#nextBtn').isDisabled())) await page.locator('#nextBtn').click()
+  await page.locator('.closing.current').waitFor()
+}
+
+Then('the closing box points at {string} while it is {word}, in place of Approve & finish', async function (id, state) {
+  const page = this.browserPage
+  await toClosing(page)
+  const text = page.locator('[data-closing-text]')
+  await eventually(async () => {
+    if (state === 'revised') assert.match(await text.innerText(), /is still revising 1 section\./)
+    else assert.match(await text.innerText(), /sections? (has|have) no answer yet\./)
+    assert.equal(await page.locator('#closingFinish').isVisible(), false, 'Approve & finish waits')
+  }, `the closing box waits on ${id}`)
+  await page.locator('#closingGo').click()
+  await page.locator(`#${id}.current`).waitFor()
+})
+
+When('the reviewer rejects the sections {string} and {string}', async function (first, second) {
+  for (const id of [first, second]) {
+    await openSection(this.browserPage, id)
+    await this.browserPage.locator(`#${id} .decide [data-d="reject"]`).click()
+  }
+})
+
 When('the reviewer presses Approve & finish twice on the last slide', async function () {
   const page = this.browserPage
-  await page.locator('#nextBtn').click()
-  await page.locator('#nextBtn').click()
-  await page.locator('#nextBtn').click()
-  await page.locator('.closing.current').waitFor()
+  await toClosing(page)
   await eventually(async () => { assert.equal(await page.locator('#closingSend').isVisible(), false, 'nothing is left to send') }, 'Send hides once everything is sent')
   assert.match(await page.locator('[data-closing-text]').innerText(), /Builds the 1 approved/)
   await page.locator('#closingFinish').click()
