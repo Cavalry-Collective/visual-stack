@@ -8,7 +8,13 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
-## 6.20.1 — 2026-11-26
+## 6.21.0 — 2026-11-26
+
+**Removed**
+
+- **Live view in Polish.** The experimental switch, and the live pictures it
+  showed on the progress page, are gone. The progress page keeps its task list
+  and animation.
 
 **Changed**
 

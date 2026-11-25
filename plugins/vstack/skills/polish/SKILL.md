@@ -46,7 +46,6 @@ The owner also sets these in the page. Each is saved with the pick:
 | **Failure handling** | `failures` | `false` | The review forces failures and adds the checks in *Option: Failure handling* in `lenses.md`, at any level. |
 | **Proofread** (experimental) | `proofread` | `false` | The report's words and new UI copy go through `vstack:proofread`, in Step 4 and Step 5. |
 | **Trim AI filler** (experimental) | `trimCopy` | `false` | The review adds check CX1 in `lenses.md`. |
-| **Live view** (experimental) | `liveView` | `false` | The progress page shows what each browser worker sees, as in *Live view* below. |
 | **In depth** (experimental) | `indepth` | `false` | After the level, the owner picks Pages, Workflows or Both, saved as `pages`, `workflows` or `both`. The review maps that first, and each page and workflow gets its own agent. Follow [`experimental/polish-indepth/SKILL.md`](../../experimental/polish-indepth/SKILL.md) from Step 3. |
 
 If `.vstack/local/polish/` holds an earlier round for this target, also follow **Later rounds** below. Rounds from before the rename sit in `.vstack/local/design-review/`; read them there and save the next round under `polish/`.
@@ -81,7 +80,7 @@ Open the review before you audit:
 5. Start the Step 2 reader, as in *Run the work in parallel* below. Recommend a level, as in *Recommending a level* in `lenses.md`, while the owner reads the panels. Write it to the answers file as `recommend`, with a one-sentence reason in both languages. The page marks that panel **Recommended**.
 6. Wait for `SENT`. Do not start Step 2 until the answers file holds a `level`.
 
-The pick also saves `lang`, `en` or `zh`, the language the page showed, and the `delivery`, `effort`, `failures`, `proofread`, `trimCopy`, `liveView` and `indepth` the owner kept.
+The pick also saves `lang`, `en` or `zh`, the language the page showed, and the `delivery`, `effort`, `failures`, `proofread`, `trimCopy` and `indepth` the owner kept.
 
 ### Run the work in parallel
 
@@ -116,16 +115,6 @@ Keep this work yourself:
 Give each browser worker a headless browser of its own, such as a Playwright browser context, so throttling, blocked requests and cookies stay apart. If no headless browser is available, or the target needs the owner's sign-in in `user_browser`, capture yourself in that tab, one screen at a time. Then give workers only the parts that need no browser, working from your saved screenshots.
 
 Run no more than six workers at once. If a worker fails or returns something unusable, do its part yourself and say so in chat.
-
-### Live view
-
-When `liveView` is true, the progress page shows the latest frame from each browser in place of its animation. The page reads the frames from `$R.live/`, one image per browser.
-
-- Tell each browser worker to save a JPEG of its viewport to `$R.live/<worker id>.jpg` about once a second, and after every action. Name the worker after what it walks, such as `checkout-phone`, because the page shows the name as the caption.
-- Write each frame to a temporary file in the same folder, then rename it over the old one, so the page never reads half a frame.
-- Tell the worker to delete its frame when it finishes.
-- Save frames the same way when you capture yourself in a headless browser.
-- Without a headless browser, such as when the audit runs in the owner's `user_browser` tab, save no frames. The page keeps its animation. Say in chat that the owner can watch that tab instead.
 
 ### Show progress
 
