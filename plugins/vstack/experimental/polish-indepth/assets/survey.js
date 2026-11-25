@@ -12,6 +12,8 @@
  *   triggers  controls that open something on this page: a modal, a popup
  *             (menu, popover, dropdown) or a panel that slides in
  *   overlays  dialogs, popups and panels already in the markup, open or not
+ *   forms     each form, with its visible fields and the label of its submit
+ *             control, because most journeys end in one
  */
 (() => {
   const here = new URL(location.href)
@@ -80,5 +82,21 @@
       }
     })
 
-  return { url: here.pathname + here.search, title: document.title, links: [...links.values()], triggers, overlays }
+  const labelOf = field => {
+    const byFor = field.id ? document.querySelector(`label[for="${CSS.escape(field.id)}"]`) : null
+    return text(byFor || field.closest('label') || field) || field.getAttribute('placeholder') || field.name || field.type
+  }
+  const forms = [...document.querySelectorAll('form')].filter(visible).map(form => {
+    const fields = [...form.querySelectorAll('input, select, textarea')]
+      .filter(field => visible(field) && !['hidden', 'submit', 'button', 'reset', 'image'].includes(field.type))
+    const submit = form.querySelector('button[type=submit], input[type=submit], button:not([type])')
+    return {
+      selector: selector(form),
+      region: region(form),
+      fields: fields.map(field => ({ label: labelOf(field).slice(0, 60), type: field.type || field.tagName.toLowerCase(), required: field.required })),
+      submit: submit ? (text(submit) || submit.value || '') : '',
+    }
+  })
+
+  return { url: here.pathname + here.search, title: document.title, links: [...links.values()], triggers, overlays, forms }
 })()

@@ -39,22 +39,27 @@ Feature: A Polish report answered in its own tab
     And the answers file still holds the level "refined"
 
   @browser
-  Scenario: R0b — an in-depth review picks its screens on a site map
+  Scenario: R0b — an in-depth review picks its screens and workflows on a site map
     When the reviewer turns on In depth and picks the level "clean"
     Then the answers file asks for an in-depth review
-    When the agent publishes a site map of a page with a modal and a panel
+    When the agent publishes a site map of a page with a modal, a panel and a sign-in workflow
     Then the same tab shows the site map with all 3 screens switched on
     When the reviewer rests the pointer on "s-signin"
     Then the preview beside the map shows "s-signin"
     When the reviewer closes the page "s-home" in the map
     Then the map hides what opens on "s-home"
     When the reviewer switches off "s-cart"
-    And the reviewer starts the review
+    And the reviewer opens the Workflows tab
+    Then the workflow "w-signin" shows its 2 steps, switched on
+    When the reviewer starts the review
     Then the answers file excludes "s-cart"
     When the agent marks "s-home" done with 3 findings
-    Then the map shows 1 of 2 screens done
+    Then the map shows 1 of 3 done
+    When the agent walks "w-signin" to step 2
+    Then the workflow "w-signin" shows step 2 of 2 under review
     When the agent marks "s-signin" done with 0 findings
-    Then the map says all 2 screens are reviewed
+    And the agent marks "w-signin" done with 1 findings
+    Then the map says "All 2 screens and 1 workflow reviewed"
     When the agent publishes the report
     Then the same tab shows the report
 

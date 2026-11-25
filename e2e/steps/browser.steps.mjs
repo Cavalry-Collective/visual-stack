@@ -627,7 +627,7 @@ Then('the answers file asks for an in-depth review', async function () {
 
 const PREVIEW = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="250"><rect width="400" height="250" fill="#ddd"/></svg>')
 
-When('the agent publishes a site map of a page with a modal and a panel', async function () {
+When('the agent publishes a site map of a page with a modal, a panel and a sign-in workflow', async function () {
   fs.writeFileSync(this.reportPage, fs.readFileSync(SITE_MAP_PAGE, 'utf8'))
   const sitemap = {
     origin: 'https://shop.example',
@@ -637,6 +637,10 @@ When('the agent publishes a site map of a page with a modal and a panel', async 
         { id: 's-signin', kind: 'modal', title: { en: 'Sign in', zh: '登录' }, open: 'Click Sign in.', shot: PREVIEW },
         { id: 's-cart', kind: 'panel', title: { en: 'Cart', zh: '购物车' }, open: 'Click the cart.' },
       ],
+    }],
+    workflows: [{
+      id: 'w-signin', title: { en: 'Sign in', zh: '登录' }, goal: { en: 'From the home page to signed in', zh: '从首页到登录成功' },
+      steps: [{ screen: 's-home', action: { en: 'Click Sign in', zh: '点击登录' } }, { screen: 's-signin', action: { en: 'Enter email and password', zh: '输入邮箱和密码' } }],
     }],
   }
   fs.writeFileSync(this.answersFile, JSON.stringify({ ...this.answers(), stage: 'map', sitemap }, null, 2))
@@ -706,17 +710,45 @@ When('the agent marks {string} done with {int} findings', async function (id, fo
   }
 })
 
-Then('the map shows {int} of {int} screens done', async function (done, total) {
+Then('the map shows {int} of {int} done', async function (done, total) {
   await eventually(async () => {
-    assert.equal(await this.browserPage.locator('#tally').innerText(), `${done} of ${total} screens done`)
+    assert.equal(await this.browserPage.locator('#tally').innerText(), `${done} of ${total} done`)
     assert.match(await this.browserPage.locator('.node[data-id="s-home"] > .row .status').innerText(), /^Done · 3 found$/)
   }, `${done} of ${total} screens are done`)
 })
 
-Then('the map says all {int} screens are reviewed', async function (count) {
+When('the reviewer opens the Workflows tab', async function () {
+  await this.browserPage.locator('#tabs [data-tab="flows"]').click()
+})
+
+Then('the workflow {string} shows its {int} steps, switched on', async function (id, count) {
+  const flow = this.browserPage.locator(`.flow[data-id="${id}"]`)
+  await flow.waitFor()
+  assert.equal(await flow.locator('.chip').count(), count)
+  assert.equal(await flow.locator('.switch').getAttribute('aria-checked'), 'true')
+  assert.equal(await this.browserPage.locator('#tree').isVisible(), false, 'the screens give way to the workflows')
+  assert.match(await this.browserPage.locator('#start').innerText(), /Review 2 screens and 1 workflow/)
+})
+
+When('the agent walks {string} to step {int}', async function (id, step) {
+  for (const set of ['status=running', `at=${step - 1}`]) {
+    const patch = spawnSync(process.execPath, [BRIDGE_CLI, 'patch', '--json', this.answersFile, '--id', id, '--set', set])
+    assert.equal(patch.status, 0, String(patch.stderr))
+  }
+})
+
+Then('the workflow {string} shows step {int} of {int} under review', async function (id, step, total) {
+  const flow = this.browserPage.locator(`.flow[data-id="${id}"]`)
+  await eventually(async () => {
+    assert.equal(await flow.locator('.where').innerText(), `Step ${step} of ${total}`)
+    assert.equal(await flow.locator('.chip').nth(step - 1).getAttribute('class'), 'chip k-modal at')
+  }, `the workflow is on step ${step}`)
+})
+
+Then('the map says {string}', async function (title) {
   const finished = this.browserPage.locator('#alldone')
   await finished.waitFor({ timeout: 5000 })
-  assert.equal(await finished.locator('b').innerText(), `All ${count} screens reviewed`)
+  assert.equal(await finished.locator('b').innerText(), title)
   assert.equal(await this.browserPage.locator('#tally').isVisible(), false, 'the count gives way to the mark')
 })
 

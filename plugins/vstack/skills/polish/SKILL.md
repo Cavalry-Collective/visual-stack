@@ -47,7 +47,7 @@ The owner also sets these in the page. Each is saved with the pick:
 | **Proofread** (experimental) | `proofread` | `false` | The report's words and new UI copy go through `vstack:proofread`, in Step 4 and Step 5. |
 | **Trim AI filler** (experimental) | `trimCopy` | `false` | The review adds check CX1 in `lenses.md`. |
 | **Live view** (experimental) | `liveView` | `false` | The progress page shows what each browser worker sees, as in *Live view* below. |
-| **In depth** (experimental) | `indepth` | `false` | The review maps the product first, the owner switches off the screens to leave out, and each screen gets its own agent. Follow [`experimental/polish-indepth/SKILL.md`](../../experimental/polish-indepth/SKILL.md) from Step 3. |
+| **In depth** (experimental) | `indepth` | `false` | The review maps the product's screens and workflows first, the owner switches off what to leave out, and each screen and workflow gets its own agent. Follow [`experimental/polish-indepth/SKILL.md`](../../experimental/polish-indepth/SKILL.md) from Step 3. |
 
 If `.vstack/local/polish/` holds an earlier round for this target, also follow **Later rounds** below. Rounds from before the rename sit in `.vstack/local/design-review/`; read them there and save the next round under `polish/`.
 
@@ -188,7 +188,7 @@ Answer each watcher event:
 | Event | Action |
 |---|---|
 | `SENT`, while `stage` is `choose` | The owner picked. Read `level` and `lang`, start *Show progress*, and continue at Step 2. |
-| `SENT`, while `stage` is `map` | The owner chose the screens for an in-depth review. Continue at Step C of the in-depth file. |
+| `SENT`, while `stage` is `map` | The owner chose the screens and workflows for an in-depth review. Continue at Step C of the in-depth file. |
 | `SENT`, with `retry` set | The owner pressed **Retry**. Delete `retry` and try the step that stopped again. |
 | `SENT` | Read the answers file. Revise every steered section and add variations to every `vary` section, one worker per section, as in *How the owner answers* in `report.md`. Do not build anything yet. |
 | `APPROVED` | Build the approved sections, or write the report, in Step 5. |

@@ -362,7 +362,8 @@ h1 { margin-top: .75rem; font-size: 1.75rem; line-height: 1.2; letter-spacing: -
 .path { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 12px/1.4 var(--mono); color: var(--ink-3); }
 .alike { flex: none; padding: 1px 6px; border-radius: 6px; border: 1px solid var(--line-2); font: 500 11px/1.4 var(--mono); color: var(--ink-2); white-space: nowrap; }
 .row .switch { flex: none; height: 28px; padding: 0 8px; }
-.row .switch[aria-checked="true"] .track { background: var(--ok); }
+.row .switch[aria-checked="true"] .track, .flow .switch[aria-checked="true"] .track { background: var(--ok); }
+.flow .switch { flex: none; height: 28px; padding: 0 8px; }
 .status { position: relative; z-index: 1; flex: none; display: inline-flex; align-items: center; gap: .375rem; font: 500 12px/1 var(--mono); color: var(--ink-3); white-space: nowrap; }
 .status.done { color: var(--ok); }
 .status.failed { color: var(--warn); }
@@ -438,6 +439,45 @@ h1 { margin-top: .75rem; font-size: 1.75rem; line-height: 1.2; letter-spacing: -
 .alldone .rb { animation: block-in 420ms var(--spring) 520ms both; }
 .alldone b, .alldone p { animation: fadein 300ms var(--ease) 820ms both; }
 
+
+/* ── workflows: journeys across screens, one card each ── */
+.map-head { gap: .5rem .75rem; }
+.tabs { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface-2); }
+.tabs[hidden] { display: none; }
+.tabs button { height: 28px; padding: 0 10px; border: 0; border-radius: 6px; background: none; color: var(--ink-2); font-size: 13px; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: var(--shadow); }
+.tabs .n { font: 500 11px/1 var(--mono); color: var(--ink-3); }
+.tab-hint { color: var(--ink-3); font-size: 13px; }
+.tab-hint:empty, .legend[hidden], .flows[hidden], .tree[hidden] { display: none; }
+.flows { display: grid; gap: .5rem; padding: .75rem; }
+.flow { position: relative; overflow: hidden; display: grid; gap: .625rem; padding: .75rem .875rem; border: 1px solid var(--line); border-radius: 10px; }
+.flow-head { display: flex; align-items: center; gap: .75rem; }
+.flow-name { display: grid; flex: 1; min-width: 0; }
+.flow-name b { font-weight: 600; }
+.flow-name span { color: var(--ink-3); font-size: 13px; }
+.flow.off .flow-name, .flow.off .steps { opacity: .5; }
+.flow.off .flow-name b { text-decoration: line-through; text-decoration-color: var(--line-2); }
+.where { flex: none; font: 500 12px/1 var(--mono); color: var(--brand); }
+.steps { display: flex; flex-wrap: wrap; align-items: center; gap: .375rem; }
+.chip { display: inline-flex; align-items: center; gap: .375rem; padding: 3px 9px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--surface); font-size: 12px; cursor: default; }
+.chip i { width: 7px; height: 7px; border-radius: 2px; background: var(--k, var(--k-page)); }
+.chip.peek { border-color: var(--brand); color: var(--brand); }
+.chip.passed { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
+.chip.at { position: relative; overflow: hidden; border-color: var(--brand); color: var(--brand); }
+.chip.at::after { content: ""; position: absolute; inset: 0; width: 60%; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand) 30%, transparent), transparent); animation: sweep 1.4s cubic-bezier(.45, .05, .55, .95) infinite; }
+.chip.broke { border-color: var(--warn); color: var(--warn); }
+.arrow { color: var(--ink-3); font-size: 12px; }
+.flow.just { animation: landed 900ms var(--ease) both; }
+.flow.just .tick { animation: pop 420ms var(--spring) both; }
+.modes { display: grid; gap: .375rem; }
+.modes[hidden] { display: none; }
+.mode { display: flex; align-items: center; gap: .625rem; width: 100%; padding: .5rem .625rem; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); text-align: left; cursor: pointer; }
+.mode .switch { border: 0; padding: 0; height: auto; background: none; pointer-events: none; }
+.mode[aria-checked="true"] .track { background: var(--ok); }
+.mode[aria-checked="true"] .knob { transform: translateX(11px); }
+.mode .n { margin-left: auto; font: 600 13px/1 var(--mono); color: var(--ink-2); }
+.mode[aria-checked="false"] { color: var(--ink-3); }
+
 @media (pointer: coarse) { .row { min-height: 2.75rem; } .row .switch { height: 2.25rem; } .start { height: 2.75rem; } }
 @media (max-width: 860px) {
   .layout { grid-template-columns: minmax(0, 1fr); }
@@ -455,7 +495,7 @@ h1 { margin-top: .75rem; font-size: 1.75rem; line-height: 1.2; letter-spacing: -
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
-  .tree.arrive::after, .row.running::after { display: none; }
+  .tree.arrive::after, .row.running::after, .chip.at::after { display: none; }
 }
 </style>
 </head>
@@ -559,11 +599,20 @@ h1 { margin-top: .75rem; font-size: 1.75rem; line-height: 1.2; letter-spacing: -
   <div class="problem" id="problem" hidden><p><b data-t="stopped"></b><span></span></p><button class="btn primary retry" id="retry" type="button" data-t="retry"></button></div>
   <div class="layout">
     <section class="map" aria-labelledby="mapTitle">
-      <div class="map-head"><p class="legend" id="legend"></p></div>
+      <div class="map-head">
+        <div class="tabs" id="tabs" role="tablist" hidden><button type="button" role="tab" data-tab="screens" aria-controls="tree"><span data-t="tabScreens"></span> <span class="n"></span></button><button type="button" role="tab" data-tab="flows" aria-controls="flows"><span data-t="tabFlows"></span> <span class="n"></span></button></div>
+        <p class="tab-hint" id="tabHint"></p>
+        <p class="legend" id="legend"></p>
+      </div>
       <ul class="tree" id="tree"></ul>
+      <ul class="flows" id="flows" hidden></ul>
     </section>
     <aside class="plan" id="plan">
       <div class="dock" id="dock" aria-hidden="true" hidden><p class="plan-label" data-t="preview"></p><div class="shotwrap"><img alt=""></div><p class="cap"><b></b><span></span></p></div>
+      <div class="modes" id="modes" hidden>
+        <button class="mode" type="button" role="switch" aria-checked="true" data-mode="screens"><span class="switch"><span class="track"><span class="knob"></span></span></span><span data-t="tabScreens"></span><span class="n"></span></button>
+        <button class="mode" type="button" role="switch" aria-checked="true" data-mode="flows"><span class="switch"><span class="track"><span class="knob"></span></span></span><span data-t="tabFlows"></span><span class="n"></span></button>
+      </div>
       <button class="btn include-all" type="button" id="includeAll" data-t="includeAll" hidden></button>
       <div id="count">
         <p class="tally" id="tally"></p>
@@ -1044,29 +1093,34 @@ window.VSScrub = (function () {
   var STR = {
     tool: ['Polish', 'Polish'],
     eyebrow: ['Polish · In depth', '打磨 · 深度模式'],
-    title: ['Which screens should {agent} review?', '{agent} 要评审哪些界面？'],
-    titleAudit: ['Reviewing the screens', '正在评审各个界面'],
+    title: ['What should {agent} review?', '{agent} 要评审哪些内容？'],
+    titleAudit: ['Reviewing', '正在评审'],
     sub: ['{total} screens on {origin}', '{origin} · {total} 个界面'],
+    subFlows: ['{total} screens and {flows} workflows on {origin}', '{origin} · {total} 个界面，{flows} 个流程'],
     subAudit: ['This page becomes the report.', '完成后此页即为报告。'],
     page: ['Page', '页面'], modal: ['Modal', '对话框'], popup: ['Popup', '弹出层'], panel: ['Panel', '侧滑面板'],
     pages: ['Pages', '页面'], modals: ['Modals', '对话框'], popups: ['Popups', '弹出层'], panels: ['Panels', '侧滑面板'],
+    tabScreens: ['Screens', '界面'], tabFlows: ['Workflows', '流程'],
+    screensHint: ['Is each screen right?', '每个界面都对吗？'],
+    flowsHint: ['Can people finish what they came to do?', '用户能完成想做的事吗？'],
     alike: ['1 checked of {n} alike', '{n} 个同类，查 1 个'],
     alikeTitle: ['{n} pages share this layout. {agent} checks one, the one with the most content, for all of them.', '{n} 个页面共用此布局。{agent} 只查其中内容最多的一个，结果适用于全部。'],
     review: ['Review', '评审'],
     preview: ['Preview', '预览'],
     includeAll: ['Include all', '全部包含'],
-    screens: ['screens', '个界面'],
-    screen: ['screen', '个界面'],
-    excluded: ['{n} excluded', '排除 {n} 个'],
-    start: ['Review {n} screens', '评审 {n} 个界面'],
-    startOne: ['Review 1 screen', '评审 1 个界面'],
-    pickOne: ['Every screen is off', '所有界面都已关闭'],
-    progress: ['{done} of {total} screens done', '已完成 {done}/{total} 个界面'],
+    screens: ['screens', '个界面'], screen: ['screen', '个界面'],
+    flows: ['workflows', '个流程'], flow: ['workflow', '个流程'],
+    and: [' and ', '，'],
+    excluded: ['{n} excluded', '排除 {n} 项'],
+    start: ['Review {what}', '评审{what}'],
+    pickOne: ['Everything is off', '全部已关闭'],
+    progress: ['{done} of {total} done', '已完成 {done}/{total}'],
     waiting: ['Waiting for {agent}…', '正在等待 {agent}…'],
     queued: ['Queued', '排队中'], running: ['Reviewing', '评审中'], done: ['Done', '完成'], failed: ['Stopped', '已停止'],
     off: ['Excluded', '已排除'],
     found: ['{n} found', '发现 {n} 处'],
-    allDone: ['All {n} screens reviewed', '{n} 个界面全部评审完毕'],
+    step: ['Step {n} of {total}', '第 {n}/{total} 步'],
+    allDone: ['All {what} reviewed', '{what}全部评审完毕'],
     writing: ['{agent} is writing your report.', '{agent} 正在撰写报告。'],
     stopped: ['Stopped.', '已停止。'],
     retry: ['Retry', '重试'],
@@ -1079,16 +1133,19 @@ window.VSScrub = (function () {
     if (text && typeof text === 'object') return text[lang()] || text.en || text.zh || ''
     return String(text || '')
   }
+  var counted = function (n, one, many) { return n + (lang() === 'zh' ? '' : ' ') + t(n === 1 ? one : many) }
 
   var KINDS = ['page', 'modal', 'popup', 'panel']
   var STATUSES = ['queued', 'running', 'done', 'failed']
   var doc = { decisions: {}, overall: '', revised: {} }
   var chosen = null
   var open = {}
+  var tab = 'screens'
   /* Without hover, or without room beside the map, there is no preview panel, so an opened row shows its picture instead. */
   var inline = window.matchMedia('(hover: none), (max-width: 860px)')
 
   var screensOf = function () { return doc.sitemap && Array.isArray(doc.sitemap.screens) ? doc.sitemap.screens : [] }
+  var flowsOf = function () { return doc.sitemap && Array.isArray(doc.sitemap.workflows) ? doc.sitemap.workflows : [] }
   var walk = function (list, visit) {
     list.forEach(function (screen) {
       visit(screen)
@@ -1097,16 +1154,18 @@ window.VSScrub = (function () {
   }
   var allScreens = function () { var out = []; walk(screensOf(), function (screen) { out.push(screen) }); return out }
   var findScreen = function (id) { return allScreens().filter(function (screen) { return screen.id === id })[0] || null }
+  var findFlow = function (id) { return flowsOf().filter(function (flow) { return flow.id === id })[0] || null }
   var kindOf = function (screen) { return KINDS.indexOf(screen.kind) !== -1 ? screen.kind : 'page' }
   var started = function () { return Array.isArray(doc.exclude) }
+  var stepsOf = function (flow) { return Array.isArray(flow.steps) ? flow.steps : [] }
 
-  /* Every screen starts included, except one the agent marks off from a past round.
+  /* Everything starts included, except what the agent marks off from a past round.
      Once the review starts, the answers file says what was left out. */
   var excludedNow = function () {
     if (!started()) {
       if (!chosen) {
         chosen = {}
-        allScreens().forEach(function (screen) { if (screen.off === true) chosen[screen.id] = true })
+        allScreens().concat(flowsOf()).forEach(function (item) { if (item.off === true) chosen[item.id] = true })
       }
       return chosen
     }
@@ -1114,20 +1173,32 @@ window.VSScrub = (function () {
     doc.exclude.forEach(function (id) { out[id] = true })
     return out
   }
-  var reviewed = function () { var off = excludedNow(); return allScreens().filter(function (screen) { return !off[screen.id] }) }
+  var reviewedScreens = function () { var off = excludedNow(); return allScreens().filter(function (screen) { return !off[screen.id] }) }
+  var reviewedFlows = function () { var off = excludedNow(); return flowsOf().filter(function (flow) { return !off[flow.id] }) }
+  var statusOf = function (item) { return STATUSES.indexOf(item.status) !== -1 ? item.status : 'queued' }
 
-  /* A screen that finished since the last paint gets its moment. */
+  /* Something that finished since the last paint gets its moment. */
   var lastStatus = {}
   var justDone = {}
   var noteStatuses = function () {
     justDone = {}
-    allScreens().forEach(function (screen) {
-      if (screen.status === 'done' && lastStatus[screen.id] && lastStatus[screen.id] !== 'done') justDone[screen.id] = true
-      lastStatus[screen.id] = screen.status || 'queued'
+    allScreens().concat(flowsOf()).forEach(function (item) {
+      if (item.status === 'done' && lastStatus[item.id] && lastStatus[item.id] !== 'done') justDone[item.id] = true
+      lastStatus[item.id] = item.status || 'queued'
     })
   }
 
   var tick = '<svg class="tick" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9"/><path d="M6 10.5l2.6 2.6L14 7.5"/></svg>'
+  var toggleHtml = function (id, name, on) {
+    return '<button class="switch" type="button" role="switch" aria-label="' + esc(t('review') + ' ' + name) + '" aria-checked="' + String(on) + '" data-for="' + esc(id) + '"><span class="track"><span class="knob"></span></span></button>'
+  }
+  var statusHtml = function (item, excluded) {
+    if (excluded) return '<span class="status">' + esc(t('off')) + '</span>'
+    var status = statusOf(item)
+    var label = t(status)
+    if (status === 'done' && typeof item.found === 'number') label += ' · ' + t('found').replace('{n}', item.found)
+    return '<span class="status ' + status + '">' + (status === 'done' ? tick : '') + esc(label) + '</span>'
+  }
 
   var nodeHtml = function (screen, off) {
     var kind = kindOf(screen)
@@ -1139,24 +1210,16 @@ window.VSScrub = (function () {
     var expandable = kids.length > 0 || !!note || pictured
     var isOpen = expandable && (open[screen.id] !== undefined ? open[screen.id] : kids.length > 0)
     var excluded = !!off[screen.id]
-    var status = started() && !excluded ? (STATUSES.indexOf(screen.status) !== -1 ? screen.status : 'queued') : ''
-    var right
-    if (!started()) {
-      right = '<button class="switch" type="button" role="switch" aria-label="' + esc(t('review') + ' ' + (textOf(screen.title) || screen.id)) + '" aria-checked="' + String(!excluded) + '" data-for="' + esc(screen.id) + '"><span class="track"><span class="knob"></span></span></button>'
-    } else if (excluded) {
-      right = '<span class="status">' + esc(t('off')) + '</span>'
-    } else {
-      var label = t(status)
-      if (status === 'done' && typeof screen.found === 'number') label += ' · ' + t('found').replace('{n}', screen.found)
-      right = '<span class="status ' + status + '">' + (status === 'done' ? tick : '') + esc(label) + '</span>'
-    }
+    var name = textOf(screen.title) || screen.id
+    var status = started() && !excluded ? statusOf(screen) : ''
+    var right = started() ? statusHtml(screen, excluded) : toggleHtml(screen.id, name, !excluded)
     var count = typeof screen.count === 'number' && screen.count > 1 ? screen.count : 0
     return '<li class="node' + (excluded ? ' off' : '') + (isOpen ? ' open' : '') + '" data-id="' + esc(screen.id) + '">' +
-      '<div class="row' + (status ? ' ' + status : '') + (justDone[screen.id] ? ' just' : '') + '">' +
+      '<div class="row' + (status ? ' ' + status : '') + (justDone[screen.id] ? ' just' : '') + '" data-screen="' + esc(screen.id) + '">' +
         '<button class="chev' + (expandable ? '' : ' none') + '" type="button" aria-label="' + esc(t('expand')) + '" aria-expanded="' + String(isOpen) + '"' + (expandable ? '' : ' tabindex="-1"') + '><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M3 1.5 7 5 3 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
         '<button class="name" type="button" tabindex="-1">' +
           '<span class="kind k-' + kind + '"><i></i>' + esc(t(kind)) + '</span>' +
-          '<span class="title">' + esc(textOf(screen.title) || screen.id) + '</span>' +
+          '<span class="title">' + esc(name) + '</span>' +
           (count ? '<span class="alike" title="' + esc(t('alikeTitle').replace('{n}', count)) + '">' + esc(t('alike').replace('{n}', count)) + '</span>' : '') +
           '<span class="path">' + esc(screen.path || '') + '</span>' +
         '</button>' +
@@ -1167,12 +1230,37 @@ window.VSScrub = (function () {
       '</li>'
   }
 
+  /* A workflow is a journey across screens: its steps read left to right, and the step being
+     walked carries the beam. */
+  var flowHtml = function (flow, off) {
+    var excluded = !!off[flow.id]
+    var name = textOf(flow.title) || flow.id
+    var status = started() && !excluded ? statusOf(flow) : ''
+    var steps = stepsOf(flow)
+    var at = typeof flow.at === 'number' ? flow.at : -1
+    var chips = steps.map(function (step, index) {
+      var screen = findScreen(step.screen)
+      var kind = screen ? kindOf(screen) : 'page'
+      var state = status === 'done' || (status === 'running' && index < at) ? ' passed' : status === 'running' && index === at ? ' at' : status === 'failed' && index === at ? ' broke' : ''
+      return (index ? '<span class="arrow" aria-hidden="true">→</span>' : '') +
+        '<span class="chip k-' + kind + state + '" data-screen="' + esc(step.screen || '') + '" title="' + esc(textOf(step.action)) + '"><i></i>' + esc(screen ? textOf(screen.title) || screen.id : step.screen || '') + '</span>'
+    }).join('')
+    var right = started() ? statusHtml(flow, excluded) : toggleHtml(flow.id, name, !excluded)
+    var where = status === 'running' && at >= 0 ? '<span class="where">' + esc(t('step').replace('{n}', at + 1).replace('{total}', steps.length)) + '</span>' : ''
+    return '<li class="flow' + (excluded ? ' off' : '') + (status ? ' ' + status : '') + (justDone[flow.id] ? ' just' : '') + '" data-id="' + esc(flow.id) + '">' +
+      '<div class="flow-head"><div class="flow-name"><b>' + esc(name) + '</b>' + (textOf(flow.goal) ? '<span>' + esc(textOf(flow.goal)) + '</span>' : '') + '</div>' + where + right + '</div>' +
+      '<div class="steps">' + chips + '</div>' +
+      '</li>'
+  }
+
   /* The first paint lands the rows one after another, with the red block running down the tree. */
   var arrived = false
   var paintTree = function () {
     noteStatuses()
+    var off = excludedNow()
     var tree = $('#tree')
-    tree.innerHTML = screensOf().map(function (screen) { return nodeHtml(screen, excludedNow()) }).join('')
+    tree.innerHTML = screensOf().map(function (screen) { return nodeHtml(screen, off) }).join('')
+    $('#flows').innerHTML = flowsOf().map(function (flow) { return flowHtml(flow, off) }).join('')
     var rows = $$('.row', tree)
     /* A repaint while the rows are still landing keeps their order, so they stay staggered. */
     rows.forEach(function (row, index) { row.style.setProperty('--i', index) })
@@ -1184,6 +1272,22 @@ window.VSScrub = (function () {
     setTimeout(function () { tree.classList.remove('arrive') }, rows.length * 30 + 800)
   }
 
+  var paintTabs = function () {
+    var flows = flowsOf().length
+    $('#tabs').hidden = !flows
+    if (!flows) tab = 'screens'
+    $$('#tabs [data-tab]').forEach(function (button) {
+      var on = button.dataset.tab === tab
+      button.setAttribute('aria-selected', String(on))
+      button.tabIndex = on ? 0 : -1
+      $('.n', button).textContent = button.dataset.tab === 'screens' ? allScreens().length : flows
+    })
+    $('#tree').hidden = tab !== 'screens'
+    $('#legend').hidden = tab !== 'screens'
+    $('#flows').hidden = tab !== 'flows'
+    $('#tabHint').textContent = flows ? t(tab === 'screens' ? 'screensHint' : 'flowsHint') : ''
+  }
+
   var paintLegend = function () {
     var counts = {}
     allScreens().forEach(function (screen) { var kind = kindOf(screen); counts[kind] = (counts[kind] || 0) + 1 })
@@ -1192,30 +1296,48 @@ window.VSScrub = (function () {
     }).join('')
   }
 
+  var whatOf = function (screens, flows) {
+    var parts = []
+    if (screens) parts.push(counted(screens, 'screen', 'screens'))
+    if (flows) parts.push(counted(flows, 'flow', 'flows'))
+    return parts.join(t('and'))
+  }
+
   var paintPlan = function () {
-    var picked = reviewed()
-    var n = picked.length
-    var excluded = allScreens().length - n
-    var done = picked.filter(function (screen) { return screen.status === 'done' || screen.status === 'failed' }).length
+    var screens = reviewedScreens(), flows = reviewedFlows()
+    var n = screens.length + flows.length
+    var excluded = allScreens().length + flowsOf().length - n
+    var items = screens.concat(flows)
+    var done = items.filter(function (item) { return item.status === 'done' || item.status === 'failed' }).length
     var finished = started() && n > 0 && done === n
+    var hasFlows = flowsOf().length > 0
+    $('#modes').hidden = started() || !hasFlows
+    $$('#modes [data-mode]').forEach(function (button) {
+      var on = button.dataset.mode === 'screens' ? screens.length > 0 : flows.length > 0
+      button.setAttribute('aria-checked', String(on))
+      $('.n', button).textContent = button.dataset.mode === 'screens' ? screens.length : flows.length
+    })
     $('#includeAll').hidden = started() || !excluded
     if (started()) {
       $('#tally').textContent = t('progress').replace('{done}', done).replace('{total}', n)
+    } else if (hasFlows) {
+      $('#tally').textContent = ''
     } else {
       $('#tally').innerHTML = '<b>' + n + '</b>' + esc(t(n === 1 ? 'screen' : 'screens'))
     }
+    $('#tally').hidden = !$('#tally').textContent
     $('#tallySub').textContent = excluded ? t('excluded').replace('{n}', excluded) : ''
-    $('#count').hidden = finished
+    $('#count').hidden = finished || (!$('#tally').textContent && !$('#tallySub').textContent)
     $('#bar').hidden = !started() || finished
     $('#barFill').style.width = (n ? done / n * 100 : 0) + '%'
-    $('#waiting').hidden = !started() || finished || picked.some(function (screen) { return screen.status })
+    $('#waiting').hidden = !started() || finished || items.some(function (item) { return item.status })
     $('#waiting span:last-child').textContent = t('waiting')
     var startButton = $('#start')
     startButton.hidden = started()
     startButton.disabled = n === 0
-    startButton.textContent = n === 0 ? t('pickOne') : n === 1 ? t('startOne') : t('start').replace('{n}', n)
+    startButton.textContent = n === 0 ? t('pickOne') : t('start').replace('{what}', whatOf(screens.length, flows.length))
     $('#alldone').hidden = !finished
-    $('#alldoneTitle').textContent = t('allDone').replace('{n}', n)
+    $('#alldoneTitle').textContent = t('allDone').replace('{what}', whatOf(screens.length, flows.length))
     $('#alldoneSub').textContent = t('writing')
   }
 
@@ -1248,11 +1370,13 @@ window.VSScrub = (function () {
     document.title = 'Visual Stack ' + t('tool')
     $('#mapTitle').textContent = started() ? t('titleAudit') : t('title')
     var origin = doc.sitemap && doc.sitemap.origin ? String(doc.sitemap.origin) : ''
-    $('#mapSub').textContent = started() ? t('subAudit') : t('sub').replace('{total}', allScreens().length).replace('{origin}', origin)
+    var sub = flowsOf().length ? t('subFlows').replace('{flows}', flowsOf().length) : t('sub')
+    $('#mapSub').textContent = started() ? t('subAudit') : sub.replace('{total}', allScreens().length).replace('{origin}', origin)
     var problem = typeof doc.problem === 'string' ? doc.problem.trim() : ''
     $('#problem').hidden = !problem
     $('#problem p span').textContent = problem
     paintLegend()
+    paintTabs()
     paintTree()
     paintPlan()
     paintDock()
@@ -1262,13 +1386,26 @@ window.VSScrub = (function () {
   var setIncluded = function (id, on) {
     if (started()) return
     var next = Object.assign({}, excludedNow())
-    walk([findScreen(id)], function (screen) { if (on) delete next[screen.id]; else next[screen.id] = true })
+    var flow = findFlow(id)
+    var targets = []
+    if (flow) targets = [flow]
+    else walk([findScreen(id)], function (screen) { targets.push(screen) })
+    targets.forEach(function (item) { if (on) delete next[item.id]; else next[item.id] = true })
+    chosen = next
+    paintTree()
+    paintPlan()
+  }
+  /* A mode switch turns every screen, or every workflow, on or off at once. */
+  var setMode = function (mode, on) {
+    if (started()) return
+    var next = Object.assign({}, excludedNow())
+    ;(mode === 'screens' ? allScreens() : flowsOf()).forEach(function (item) { if (on) delete next[item.id]; else next[item.id] = true })
     chosen = next
     paintTree()
     paintPlan()
   }
 
-  $('#tree').addEventListener('click', function (event) {
+  var onListClick = function (event) {
     var toggle = event.target.closest('.switch[data-for]')
     if (toggle) { setIncluded(toggle.dataset.for, toggle.getAttribute('aria-checked') !== 'true'); return }
     var node = event.target.closest('.node')
@@ -1276,22 +1413,45 @@ window.VSScrub = (function () {
     if ($('.chev', node).classList.contains('none')) return
     open[node.dataset.id] = !node.classList.contains('open')
     paintTree()
+  }
+  $('#tree').addEventListener('click', onListClick)
+  $('#flows').addEventListener('click', onListClick)
+  $('#modes').addEventListener('click', function (event) {
+    var button = event.target.closest('[data-mode]')
+    if (button) setMode(button.dataset.mode, button.getAttribute('aria-checked') !== 'true')
   })
   $('#includeAll').addEventListener('click', function () { chosen = {}; paintTree(); paintPlan() })
+  $('#tabs').addEventListener('click', function (event) {
+    var button = event.target.closest('[data-tab]')
+    if (!button) return
+    tab = button.dataset.tab
+    paintTabs()
+  })
+  $('#tabs').addEventListener('keydown', function (event) {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+    tab = tab === 'screens' ? 'flows' : 'screens'
+    paintTabs()
+    $('#tabs [aria-selected="true"]').focus()
+  })
 
+  /* Resting the pointer on a row, or on a workflow step, shows that screen in the preview. */
   var peeked = null
-  $('#tree').addEventListener('pointerover', function (event) {
+  var onPeek = function (event) {
     if (event.pointerType === 'touch') return
-    var row = event.target.closest('.row')
-    if (!row || row === peeked) return
-    var screen = findScreen(row.parentElement.dataset.id)
+    var target = event.target.closest('[data-screen]')
+    if (!target || target === peeked) return
+    var screen = findScreen(target.dataset.screen)
     if (!screen || !screen.shot) return
     if (peeked) peeked.classList.remove('peek')
-    peeked = row
-    row.classList.add('peek')
+    peeked = target
+    target.classList.add('peek')
     showDock(screen)
+  }
+  var onLeave = function () { if (peeked) peeked.classList.remove('peek'); peeked = null }
+  ;['#tree', '#flows'].forEach(function (list) {
+    $(list).addEventListener('pointerover', onPeek)
+    $(list).addEventListener('pointerleave', onLeave)
   })
-  $('#tree').addEventListener('pointerleave', function () { if (peeked) peeked.classList.remove('peek'); peeked = null })
 
   var post = function (path, body) {
     return fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-VSTACK-Token': BRIDGE.token }, body: JSON.stringify(body) })
@@ -1311,13 +1471,13 @@ window.VSScrub = (function () {
     }).then(function () { sending = false })
   }
   $('#start').addEventListener('click', function () {
-    if (!reviewed().length) return
+    if (!reviewedScreens().length && !reviewedFlows().length) return
     var off = excludedNow()
-    send({ exclude: allScreens().filter(function (screen) { return off[screen.id] }).map(function (screen) { return screen.id }) })
+    send({ exclude: allScreens().concat(flowsOf()).filter(function (item) { return off[item.id] }).map(function (item) { return item.id }) })
   })
   $('#retry').addEventListener('click', function () { send({ problem: '', retry: true }) })
 
-  /* The agent ticks off each screen in the answers file, then writes the report over this page. */
+  /* The agent ticks off each screen and workflow in the answers file, then writes the report over this page. */
   var onPush = function (next) {
     if (!next || typeof next !== 'object') return
     var toReport = doc.stage !== 'report' && next.stage === 'report'

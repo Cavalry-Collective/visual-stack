@@ -21,10 +21,18 @@ compares against to decide an update is available. See the release checklist in
     product pages, appear once, and Polish checks one of them.
   - The map opens in your tab. Rest the pointer on a screen to see it in the
     preview beside the map, and open it to see what sits under it.
-  - Every screen is reviewed. Switch off any you want left out.
-  - Each screen gets its own agent, and the map shows which ones are being
-    reviewed and which are done. The findings then come back as one Polish
-    report.
+  - Polish also finds the workflows people come to finish, such as buying,
+    signing up or getting in touch. Each one shows as a card with its steps,
+    on a Workflows tab beside the screens.
+  - A screen review asks whether each screen is right. A workflow review
+    walks the journey from start to finish and finds the step where people
+    give up: an unclear next step, a dead end, an error they can't fix, lost
+    input, a late surprise, too much effort, or an unclear result.
+  - Everything is reviewed. Switch off any screen or workflow you want left
+    out, or switch off a whole mode in the side panel.
+  - Each screen and each workflow gets its own agent. The map shows which ones
+    are being reviewed, and which step each workflow has reached. The findings
+    then come back as one Polish report, with the workflows that break first.
 
   While it maps a site you do not own, Polish never submits a form or pays.
 
