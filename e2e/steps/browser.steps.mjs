@@ -604,6 +604,231 @@ Then('the answers file still holds the level {string}', async function (level) {
   await eventually(() => { assert.equal(this.answers().level, level) }, `the level ${level} survives a send`)
 })
 
+/* ── an in-depth review: one stepped run ── */
+
+const SITE_MAP_PAGE = path.resolve(path.dirname(fileURLToPath(import.meta.url)),
+  '../../plugins/vstack/experimental/polish-indepth/assets/site-map.html')
+const PREVIEW = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="250"><rect width="400" height="250" fill="#ddd"/></svg>')
+
+async function railOn (page, step) {
+  await eventually(async () => {
+    assert.equal(await page.locator('#vsRail').isVisible(), true, 'the rail shows')
+    assert.equal((await page.locator('#vsRail [aria-current="step"]').innerText()).trim().toLowerCase(), step.toLowerCase())
+  }, `the rail is on ${step}`)
+}
+
+async function patchAnswers (world, id, sets) {
+  for (const set of sets) {
+    const patch = spawnSync(process.execPath, [BRIDGE_CLI, 'patch', '--json', world.answersFile, '--id', id, '--set', set])
+    assert.equal(patch.status, 0, String(patch.stderr))
+  }
+}
+
+When('the reviewer turns on In depth and picks the level {string}', async function (level) {
+  const page = this.browserPage
+  await page.locator('#optToggle').click()
+  await page.locator('[data-switch="indepth"]').click()
+  assert.equal(await page.locator('[data-switch="indepth"]').getAttribute('aria-checked'), 'true')
+  await page.locator(`.panel[data-level="${level}"]`).click()
+})
+
+Then('the review asks what to cover, with the rail on {string}', async function (step) {
+  const page = this.browserPage
+  await page.locator('#cover').waitFor()
+  assert.equal(await page.locator('#panels').isVisible(), false, 'the levels give way to the cover cards')
+  assert.match(await page.locator('#pickTitle').innerText(), /What should .+ cover\?/)
+  assert.equal(this.answers().level, undefined, 'nothing is saved before the cover is chosen')
+  await railOn(page, step)
+})
+
+When('the reviewer chooses to cover {string}', async function (cover) {
+  await this.browserPage.locator(`.cover-card[data-cover="${cover}"]`).click()
+})
+
+Then('the answers file covers {string} at the level {string}', async function (cover, level) {
+  await eventually(() => {
+    const doc = this.answers()
+    assert.equal(doc.indepth, cover)
+    assert.equal(doc.level, level)
+    assert.equal(doc.proofread, false)
+  }, 'the answers file holds the cover and the level')
+})
+
+When('the agent publishes a site map of a page with a modal, a panel and a sign-in workflow', async function () {
+  fs.writeFileSync(this.reportPage, fs.readFileSync(SITE_MAP_PAGE, 'utf8'))
+  const sitemap = {
+    origin: 'https://shop.example',
+    screens: [{
+      id: 's-home', kind: 'page', path: '/', title: { en: 'Home', zh: '首页' },
+      children: [
+        { id: 's-signin', kind: 'modal', title: { en: 'Sign in', zh: '登录' }, open: 'Click Sign in.', shot: PREVIEW },
+        { id: 's-cart', kind: 'panel', title: { en: 'Cart', zh: '购物车' }, open: 'Click the cart.' },
+      ],
+    }],
+    workflows: [{
+      id: 'w-signin', title: { en: 'Sign in', zh: '登录' }, goal: { en: 'From the home page to signed in', zh: '从首页到登录成功' },
+      steps: [{ screen: 's-home', action: { en: 'Click Sign in', zh: '点击登录' } }, { screen: 's-signin', action: { en: 'Enter email and password', zh: '输入邮箱和密码' } }],
+    }],
+  }
+  fs.writeFileSync(this.answersFile, JSON.stringify({ ...this.answers(), stage: 'map', sitemap }, null, 2))
+})
+
+Then('the same tab shows step 1, {string}, with all {int} pages switched on and the rail on {string}', async function (title, count, step) {
+  const page = this.browserPage
+  await page.locator('#tree .node').first().waitFor({ timeout: 5000 })
+  assert.equal(await page.locator('#mapTitle').innerText(), title)
+  assert.match(await page.locator('#stepsBar [aria-current="step"]').innerText(), /1\s*Pages/)
+  assert.equal(await page.locator('#tree .switch[aria-checked="true"]').count(), count)
+  assert.equal(await page.locator('#includeAll').isVisible(), false, 'Include all waits until something is off')
+  assert.equal(await page.locator('#next').isVisible(), true, 'the pages step leads on to the workflows')
+  assert.equal(await page.locator('#start').isVisible(), false, 'Review waits for the last step')
+  await railOn(page, step)
+})
+
+When('the reviewer rests the pointer on {string}', async function (id) {
+  await this.browserPage.locator(`.node[data-id="${id}"] > .row .title`).hover()
+})
+
+Then('the preview beside the map shows {string}', async function (id) {
+  const dock = this.browserPage.locator('#dock')
+  await eventually(async () => {
+    assert.equal(await dock.locator('img').getAttribute('src'), PREVIEW)
+    assert.equal(await dock.locator('.cap b').innerText(), 'Sign in')
+  }, `the preview shows ${id}`)
+  await this.browserPage.mouse.move(0, 0)
+  assert.equal(await dock.locator('img').getAttribute('src'), PREVIEW, 'the preview stays after the pointer leaves')
+})
+
+When('the reviewer closes the page {string} in the map', async function (id) {
+  await this.browserPage.locator(`.node[data-id="${id}"] > .row .title`).click()
+})
+
+Then('the map hides what opens on {string}', async function (id) {
+  const page = this.browserPage
+  await eventually(async () => {
+    assert.equal(await page.locator(`.node[data-id="${id}"] .node`).first().isVisible(), false)
+  }, `what opens on ${id} is hidden`)
+  await page.locator(`.node[data-id="${id}"] > .row .title`).click()
+  await page.locator(`.node[data-id="${id}"] .node`).first().waitFor()
+})
+
+When('the reviewer switches off {string}', async function (id) {
+  const page = this.browserPage
+  await page.locator(`.node[data-id="${id}"] > .row .switch`).click()
+  assert.equal(await page.locator(`.node[data-id="${id}"] > .row .switch`).getAttribute('aria-checked'), 'false')
+  assert.equal(await page.locator('#includeAll').isVisible(), true, 'Include all appears once something is off')
+})
+
+When('the reviewer moves on to the workflows', async function () {
+  await this.browserPage.locator('#next').click()
+})
+
+Then('step 2, {string}, shows {string} with its {int} steps', async function (title, id, count) {
+  const page = this.browserPage
+  const flow = page.locator(`.flow[data-id="${id}"]`)
+  await flow.waitFor()
+  assert.equal(await page.locator('#mapTitle').innerText(), title)
+  assert.equal(await page.locator('#tree').isVisible(), false, 'the pages give way to the workflows')
+  assert.match(await page.locator('#stepsBar .past').innerText(), /Pages/)
+  assert.equal(await flow.locator('.chip').count(), count)
+  assert.equal(await flow.locator('.switch').count(), 0, 'a workflow is steered or removed, not switched')
+  assert.match(await page.locator('#start').innerText(), /Review 2 pages and 1 workflow/)
+})
+
+When('the reviewer steers {string} with {string} and adds {string}', async function (id, note, journey) {
+  const page = this.browserPage
+  await page.locator(`.flow[data-id="${id}"] [data-steer]`).click()
+  await page.locator(`[data-steer-form="${id}"] input`).fill(note)
+  await page.locator(`[data-steer-form="${id}"] button`).click()
+  await eventually(async () => {
+    assert.match(await page.locator(`.flow[data-id="${id}"]`).getAttribute('class'), /revising/)
+  }, 'the steered card waits behind a blur')
+  await page.locator('#addInput').fill(journey)
+  await page.locator('#addFlow button').click()
+  await page.locator('.flow.new').waitFor()
+})
+
+When('the reviewer presses {string}', async function (label) {
+  const button = this.browserPage.locator('#start')
+  assert.equal((await button.innerText()).trim(), label)
+  await button.click()
+})
+
+Then('the answers file asks to steer {string} and add {string}', async function (id, journey) {
+  await eventually(() => {
+    const edits = this.answers().workflowEdits
+    assert.deepEqual(edits, { steer: { [id]: 'Start from the cart' }, add: [journey] })
+    assert.equal(this.answers().exclude, undefined, 'the review has not started')
+  }, 'the answers file holds the workflow edits')
+})
+
+When('the agent redraws the workflows with {string} added', async function (id) {
+  const doc = this.answers()
+  doc.sitemap.workflows[0].goal = { en: 'From the cart to signed in', zh: '从购物车到登录成功' }
+  doc.sitemap.workflows.push({ id, title: { en: 'Contact the team', zh: '联系团队' }, goal: { en: 'From the home page to a sent message', zh: '从首页到发出消息' },
+    steps: [{ screen: 's-home', action: { en: 'Click Contact', zh: '点击联系' } }] })
+  delete doc.workflowEdits
+  fs.writeFileSync(this.answersFile, JSON.stringify(doc, null, 2))
+})
+
+Then('the map offers {string}', async function (label) {
+  await eventually(async () => {
+    assert.equal((await this.browserPage.locator('#start').innerText()).trim(), label)
+  }, `the map offers ${label}`)
+})
+
+When('the reviewer removes the workflow {string}', async function (id) {
+  await this.browserPage.locator(`.flow[data-id="${id}"] [data-remove]`).click()
+})
+
+Then('the answers file excludes {string}', async function (ids) {
+  await eventually(() => {
+    const doc = this.answers()
+    assert.deepEqual(doc.exclude, ids.split(','))
+    assert.equal(doc.level, 'clean', 'the level survives the pick')
+  }, 'the answers file holds what was left out')
+  await this.browserPage.locator('#start').waitFor({ state: 'hidden' })
+})
+
+When('the agent marks {string} done with {int} findings', async function (id, found) {
+  await patchAnswers(this, id, ['status=done', `found=${found}`])
+})
+
+Then('the map shows {int} of {int} done, with the rail on {string}', async function (done, total, step) {
+  const page = this.browserPage
+  await page.locator('#stepsBar [data-tab="screens"]').click()
+  await eventually(async () => {
+    assert.equal(await page.locator('#tally').innerText(), `${done} of ${total} done`)
+    assert.match(await page.locator('.node[data-id="s-home"] > .row .status').innerText(), /^Done · 3 found$/)
+  }, `${done} of ${total} are done`)
+  await railOn(page, step)
+  await page.locator('#stepsBar [data-tab="flows"]').click()
+})
+
+When('the agent walks {string} to step {int}', async function (id, step) {
+  await patchAnswers(this, id, ['status=running', `at=${step - 1}`])
+})
+
+Then('the workflow {string} shows step {int} of {int} under review', async function (id, step, total) {
+  const flow = this.browserPage.locator(`.flow[data-id="${id}"]`)
+  await eventually(async () => {
+    assert.equal(await flow.locator('.where').innerText(), `Step ${step} of ${total}`)
+    assert.equal(await flow.locator('.chip').nth(step - 1).getAttribute('class'), 'chip k-modal at')
+  }, `the workflow is on step ${step}`)
+})
+
+Then('the map says {string}', async function (title) {
+  const finished = this.browserPage.locator('#alldone')
+  await finished.waitFor({ timeout: 5000 })
+  assert.equal(await finished.locator('b').innerText(), title)
+  assert.equal(await this.browserPage.locator('#tally').isVisible(), false, 'the count gives way to the mark')
+})
+
+Then('the same tab shows the report, with the rail on {string}', async function (step) {
+  await this.browserPage.locator('#f-example .decide').waitFor({ timeout: 5000 })
+  await railOn(this.browserPage, step)
+})
+
 Given('a Polish report is served on its own', async function () {
   await this.startReportServer(fs.readFileSync(REPORT_TEMPLATE, 'utf8'))
 })
@@ -738,12 +963,35 @@ When('the reviewer shows the revision', async function () {
 })
 
 // The last slide carries the finish itself, beside a Send that shows only while something is unsent.
+/** Move to the closing box, the last slide, from wherever the report is. */
+async function toClosing (page) {
+  while (!(await page.locator('#nextBtn').isDisabled())) await page.locator('#nextBtn').click()
+  await page.locator('.closing.current').waitFor()
+}
+
+Then('the closing box points at {string} while it is {word}, in place of Approve & finish', async function (id, state) {
+  const page = this.browserPage
+  await toClosing(page)
+  const text = page.locator('[data-closing-text]')
+  await eventually(async () => {
+    if (state === 'revised') assert.match(await text.innerText(), /is still revising 1 section\./)
+    else assert.match(await text.innerText(), /sections? (has|have) no answer yet\./)
+    assert.equal(await page.locator('#closingFinish').isVisible(), false, 'Approve & finish waits')
+  }, `the closing box waits on ${id}`)
+  await page.locator('#closingGo').click()
+  await page.locator(`#${id}.current`).waitFor()
+})
+
+When('the reviewer rejects the sections {string} and {string}', async function (first, second) {
+  for (const id of [first, second]) {
+    await openSection(this.browserPage, id)
+    await this.browserPage.locator(`#${id} .decide [data-d="reject"]`).click()
+  }
+})
+
 When('the reviewer presses Approve & finish twice on the last slide', async function () {
   const page = this.browserPage
-  await page.locator('#nextBtn').click()
-  await page.locator('#nextBtn').click()
-  await page.locator('#nextBtn').click()
-  await page.locator('.closing.current').waitFor()
+  await toClosing(page)
   await eventually(async () => { assert.equal(await page.locator('#closingSend').isVisible(), false, 'nothing is left to send') }, 'Send hides once everything is sent')
   assert.match(await page.locator('[data-closing-text]').innerText(), /Builds the 1 approved/)
   await page.locator('#closingFinish').click()

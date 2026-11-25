@@ -8,6 +8,39 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.20.0 — 2026-11-25
+
+**Added**
+
+- **Polish has an in-depth mode, as an experiment.** Turn on **In depth**
+  under Experimental, or ask for an in-depth review in chat. It is for a whole
+  site or a large web app, where one pass finds too little.
+  - After you pick a level, choose what to cover: **Pages** (is each page
+    right?), **Workflows** (can people finish what they came to do?) or
+    **Both**. Polish maps only what you chose, so it starts sooner.
+  - A rail of steps runs across the top of every page in the run: Level,
+    Cover, Map, Review and Report.
+  - The map is a stepped form: pages first, then workflows. Pages that share
+    one layout, such as 200 product pages, appear once, and Polish checks one
+    of them. Switch off any page you want left out.
+  - Each workflow is a card with its steps. Remove one, steer one with a
+    note, or add a journey in your own words, and Polish redraws them before
+    the review.
+  - Rest the pointer on a page or a step to see it in the preview beside the
+    map.
+  - Each page and each workflow gets its own agent. A workflow review walks
+    the journey from start to finish and finds the step where people give up.
+    The map shows what is being reviewed and which step each workflow has
+    reached, and the findings come back as one Polish report.
+
+  While it maps a site you do not own, Polish never submits a form or pays.
+
+**Changed**
+
+- **A Polish report won't let you finish too early.** While the agent is still
+  revising a section you steered, or a section has no answer, the last slide
+  names it and offers Go to it in place of Approve & finish.
+
 ## 6.19.0 — 2026-11-24
 
 **Added**

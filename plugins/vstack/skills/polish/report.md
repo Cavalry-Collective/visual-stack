@@ -8,6 +8,7 @@ The owner sees the start page first, at the same address the report will take.
 
 - Serve `assets/review-start.html` unchanged. It shows the three levels, then the task list from the answers file.
 - The page reloads into the report when `stage` becomes `report`.
+- In an in-depth review, the page reloads into the site map when `stage` becomes `map`.
 - The page shows a `problem` above the task list when you set one.
 
 ## Start from the template
@@ -128,7 +129,7 @@ The owner presses Approve or Reject on each section, or opens Steer. The page se
 | `decisions` | Every answer the owner has sent, by section id. A section with no entry is unanswered. `variant` names the approved variation. |
 | `overall` | A note about the whole review. It belongs to this send only. |
 | `revised` | Sections you changed after a steer, with the note each one answered. |
-| `stage` | `choose`, `audit` or `report`. Written by you. A file without it is a report. |
+| `stage` | `choose`, `audit`, `map` or `report`. Written by you. A file without it is a report. `map` shows an in-depth review's site map. |
 | `level` | `clean`, `refined` or `showcase`. Written by the page when the owner picks, or by you when the level is already known. |
 | `lang` | `en` or `zh`. The language the owner picked in. |
 | `delivery` | `build` or `report`. Written by you as the default, and by the page with the owner's choice when they pick. |
@@ -137,6 +138,7 @@ The owner presses Approve or Reject on each section, or opens Steer. The page se
 | `proofread` | `true` when the owner turned on Proofread. Written by the page. |
 | `trimCopy` | `true` when the owner turned on Trim AI filler. Written by the page. |
 | `liveView` | `true` when the owner turned on Live view. Written by the page. |
+| `indepth` | `pages`, `workflows` or `both`: what the owner chose to cover in an in-depth review. Written by the page. Its own keys are in [`experimental/polish-indepth/SKILL.md`](../../experimental/polish-indepth/SKILL.md). |
 | `canBuild` | `false` when the code is not in this repo. The page then offers only **Report only**. |
 | `recommend` | `{"level", "reason": {"en", "zh"}}`. Your quick look at the site. The page marks that panel **Recommended**. |
 | `mode` | The mode of each flow, such as `{"marketing site": "website", "sign-in": "web-app"}`. Written by you once you have picked. |
@@ -156,7 +158,7 @@ The page then shows the section as **Revised**, quotes the note, and asks for a 
 
 The page shows one section at a time, under its category heading. The owner moves with Previous and Next, the arrow keys or the index. Approve and Reject move on to the next section with no answer. The closing box is the last slide.
 
-**Approve & finish**, on the last slide and under the ▾ beside Send, sends any answers left, then ends the review. It asks for a second press. The watcher reports `APPROVED` and the server closes. Build only what `decisions` approves, and only the variation it names. When `delivery` is `report`, write the report in Step 5 of `SKILL.md` in place of a build.
+**Approve & finish**, on the last slide and under the ▾ beside Send, sends any answers left, then ends the review. It asks for a second press. While you are still revising a section, or a section has no answer, the last slide names it and offers **Go to it** in place of Approve & finish, and the ▾ menu's Approve & finish waits until the revision is in. The watcher reports `APPROVED` and the server closes. Build only what `decisions` approves, and only the variation it names. When `delivery` is `report`, write the report in Step 5 of `SKILL.md` in place of a build.
 
 | Status | Meaning |
 |---|---|

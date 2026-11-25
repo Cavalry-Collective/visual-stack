@@ -1,0 +1,21 @@
+/* The steps of one Polish run, under the top bar: Level, Cover, Map, Review,
+   Report. The bars are the Visual Stack mark laid flat, and the red block
+   sits on the step the run is at. A page opts in by carrying the marker, and
+   shows it with VSShell.rail(step, busy). */
+.vs-rail{background:var(--surface);border-bottom:1px solid var(--line)}
+.vs-rail[hidden]{display:none}
+.vs-rail ol{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;max-width:78rem;margin:0 auto;
+  padding:10px clamp(1rem,3vw,2rem) 9px;list-style:none}
+.vs-rail li{display:grid;gap:6px;min-width:0;font:600 11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vs-rail i{position:relative;display:block;height:6px;border-radius:2px;background:var(--line-2);overflow:hidden}
+.vs-rail .done{color:var(--ink-2)}
+.vs-rail .done i,.vs-rail .now i{background:var(--ink)}
+.vs-rail .now{color:var(--ink)}
+.vs-rail .now i::after{content:"";position:absolute;top:0;bottom:0;right:0;width:26%;background:var(--brand);
+  animation:vs-rail-in 420ms cubic-bezier(.34,1.56,.64,1) both}
+.vs-rail .now.busy i::after{right:auto;width:30%;animation:vs-rail-run 1.6s cubic-bezier(.45,.05,.55,.95) infinite alternate}
+@keyframes vs-rail-in{from{transform:translateX(-300%)}}
+@keyframes vs-rail-run{from{transform:translateX(0)}to{transform:translateX(233%)}}
+@media (max-width:520px){.vs-rail li{font-size:9.5px;letter-spacing:.04em}}
+@media (prefers-reduced-motion:reduce){.vs-rail i::after{animation:none!important}}

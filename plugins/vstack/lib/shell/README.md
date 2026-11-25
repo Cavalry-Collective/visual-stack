@@ -10,8 +10,10 @@ topbar.html   the bar itself — mark, page name, eyebrow, slots, theme, languag
               link dot, primary action
 scrubber.css  the timeline control
 scrubber.html its markup — a page opts in by carrying the marker
+rail.css      the steps of one Polish run, under the top bar
+rail.html     its markup — a page opts in by carrying the marker
 shell.js      window.VSShell (theme, language, link dot, live-link client,
-              toast, two-step confirm, page name)
+              toast, two-step confirm, page name, the rail)
               window.VSScrub (the scrubber)
 ```
 

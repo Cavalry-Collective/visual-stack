@@ -233,8 +233,10 @@ assets (`workspace.html`,
 only the page under review is.
 
 `plugins/vstack/experimental/` holds the earlier project-planning tools (spec,
-start, phase-build, phase-preview) and the retired `/vstack:go` alias in the
-same `<name>/SKILL.md + assets/` shape. They are parked outside `skills/` on
+start, phase-build, phase-preview), the retired `/vstack:go` alias, and
+Polish's in-depth mode (polish-indepth), all in the same
+`<name>/SKILL.md + assets/` shape. Polish reads `polish-indepth/SKILL.md`
+when the owner turns on In depth, so it ships without being a skill of its own. They are parked outside `skills/` on
 purpose so no host discovers them as installable skills; their pages still
 carry the stamped shell and are kept from drifting by `build-shell.mjs`.
 Moving one back under `skills/` is the whole act of re-releasing it.
