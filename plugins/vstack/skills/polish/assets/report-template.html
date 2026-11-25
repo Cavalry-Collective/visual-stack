@@ -296,6 +296,29 @@
   .linkdot{gap:0;font-size:0}
 }
 /* /vstack:shell css */
+/* vstack:shell rail-css */
+/* The steps of one Polish run, under the top bar: Level, Cover, Map, Review,
+   Report. The bars are the Visual Stack mark laid flat, and the red block
+   sits on the step the run is at. A page opts in by carrying the marker, and
+   shows it with VSShell.rail(step, busy). */
+.vs-rail{background:var(--surface);border-bottom:1px solid var(--line)}
+.vs-rail[hidden]{display:none}
+.vs-rail ol{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;max-width:78rem;margin:0 auto;
+  padding:10px clamp(1rem,3vw,2rem) 9px;list-style:none}
+.vs-rail li{display:grid;gap:6px;min-width:0;font:600 11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vs-rail i{position:relative;display:block;height:6px;border-radius:2px;background:var(--line-2);overflow:hidden}
+.vs-rail .done{color:var(--ink-2)}
+.vs-rail .done i,.vs-rail .now i{background:var(--ink)}
+.vs-rail .now{color:var(--ink)}
+.vs-rail .now i::after{content:"";position:absolute;top:0;bottom:0;right:0;width:26%;background:var(--brand);
+  animation:vs-rail-in 420ms cubic-bezier(.34,1.56,.64,1) both}
+.vs-rail .now.busy i::after{right:auto;width:30%;animation:vs-rail-run 1.6s cubic-bezier(.45,.05,.55,.95) infinite alternate}
+@keyframes vs-rail-in{from{transform:translateX(-300%)}}
+@keyframes vs-rail-run{from{transform:translateX(0)}to{transform:translateX(233%)}}
+@media (max-width:520px){.vs-rail li{font-size:9.5px;letter-spacing:.04em}}
+@media (prefers-reduced-motion:reduce){.vs-rail i::after{animation:none!important}}
+/* /vstack:shell rail-css */
 
 /* Meanings that exist only in a report: a steer is amber, P1 text is a darker
    red than the brand so it holds contrast on its tint. */
@@ -672,6 +695,11 @@ main { display: flex; flex-direction: column; min-height: calc(100vh - var(--bar
   <!-- /vstack:slot actions -->
 </div>
 <!-- /vstack:shell topbar -->
+<!-- vstack:shell rail -->
+<nav class="vs-rail" id="vsRail" aria-label="Steps" hidden>
+  <ol><li data-step="0"><i></i><span></span></li><li data-step="1"><i></i><span></span></li><li data-step="2"><i></i><span></span></li><li data-step="3"><i></i><span></span></li><li data-step="4"><i></i><span></span></li></ol>
+</nav>
+<!-- /vstack:shell rail -->
 
 <div class="layout">
 <aside class="rail" id="rail" aria-label="Findings" data-t-label="findings">
@@ -986,6 +1014,20 @@ window.VSShell = (function () {
     if (e && eyebrow != null) e.textContent = eyebrow;
   }
 
+  /* The steps of one Polish run. `step` is 0 to 4, or -1 to hide the rail;
+     `busy` makes the red block run while the agent works on that step. */
+  const RAIL = [['Level', '级别'], ['Cover', '范围'], ['Map', '地图'], ['Review', '评审'], ['Report', '报告']];
+  function rail (step, busy) {
+    const el = $('#vsRail');
+    if (!el) return;
+    el.hidden = step < 0;
+    el.querySelectorAll('li').forEach((li, index) => {
+      li.className = index < step ? 'done' : index === step ? 'now' + (busy ? ' busy' : '') : '';
+      if (index === step) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current');
+      li.querySelector('span').textContent = RAIL[index][lang === 'zh' ? 1 : 0];
+    });
+  }
+
   /** Mark the tool itself as unfinished. `false` takes it off again. */
   function wip (on, label) {
     const el = $('#wip');
@@ -1108,7 +1150,7 @@ window.VSShell = (function () {
   let closeSettings = () => {};
 
   const api = {
-    init, setTheme, setLang, setLink, setWatching, setServerVersion, hideLink, name, wip,
+    init, setTheme, setLang, setLink, setWatching, setServerVersion, hideLink, name, wip, rail,
     connect, toast, armConfirm, esc,
     closeSettings: () => closeSettings(),
     get theme () { return theme },
@@ -2109,6 +2151,9 @@ window.VSScrub = (function () {
 
   var start = function () {
     window.VSShell.init({ defaultLang: held.kept.lang })
+    /* An in-depth review ends here: its rail of steps sits on Report. */
+    var indepth = held.kept.indepth
+    window.VSShell.rail(!HANDOFF && (indepth === true || ['pages', 'workflows', 'both'].indexOf(indepth) !== -1) ? 4 : -1)
     var paintLanguage = function () { window.VSShell.name(t(HANDOFF ? 'reportName' : 'pageName')); paintWords() }
     paintLanguage()
     restore()

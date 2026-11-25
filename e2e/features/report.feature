@@ -39,29 +39,38 @@ Feature: A Polish report answered in its own tab
     And the answers file still holds the level "refined"
 
   @browser
-  Scenario: R0b — an in-depth review picks its screens and workflows on a site map
+  Scenario: R0b — an in-depth review covers pages and workflows in one stepped run
     When the reviewer turns on In depth and picks the level "clean"
-    Then the answers file asks for an in-depth review
+    Then the review asks what to cover, with the rail on "Cover"
+    When the reviewer chooses to cover "both"
+    Then the answers file covers "both" at the level "clean"
     When the agent publishes a site map of a page with a modal, a panel and a sign-in workflow
-    Then the same tab shows the site map with all 3 screens switched on
+    Then the same tab shows step 1, "Pick the pages", with all 3 pages switched on and the rail on "Map"
     When the reviewer rests the pointer on "s-signin"
     Then the preview beside the map shows "s-signin"
     When the reviewer closes the page "s-home" in the map
     Then the map hides what opens on "s-home"
     When the reviewer switches off "s-cart"
-    And the reviewer opens the Workflows tab
-    Then the workflow "w-signin" shows its 2 steps, switched on
-    When the reviewer starts the review
-    Then the answers file excludes "s-cart"
+    And the reviewer moves on to the workflows
+    Then step 2, "Pick the workflows", shows "w-signin" with its 2 steps
+    When the reviewer steers "w-signin" with "Start from the cart" and adds "Contact the team"
+    And the reviewer presses "Update workflows"
+    Then the answers file asks to steer "w-signin" and add "Contact the team"
+    When the agent redraws the workflows with "w-contact" added
+    Then the map offers "Review 2 pages and 2 workflows"
+    When the reviewer removes the workflow "w-contact"
+    Then the map offers "Review 2 pages and 1 workflow"
+    When the reviewer presses "Review 2 pages and 1 workflow"
+    Then the answers file excludes "s-cart,w-contact"
     When the agent marks "s-home" done with 3 findings
-    Then the map shows 1 of 3 done
+    Then the map shows 1 of 3 done, with the rail on "Review"
     When the agent walks "w-signin" to step 2
     Then the workflow "w-signin" shows step 2 of 2 under review
     When the agent marks "s-signin" done with 0 findings
     And the agent marks "w-signin" done with 1 findings
-    Then the map says "All 2 screens and 1 workflow reviewed"
+    Then the map says "All 2 pages and 1 workflow reviewed"
     When the agent publishes the report
-    Then the same tab shows the report
+    Then the same tab shows the report, with the rail on "Report"
 
   Rule: The reviewer answers the report
 

@@ -138,7 +138,7 @@ The owner presses Approve or Reject on each section, or opens Steer. The page se
 | `proofread` | `true` when the owner turned on Proofread. Written by the page. |
 | `trimCopy` | `true` when the owner turned on Trim AI filler. Written by the page. |
 | `liveView` | `true` when the owner turned on Live view. Written by the page. |
-| `indepth` | `true` when the owner turned on In depth. Written by the page. Its own keys are in [`experimental/polish-indepth/SKILL.md`](../../experimental/polish-indepth/SKILL.md). |
+| `indepth` | `pages`, `workflows` or `both`: what the owner chose to cover in an in-depth review. Written by the page. Its own keys are in [`experimental/polish-indepth/SKILL.md`](../../experimental/polish-indepth/SKILL.md). |
 | `canBuild` | `false` when the code is not in this repo. The page then offers only **Report only**. |
 | `recommend` | `{"level", "reason": {"en", "zh"}}`. Your quick look at the site. The page marks that panel **Recommended**. |
 | `mode` | The mode of each flow, such as `{"marketing site": "website", "sign-in": "web-app"}`. Written by you once you have picked. |

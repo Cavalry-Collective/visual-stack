@@ -881,6 +881,20 @@ window.VSShell = (function () {
     if (e && eyebrow != null) e.textContent = eyebrow;
   }
 
+  /* The steps of one Polish run. `step` is 0 to 4, or -1 to hide the rail;
+     `busy` makes the red block run while the agent works on that step. */
+  const RAIL = [['Level', '级别'], ['Cover', '范围'], ['Map', '地图'], ['Review', '评审'], ['Report', '报告']];
+  function rail (step, busy) {
+    const el = $('#vsRail');
+    if (!el) return;
+    el.hidden = step < 0;
+    el.querySelectorAll('li').forEach((li, index) => {
+      li.className = index < step ? 'done' : index === step ? 'now' + (busy ? ' busy' : '') : '';
+      if (index === step) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current');
+      li.querySelector('span').textContent = RAIL[index][lang === 'zh' ? 1 : 0];
+    });
+  }
+
   /** Mark the tool itself as unfinished. `false` takes it off again. */
   function wip (on, label) {
     const el = $('#wip');
@@ -1003,7 +1017,7 @@ window.VSShell = (function () {
   let closeSettings = () => {};
 
   const api = {
-    init, setTheme, setLang, setLink, setWatching, setServerVersion, hideLink, name, wip,
+    init, setTheme, setLang, setLink, setWatching, setServerVersion, hideLink, name, wip, rail,
     connect, toast, armConfirm, esc,
     closeSettings: () => closeSettings(),
     get theme () { return theme },

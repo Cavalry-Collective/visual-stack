@@ -604,10 +604,25 @@ Then('the answers file still holds the level {string}', async function (level) {
   await eventually(() => { assert.equal(this.answers().level, level) }, `the level ${level} survives a send`)
 })
 
-/* ── an in-depth review: the site map ── */
+/* ── an in-depth review: one stepped run ── */
 
 const SITE_MAP_PAGE = path.resolve(path.dirname(fileURLToPath(import.meta.url)),
   '../../plugins/vstack/experimental/polish-indepth/assets/site-map.html')
+const PREVIEW = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="250"><rect width="400" height="250" fill="#ddd"/></svg>')
+
+async function railOn (page, step) {
+  await eventually(async () => {
+    assert.equal(await page.locator('#vsRail').isVisible(), true, 'the rail shows')
+    assert.equal((await page.locator('#vsRail [aria-current="step"]').innerText()).trim().toLowerCase(), step.toLowerCase())
+  }, `the rail is on ${step}`)
+}
+
+async function patchAnswers (world, id, sets) {
+  for (const set of sets) {
+    const patch = spawnSync(process.execPath, [BRIDGE_CLI, 'patch', '--json', world.answersFile, '--id', id, '--set', set])
+    assert.equal(patch.status, 0, String(patch.stderr))
+  }
+}
 
 When('the reviewer turns on In depth and picks the level {string}', async function (level) {
   const page = this.browserPage
@@ -617,15 +632,27 @@ When('the reviewer turns on In depth and picks the level {string}', async functi
   await page.locator(`.panel[data-level="${level}"]`).click()
 })
 
-Then('the answers file asks for an in-depth review', async function () {
-  await eventually(() => {
-    const doc = this.answers()
-    assert.equal(doc.indepth, true)
-    assert.equal(doc.proofread, false)
-  }, 'the answers file holds indepth')
+Then('the review asks what to cover, with the rail on {string}', async function (step) {
+  const page = this.browserPage
+  await page.locator('#cover').waitFor()
+  assert.equal(await page.locator('#panels').isVisible(), false, 'the levels give way to the cover cards')
+  assert.match(await page.locator('#pickTitle').innerText(), /What should .+ cover\?/)
+  assert.equal(this.answers().level, undefined, 'nothing is saved before the cover is chosen')
+  await railOn(page, step)
 })
 
-const PREVIEW = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="250"><rect width="400" height="250" fill="#ddd"/></svg>')
+When('the reviewer chooses to cover {string}', async function (cover) {
+  await this.browserPage.locator(`.cover-card[data-cover="${cover}"]`).click()
+})
+
+Then('the answers file covers {string} at the level {string}', async function (cover, level) {
+  await eventually(() => {
+    const doc = this.answers()
+    assert.equal(doc.indepth, cover)
+    assert.equal(doc.level, level)
+    assert.equal(doc.proofread, false)
+  }, 'the answers file holds the cover and the level')
+})
 
 When('the agent publishes a site map of a page with a modal, a panel and a sign-in workflow', async function () {
   fs.writeFileSync(this.reportPage, fs.readFileSync(SITE_MAP_PAGE, 'utf8'))
@@ -646,13 +673,16 @@ When('the agent publishes a site map of a page with a modal, a panel and a sign-
   fs.writeFileSync(this.answersFile, JSON.stringify({ ...this.answers(), stage: 'map', sitemap }, null, 2))
 })
 
-Then('the same tab shows the site map with all {int} screens switched on', async function (count) {
+Then('the same tab shows step 1, {string}, with all {int} pages switched on and the rail on {string}', async function (title, count, step) {
   const page = this.browserPage
   await page.locator('#tree .node').first().waitFor({ timeout: 5000 })
-  assert.equal(await page.locator('#tree .node').count(), count)
+  assert.equal(await page.locator('#mapTitle').innerText(), title)
+  assert.match(await page.locator('#stepsBar [aria-current="step"]').innerText(), /1\s*Pages/)
   assert.equal(await page.locator('#tree .switch[aria-checked="true"]').count(), count)
   assert.equal(await page.locator('#includeAll').isVisible(), false, 'Include all waits until something is off')
-  assert.match(await page.locator('#start').innerText(), new RegExp(`Review ${count} screens`))
+  assert.equal(await page.locator('#next').isVisible(), true, 'the pages step leads on to the workflows')
+  assert.equal(await page.locator('#start').isVisible(), false, 'Review waits for the last step')
+  await railOn(page, step)
 })
 
 When('the reviewer rests the pointer on {string}', async function (id) {
@@ -687,11 +717,68 @@ When('the reviewer switches off {string}', async function (id) {
   await page.locator(`.node[data-id="${id}"] > .row .switch`).click()
   assert.equal(await page.locator(`.node[data-id="${id}"] > .row .switch`).getAttribute('aria-checked'), 'false')
   assert.equal(await page.locator('#includeAll').isVisible(), true, 'Include all appears once something is off')
-  assert.match(await page.locator('#start').innerText(), /Review 2 screens/)
 })
 
-When('the reviewer starts the review', async function () {
-  await this.browserPage.locator('#start').click()
+When('the reviewer moves on to the workflows', async function () {
+  await this.browserPage.locator('#next').click()
+})
+
+Then('step 2, {string}, shows {string} with its {int} steps', async function (title, id, count) {
+  const page = this.browserPage
+  const flow = page.locator(`.flow[data-id="${id}"]`)
+  await flow.waitFor()
+  assert.equal(await page.locator('#mapTitle').innerText(), title)
+  assert.equal(await page.locator('#tree').isVisible(), false, 'the pages give way to the workflows')
+  assert.match(await page.locator('#stepsBar .past').innerText(), /Pages/)
+  assert.equal(await flow.locator('.chip').count(), count)
+  assert.equal(await flow.locator('.switch').count(), 0, 'a workflow is steered or removed, not switched')
+  assert.match(await page.locator('#start').innerText(), /Review 2 pages and 1 workflow/)
+})
+
+When('the reviewer steers {string} with {string} and adds {string}', async function (id, note, journey) {
+  const page = this.browserPage
+  await page.locator(`.flow[data-id="${id}"] [data-steer]`).click()
+  await page.locator(`[data-steer-form="${id}"] input`).fill(note)
+  await page.locator(`[data-steer-form="${id}"] button`).click()
+  await eventually(async () => {
+    assert.match(await page.locator(`.flow[data-id="${id}"]`).getAttribute('class'), /revising/)
+  }, 'the steered card waits behind a blur')
+  await page.locator('#addInput').fill(journey)
+  await page.locator('#addFlow button').click()
+  await page.locator('.flow.new').waitFor()
+})
+
+When('the reviewer presses {string}', async function (label) {
+  const button = this.browserPage.locator('#start')
+  assert.equal((await button.innerText()).trim(), label)
+  await button.click()
+})
+
+Then('the answers file asks to steer {string} and add {string}', async function (id, journey) {
+  await eventually(() => {
+    const edits = this.answers().workflowEdits
+    assert.deepEqual(edits, { steer: { [id]: 'Start from the cart' }, add: [journey] })
+    assert.equal(this.answers().exclude, undefined, 'the review has not started')
+  }, 'the answers file holds the workflow edits')
+})
+
+When('the agent redraws the workflows with {string} added', async function (id) {
+  const doc = this.answers()
+  doc.sitemap.workflows[0].goal = { en: 'From the cart to signed in', zh: '从购物车到登录成功' }
+  doc.sitemap.workflows.push({ id, title: { en: 'Contact the team', zh: '联系团队' }, goal: { en: 'From the home page to a sent message', zh: '从首页到发出消息' },
+    steps: [{ screen: 's-home', action: { en: 'Click Contact', zh: '点击联系' } }] })
+  delete doc.workflowEdits
+  fs.writeFileSync(this.answersFile, JSON.stringify(doc, null, 2))
+})
+
+Then('the map offers {string}', async function (label) {
+  await eventually(async () => {
+    assert.equal((await this.browserPage.locator('#start').innerText()).trim(), label)
+  }, `the map offers ${label}`)
+})
+
+When('the reviewer removes the workflow {string}', async function (id) {
+  await this.browserPage.locator(`.flow[data-id="${id}"] [data-remove]`).click()
 })
 
 Then('the answers file excludes {string}', async function (ids) {
@@ -704,37 +791,22 @@ Then('the answers file excludes {string}', async function (ids) {
 })
 
 When('the agent marks {string} done with {int} findings', async function (id, found) {
-  for (const set of ['status=done', `found=${found}`]) {
-    const patch = spawnSync(process.execPath, [BRIDGE_CLI, 'patch', '--json', this.answersFile, '--id', id, '--set', set])
-    assert.equal(patch.status, 0, String(patch.stderr))
-  }
+  await patchAnswers(this, id, ['status=done', `found=${found}`])
 })
 
-Then('the map shows {int} of {int} done', async function (done, total) {
+Then('the map shows {int} of {int} done, with the rail on {string}', async function (done, total, step) {
+  const page = this.browserPage
+  await page.locator('#stepsBar [data-tab="screens"]').click()
   await eventually(async () => {
-    assert.equal(await this.browserPage.locator('#tally').innerText(), `${done} of ${total} done`)
-    assert.match(await this.browserPage.locator('.node[data-id="s-home"] > .row .status').innerText(), /^Done · 3 found$/)
-  }, `${done} of ${total} screens are done`)
-})
-
-When('the reviewer opens the Workflows tab', async function () {
-  await this.browserPage.locator('#tabs [data-tab="flows"]').click()
-})
-
-Then('the workflow {string} shows its {int} steps, switched on', async function (id, count) {
-  const flow = this.browserPage.locator(`.flow[data-id="${id}"]`)
-  await flow.waitFor()
-  assert.equal(await flow.locator('.chip').count(), count)
-  assert.equal(await flow.locator('.switch').getAttribute('aria-checked'), 'true')
-  assert.equal(await this.browserPage.locator('#tree').isVisible(), false, 'the screens give way to the workflows')
-  assert.match(await this.browserPage.locator('#start').innerText(), /Review 2 screens and 1 workflow/)
+    assert.equal(await page.locator('#tally').innerText(), `${done} of ${total} done`)
+    assert.match(await page.locator('.node[data-id="s-home"] > .row .status').innerText(), /^Done · 3 found$/)
+  }, `${done} of ${total} are done`)
+  await railOn(page, step)
+  await page.locator('#stepsBar [data-tab="flows"]').click()
 })
 
 When('the agent walks {string} to step {int}', async function (id, step) {
-  for (const set of ['status=running', `at=${step - 1}`]) {
-    const patch = spawnSync(process.execPath, [BRIDGE_CLI, 'patch', '--json', this.answersFile, '--id', id, '--set', set])
-    assert.equal(patch.status, 0, String(patch.stderr))
-  }
+  await patchAnswers(this, id, ['status=running', `at=${step - 1}`])
 })
 
 Then('the workflow {string} shows step {int} of {int} under review', async function (id, step, total) {
@@ -752,8 +824,9 @@ Then('the map says {string}', async function (title) {
   assert.equal(await this.browserPage.locator('#tally').isVisible(), false, 'the count gives way to the mark')
 })
 
-Then('the same tab shows the report', async function () {
+Then('the same tab shows the report, with the rail on {string}', async function (step) {
   await this.browserPage.locator('#f-example .decide').waitFor({ timeout: 5000 })
+  await railOn(this.browserPage, step)
 })
 
 Given('a Polish report is served on its own', async function () {

@@ -12,9 +12,9 @@ A normal Polish round audits a product in one pass. On a whole site or a large w
 | **Screens** | Is each screen right? | Reviews one screen against the level's checks. |
 | **Workflows** | Can people finish what they came to do? | Walks one journey from where it starts to where it should end, and finds the step where people drop out. |
 
-The owner runs either mode or both, and switches off any screen or workflow to leave out.
+The owner picks Pages, Workflows or Both on the start page, right after the level, and the map covers only that. Every page in the run shows the same rail of steps: Level, Cover, Map, Review and Report.
 
-Polish reads this file when the answers file holds `"indepth": true`. Follow `../../skills/polish/SKILL.md` as usual, with these changes:
+Polish reads this file when the answers file's `indepth` is `"pages"`, `"workflows"` or `"both"`. `true`, written when the owner asks in chat, means `"both"`. Follow `../../skills/polish/SKILL.md` as usual, with these changes:
 
 | Polish step | In depth |
 |---|---|
@@ -28,6 +28,14 @@ Polish reads this file when the answers file holds `"indepth": true`. Follow `..
 ## Step A: Build the site map
 
 Show progress while you map, as in *Show progress* in Polish. Name the tasks after the work, such as "Read the routes", "Walk the navigation", "Open popups and panels" and "Find the workflows".
+
+Map only what `indepth` covers, so the owner waits less:
+
+| `indepth` | Map |
+|---|---|
+| `pages` | The pages and what opens on them. Skip *Find the workflows*. |
+| `workflows` | The workflows, and only the screens their steps pass through. |
+| `both` | Everything below. |
 
 ### Find the pages
 
@@ -116,14 +124,23 @@ A workflow is a journey someone comes to finish, such as signing up, buying, boo
 
 ## Step B: The owner picks
 
-The map has a **Screens** tab and, when there are workflows, a **Workflows** tab.
+The map is a stepped form: **Pages**, then **Workflows**. With one of them covered, it has a single step.
 
-- Screens shows a tree. Workflows shows one card per journey, its steps from left to right.
-- Everything has a switch, and every switch starts on.
-- Switching a page off switches off everything under it.
-- The side panel has one switch per mode, which turns every screen, or every workflow, on or off at once.
-- **Include all** turns every switch back on.
+- **Pages** shows a tree. Every page has a switch, and every switch starts on. Switching a page off switches off everything under it. **Include all** turns them back on.
+- **Workflows** shows one card per journey, its steps from left to right. The owner removes a card with its bin, steers one with a note, or adds a journey in their own words.
 - Resting the pointer on a row or on a workflow step shows that screen in the preview.
+
+While a steer or a new workflow is waiting, the main button reads **Update workflows**. It saves `workflowEdits`, and the watcher reports `SENT`:
+
+```json
+{"workflowEdits": {"steer": {"w-browser": "Start from the Software products page"}, "add": ["Contact the team"]}}
+```
+
+Redraw the workflows before the review:
+
+1. For each steer, change that workflow's steps and goal as the note asks. Keep its id.
+2. For each journey added, write a new workflow, with an id starting `w-`, and its steps from the map.
+3. Write `sitemap.workflows`, then delete `workflowEdits`. Keep every other key. The page shows the redrawn cards and offers **Review** again.
 
 **Review** saves `exclude`, and the watcher reports `SENT`:
 
@@ -131,7 +148,7 @@ The map has a **Screens** tab and, when there are workflows, a **Workflows** tab
 {"exclude": ["s-blog", "s-blog-post", "w-read"]}
 ```
 
-`exclude` holds the ids of every screen and workflow switched off. It is an empty list when everything stays on. Review everything else.
+`exclude` holds the ids of every page switched off, every workflow removed, and everything the owner did not cover. It is an empty list when everything stays in. Review everything else.
 
 ## Step C: Review each screen and workflow
 

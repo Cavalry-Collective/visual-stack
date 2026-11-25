@@ -295,6 +295,29 @@
   .linkdot{gap:0;font-size:0}
 }
 /* /vstack:shell css */
+/* vstack:shell rail-css */
+/* The steps of one Polish run, under the top bar: Level, Cover, Map, Review,
+   Report. The bars are the Visual Stack mark laid flat, and the red block
+   sits on the step the run is at. A page opts in by carrying the marker, and
+   shows it with VSShell.rail(step, busy). */
+.vs-rail{background:var(--surface);border-bottom:1px solid var(--line)}
+.vs-rail[hidden]{display:none}
+.vs-rail ol{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;max-width:78rem;margin:0 auto;
+  padding:10px clamp(1rem,3vw,2rem) 9px;list-style:none}
+.vs-rail li{display:grid;gap:6px;min-width:0;font:600 11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vs-rail i{position:relative;display:block;height:6px;border-radius:2px;background:var(--line-2);overflow:hidden}
+.vs-rail .done{color:var(--ink-2)}
+.vs-rail .done i,.vs-rail .now i{background:var(--ink)}
+.vs-rail .now{color:var(--ink)}
+.vs-rail .now i::after{content:"";position:absolute;top:0;bottom:0;right:0;width:26%;background:var(--brand);
+  animation:vs-rail-in 420ms cubic-bezier(.34,1.56,.64,1) both}
+.vs-rail .now.busy i::after{right:auto;width:30%;animation:vs-rail-run 1.6s cubic-bezier(.45,.05,.55,.95) infinite alternate}
+@keyframes vs-rail-in{from{transform:translateX(-300%)}}
+@keyframes vs-rail-run{from{transform:translateX(0)}to{transform:translateX(233%)}}
+@media (max-width:520px){.vs-rail li{font-size:9.5px;letter-spacing:.04em}}
+@media (prefers-reduced-motion:reduce){.vs-rail i::after{animation:none!important}}
+/* /vstack:shell rail-css */
 
 /* The first page of a Polish review: the owner picks a level of polish, then
    watches the agent prepare the review. The agent writes the report over this
@@ -588,6 +611,44 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
   .showcase.on { transform: translateY(-4px); }
   .refined.on .spec, .showcase.on .spec { transform: none; animation: none; }
 }
+
+/* ── what an in-depth review covers: the step after the level ── */
+.cover { display: grid; gap: 1.25rem; }
+.cover[hidden] { display: none; }
+.cover-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.cover-card { display: grid; gap: .75rem; align-content: start; padding: 1.5rem; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow); text-align: left; cursor: pointer; transition: transform 200ms var(--ease), box-shadow 200ms var(--ease), border-color 200ms var(--ease); }
+.cover-card:hover, .cover-card:focus-visible, .cover-card.picked { transform: translateY(-4px); border-color: var(--brand-line); box-shadow: 0 2px 4px rgba(23,19,32,.05), 0 18px 44px rgba(23,19,32,.12); outline: none; }
+.cover-card b { font-size: 1.5rem; letter-spacing: -.01em; }
+.cover-card .c-aim { color: var(--ink-2); }
+.cover-go { display: inline-flex; align-items: center; gap: .375rem; font-weight: 600; color: var(--ink-2); }
+.cover-card:hover .cover-go, .cover-card:focus-visible .cover-go { color: var(--brand); }
+/* Each card previews what it covers, and plays it on hover or focus. */
+.mini { height: 7.5rem; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); padding: .875rem; display: grid; align-content: center; gap: 6px; overflow: hidden; }
+.mini .r { display: block; height: 10px; border-radius: 3px; background: var(--line-2); }
+.mini .r:nth-child(2) { width: 82%; margin-left: 14px; }
+.mini .r:nth-child(3) { width: 70%; margin-left: 14px; }
+.mini .r:nth-child(4) { width: 76%; margin-left: 28px; }
+.mini .chain { display: flex; align-items: center; gap: 6px; }
+.mini .c { width: 2.6rem; height: 1.25rem; flex: none; border-radius: 999px; border: 1.5px solid var(--line-2); background: var(--surface); transition: border-color 200ms var(--ease), background 200ms var(--ease); }
+.mini .a { width: .9rem; height: 1.5px; flex: none; background: var(--ink-3); transform-origin: left; }
+.mini.both .r { height: 8px; }
+.cover-card:hover .r, .cover-card:focus-visible .r { animation: stackin 420ms var(--spring) both; }
+.cover-card:hover .r:nth-child(2), .cover-card:focus-visible .r:nth-child(2) { animation-delay: 70ms; }
+.cover-card:hover .r:nth-child(3), .cover-card:focus-visible .r:nth-child(3) { animation-delay: 140ms; }
+.cover-card:hover .r:nth-child(4), .cover-card:focus-visible .r:nth-child(4) { animation-delay: 210ms; }
+@keyframes stackin { from { transform: translateY(-8px); opacity: 0; } }
+.cover-card:hover .a, .cover-card:focus-visible .a { animation: join 260ms var(--ease) both; }
+.cover-card:hover .a:nth-of-type(2), .cover-card:focus-visible .a:nth-of-type(2) { animation-delay: 180ms; }
+.cover-card:hover .a:nth-of-type(3), .cover-card:focus-visible .a:nth-of-type(3) { animation-delay: 360ms; }
+.cover-card:hover .c:last-child, .cover-card:focus-visible .c:last-child { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 16%, var(--surface)); transition-delay: 600ms; }
+@keyframes join { from { transform: scaleX(0); } }
+.cover-back { justify-self: start; height: 2rem; }
+@media (max-width: 720px) {
+  .cover-cards { grid-template-columns: minmax(0, 1fr); gap: .75rem; }
+  .cover-card { padding: 1rem; gap: .5rem; }
+  .cover-card b { font-size: 1.25rem; }
+  .mini { height: 4.5rem; }
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
   .refined.on, .showcase.on { transform: none; }
@@ -684,6 +745,11 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
   <!-- /vstack:slot actions -->
 </div>
 <!-- /vstack:shell topbar -->
+<!-- vstack:shell rail -->
+<nav class="vs-rail" id="vsRail" aria-label="Steps" hidden>
+  <ol><li data-step="0"><i></i><span></span></li><li data-step="1"><i></i><span></span></li><li data-step="2"><i></i><span></span></li><li data-step="3"><i></i><span></span></li><li data-step="4"><i></i><span></span></li></ol>
+</nav>
+<!-- /vstack:shell rail -->
 
 <main>
 <section class="view choose" id="choose" hidden>
@@ -696,6 +762,14 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
     </div>
   </header>
   <div class="panels" id="panels" role="group" aria-labelledby="pickTitle"></div>
+  <div class="cover" id="cover" hidden>
+    <div class="cover-cards" role="group" aria-labelledby="pickTitle">
+      <button class="cover-card" type="button" data-cover="pages"><span class="mini" aria-hidden="true"><span class="r"></span><span class="r"></span><span class="r"></span><span class="r"></span></span><b data-t="coverPages"></b><span class="c-aim" data-t="coverPagesAim"></span><span class="cover-go"><span data-t="go"></span> →</span></button>
+      <button class="cover-card" type="button" data-cover="workflows"><span class="mini" aria-hidden="true"><span class="chain"><span class="c"></span><span class="a"></span><span class="c"></span><span class="a"></span><span class="c"></span><span class="a"></span><span class="c"></span></span></span><b data-t="coverFlows"></b><span class="c-aim" data-t="coverFlowsAim"></span><span class="cover-go"><span data-t="go"></span> →</span></button>
+      <button class="cover-card" type="button" data-cover="both"><span class="mini both" aria-hidden="true"><span class="r"></span><span class="r"></span><span class="chain"><span class="c"></span><span class="a"></span><span class="c"></span><span class="a"></span><span class="c"></span></span></span><b data-t="coverBoth"></b><span class="c-aim" data-t="coverBothAim"></span><span class="cover-go"><span data-t="go"></span> →</span></button>
+    </div>
+    <button class="btn cover-back" type="button" id="coverBack"></button>
+  </div>
   <!-- The choices most reviews leave as they are, folded under the panels: one line says what they are set to. -->
   <div class="opt-foot">
     <div class="opt-summary"><span class="opt-label" data-t="optionsLabel"></span><span id="optSummary"></span><button class="btn" type="button" id="optToggle" aria-controls="options" aria-expanded="false"></button></div>
@@ -984,6 +1058,20 @@ window.VSShell = (function () {
     if (e && eyebrow != null) e.textContent = eyebrow;
   }
 
+  /* The steps of one Polish run. `step` is 0 to 4, or -1 to hide the rail;
+     `busy` makes the red block run while the agent works on that step. */
+  const RAIL = [['Level', '级别'], ['Cover', '范围'], ['Map', '地图'], ['Review', '评审'], ['Report', '报告']];
+  function rail (step, busy) {
+    const el = $('#vsRail');
+    if (!el) return;
+    el.hidden = step < 0;
+    el.querySelectorAll('li').forEach((li, index) => {
+      li.className = index < step ? 'done' : index === step ? 'now' + (busy ? ' busy' : '') : '';
+      if (index === step) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current');
+      li.querySelector('span').textContent = RAIL[index][lang === 'zh' ? 1 : 0];
+    });
+  }
+
   /** Mark the tool itself as unfinished. `false` takes it off again. */
   function wip (on, label) {
     const el = $('#wip');
@@ -1106,7 +1194,7 @@ window.VSShell = (function () {
   let closeSettings = () => {};
 
   const api = {
-    init, setTheme, setLang, setLink, setWatching, setServerVersion, hideLink, name, wip,
+    init, setTheme, setLang, setLink, setWatching, setServerVersion, hideLink, name, wip, rail,
     connect, toast, armConfirm, esc,
     closeSettings: () => closeSettings(),
     get theme () { return theme },
@@ -1264,7 +1352,11 @@ window.VSScrub = (function () {
     live: ['Live', '实时'],
     labTrimHint: ['Flags text that explains the screen and is not needed.', '标出解释界面、但并不需要的文字。'],
     labIndepth: ['In depth', '深度模式'],
-    labIndepthHint: ['Maps every page, popup, panel and workflow first. You pick what to review.', '先画出所有页面、弹窗、侧滑面板和流程，再由你选择评审哪些。'],
+    labIndepthHint: ['Reviews every page or every workflow, each with its own agent.', '逐个评审每个页面或每个流程，各由一个智能体负责。'],
+    coverTitle: ['What should {agent} cover?', '{agent} 要覆盖哪些内容？'],
+    coverPages: ['Pages', '页面'], coverPagesAim: ['Is each page right?', '每个页面都对吗？'],
+    coverFlows: ['Workflows', '流程'], coverFlowsAim: ['Can people finish what they came to do?', '用户能完成想做的事吗？'],
+    coverBoth: ['Both', '两者'], coverBothAim: ['Every page, then every journey.', '先看每个页面，再走每个流程。'],
     effortSummary: ['{effort} effort', '投入程度：{effort}'],
     labsOn: ['experiments on', '已开实验功能'],
     change: ['Change', '更改'],
@@ -1359,6 +1451,7 @@ window.VSScrub = (function () {
     panel.addEventListener('click', function () {
       /* A tap has no hover to preview with, so the first tap previews and the second starts. */
       if (lastPointer === 'touch' && active !== panel) { setActive(panel); paintGo(); return }
+      if (switchesOf().indepth) { coverFor = panel.dataset.level; render(); $('.cover-card').focus(); return }
       choose(panel.dataset.level)
     })
     panel.addEventListener('keydown', function (event) {
@@ -1387,7 +1480,8 @@ window.VSScrub = (function () {
   document.addEventListener('keydown', function (event) {
     if ($('#choose').hidden || event.metaKey || event.ctrlKey || event.altKey) return
     var index = ['1', '2', '3'].indexOf(event.key)
-    if (index !== -1) { event.preventDefault(); panelList[index].focus() }
+    if (index !== -1) { event.preventDefault(); (coverFor ? $$('.cover-card') : panelList)[index].focus() }
+    if (event.key === 'Escape' && coverFor) { coverFor = null; render() }
   })
 
   var post = function (path, body) {
@@ -1395,12 +1489,15 @@ window.VSScrub = (function () {
       .then(function (response) { if (!response.ok) throw new Error(String(response.status)); return response.json() })
   }
   var choosing = false
-  var choose = function (id) {
+  /* In an in-depth review, the level picked and waiting for what to cover. */
+  var coverFor = null
+  var coverOf = function (value) { return value === true ? 'both' : ['pages', 'workflows', 'both'].indexOf(value) !== -1 ? value : null }
+  var choose = function (id, cover) {
     if (!BRIDGE) { window.VSShell.toast(t('offline'), 3200); return }
     if (choosing) return
     choosing = true
     var switches = switchesOf()
-    var next = { ...doc, level: id, lang: lang(), delivery: deliveryOf(), effort: effortOf(), proofread: switches.proofread, trimCopy: switches.trimCopy, liveView: switches.liveView, failures: switches.failures, indepth: switches.indepth }
+    var next = { ...doc, level: id, lang: lang(), delivery: deliveryOf(), effort: effortOf(), proofread: switches.proofread, trimCopy: switches.trimCopy, liveView: switches.liveView, failures: switches.failures, indepth: switches.indepth ? cover || 'both' : false }
     post(BRIDGE.save, next).then(function () {
       doc = next
       render()
@@ -1555,7 +1652,7 @@ window.VSScrub = (function () {
   })
   /* Failure checks and experiments are off until the owner turns them on. */
   var chosenSwitches = null
-  var switchesOf = function () { return chosenSwitches || { proofread: doc.proofread === true, trimCopy: doc.trimCopy === true, liveView: doc.liveView === true, failures: doc.failures === true, indepth: doc.indepth === true } }
+  var switchesOf = function () { return chosenSwitches || { proofread: doc.proofread === true, trimCopy: doc.trimCopy === true, liveView: doc.liveView === true, failures: doc.failures === true, indepth: !!coverOf(doc.indepth) } }
   var paintSwitches = function () {
     var switches = switchesOf()
     $$('[data-switch]').forEach(function (button) { button.setAttribute('aria-checked', String(!!switches[button.dataset.switch])) })
@@ -1589,9 +1686,21 @@ window.VSScrub = (function () {
       switches[button.dataset.switch] = !switches[button.dataset.switch]
       chosenSwitches = switches
       paintSwitches()
+      window.VSShell.rail(switches.indepth ? 0 : -1)
     })
   })
   var paintChooser = function () {
+    var covering = !!coverFor
+    $('#panels').hidden = covering
+    $('.opt-foot').hidden = covering
+    $('#pickSub').hidden = covering
+    $('#recLine').hidden = covering
+    $('#cover').hidden = !covering
+    $('#pickTitle').textContent = covering ? t('coverTitle') : t('pickTitle')
+    if (covering) {
+      $('#coverBack').textContent = '← ' + pick(levelOf(coverFor).name)
+      $$('.cover-card').forEach(function (card) { card.classList.toggle('picked', card.dataset.cover === coverOf(doc.indepth)) })
+    }
     $('#pickSub').textContent = touchUI ? t('pickSubTouch') : t('pickSub')
     paintRecommendation()
     paintDelivery()
@@ -1614,7 +1723,14 @@ window.VSScrub = (function () {
     $('#progress').hidden = choosingView
     if (choosingView) paintChooser()
     else paintProgress()
+    /* An in-depth review shows the steps of the whole run: the level, what to cover, then the map. */
+    var indepth = choosingView ? switchesOf().indepth : !!coverOf(doc.indepth)
+    window.VSShell.rail(!indepth ? -1 : choosingView ? (coverFor ? 1 : 0) : 2, !choosingView && doc.stage !== 'report')
   }
+  $$('.cover-card').forEach(function (card) {
+    card.addEventListener('click', function () { if (coverFor) choose(coverFor, card.dataset.cover) })
+  })
+  $('#coverBack').addEventListener('click', function () { coverFor = null; render() })
 
   $('#openReport').addEventListener('click', function () { location.reload() })
   /* Retry hands the problem back to the agent: it clears the problem and asks for another attempt. */

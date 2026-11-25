@@ -13,26 +13,25 @@ compares against to decide an update is available. See the release checklist in
 **Added**
 
 - **Polish has an in-depth mode, as an experiment.** Turn on **In depth**
-  under Experimental before you pick a level, or ask for an in-depth review in
-  chat. It is for a whole site or a large web app, where one pass finds too
-  little.
-  - Polish first maps the product: its pages, and the modals, popups and
-    slide-in panels each page opens. Pages that share one layout, such as 200
-    product pages, appear once, and Polish checks one of them.
-  - The map opens in your tab. Rest the pointer on a screen to see it in the
-    preview beside the map, and open it to see what sits under it.
-  - Polish also finds the workflows people come to finish, such as buying,
-    signing up or getting in touch. Each one shows as a card with its steps,
-    on a Workflows tab beside the screens.
-  - A screen review asks whether each screen is right. A workflow review
-    walks the journey from start to finish and finds the step where people
-    give up: an unclear next step, a dead end, an error they can't fix, lost
-    input, a late surprise, too much effort, or an unclear result.
-  - Everything is reviewed. Switch off any screen or workflow you want left
-    out, or switch off a whole mode in the side panel.
-  - Each screen and each workflow gets its own agent. The map shows which ones
-    are being reviewed, and which step each workflow has reached. The findings
-    then come back as one Polish report, with the workflows that break first.
+  under Experimental, or ask for an in-depth review in chat. It is for a whole
+  site or a large web app, where one pass finds too little.
+  - After you pick a level, choose what to cover: **Pages** (is each page
+    right?), **Workflows** (can people finish what they came to do?) or
+    **Both**. Polish maps only what you chose, so it starts sooner.
+  - A rail of steps runs across the top of every page in the run: Level,
+    Cover, Map, Review and Report.
+  - The map is a stepped form: pages first, then workflows. Pages that share
+    one layout, such as 200 product pages, appear once, and Polish checks one
+    of them. Switch off any page you want left out.
+  - Each workflow is a card with its steps. Remove one, steer one with a
+    note, or add a journey in your own words, and Polish redraws them before
+    the review.
+  - Rest the pointer on a page or a step to see it in the preview beside the
+    map.
+  - Each page and each workflow gets its own agent. A workflow review walks
+    the journey from start to finish and finds the step where people give up.
+    The map shows what is being reviewed and which step each workflow has
+    reached, and the findings come back as one Polish report.
 
   While it maps a site you do not own, Polish never submits a form or pays.
 
