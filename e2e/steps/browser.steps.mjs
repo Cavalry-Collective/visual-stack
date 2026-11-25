@@ -582,6 +582,102 @@ Then('the answers file still holds the level {string}', async function (level) {
   await eventually(() => { assert.equal(this.answers().level, level) }, `the level ${level} survives a send`)
 })
 
+/* ── an in-depth review: the site map ── */
+
+const SITE_MAP_PAGE = path.resolve(path.dirname(fileURLToPath(import.meta.url)),
+  '../../plugins/vstack/experimental/polish-indepth/assets/site-map.html')
+
+When('the reviewer turns on In depth and picks the level {string}', async function (level) {
+  const page = this.browserPage
+  await page.locator('#optToggle').click()
+  await page.locator('[data-lab="indepth"]').click()
+  assert.equal(await page.locator('[data-lab="indepth"]').getAttribute('aria-checked'), 'true')
+  await page.locator(`.panel[data-level="${level}"]`).click()
+})
+
+Then('the answers file asks for an in-depth review', async function () {
+  await eventually(() => {
+    const doc = this.answers()
+    assert.equal(doc.indepth, true)
+    assert.equal(doc.proofread, false)
+  }, 'the answers file holds indepth')
+})
+
+When('the agent publishes a site map of a page with a modal and a panel', async function () {
+  fs.writeFileSync(this.reportPage, fs.readFileSync(SITE_MAP_PAGE, 'utf8'))
+  const sitemap = {
+    origin: 'https://shop.example',
+    screens: [{
+      id: 's-home', kind: 'page', path: '/', title: { en: 'Home', zh: '首页' },
+      children: [
+        { id: 's-signin', kind: 'modal', title: { en: 'Sign in', zh: '登录' }, open: 'Click Sign in.' },
+        { id: 's-cart', kind: 'panel', title: { en: 'Cart', zh: '购物车' }, open: 'Click the cart.' },
+      ],
+    }],
+  }
+  fs.writeFileSync(this.answersFile, JSON.stringify({ ...this.answers(), stage: 'map', sitemap }, null, 2))
+})
+
+Then('the same tab shows the site map with all {int} screens ticked', async function (count) {
+  const page = this.browserPage
+  await page.locator('#tree .node').first().waitFor({ timeout: 5000 })
+  assert.equal(await page.locator('#tree .node').count(), count)
+  assert.equal(await page.locator('#tree input:checked').count(), count)
+  assert.match(await page.locator('#start').innerText(), new RegExp(`Review ${count} screens`))
+})
+
+When('the reviewer closes the page {string} in the map', async function (id) {
+  await this.browserPage.locator(`.node[data-id="${id}"] > .row .title`).click()
+})
+
+Then('the map hides what opens on {string}', async function (id) {
+  const page = this.browserPage
+  await eventually(async () => {
+    assert.equal(await page.locator(`.node[data-id="${id}"] .node`).first().isVisible(), false)
+  }, `what opens on ${id} is hidden`)
+  await page.locator(`.node[data-id="${id}"] > .row .title`).click()
+  await page.locator(`.node[data-id="${id}"] .node`).first().waitFor()
+})
+
+When('the reviewer unticks {string} and sets the depth to {string}', async function (id, depth) {
+  const page = this.browserPage
+  await page.locator(`.node[data-id="${id}"] > .row input`).click()
+  assert.match(await page.locator('#start').innerText(), /Review 2 screens/)
+  await page.locator(`#stops [data-depth="${depth}"]`).click()
+})
+
+When('the reviewer starts the review', async function () {
+  await this.browserPage.locator('#start').click()
+})
+
+Then('the answers file focuses on {string} at {string} depth', async function (ids, depth) {
+  await eventually(() => {
+    const doc = this.answers()
+    assert.deepEqual(doc.focus, ids.split(','))
+    assert.equal(doc.depth, depth)
+    assert.equal(doc.level, 'clean', 'the level survives the pick')
+  }, 'the answers file holds the focus and the depth')
+  await this.browserPage.locator('#start').waitFor({ state: 'hidden' })
+})
+
+When('the agent marks {string} done with {int} findings', async function (id, found) {
+  for (const set of ['status=done', `found=${found}`]) {
+    const patch = spawnSync(process.execPath, [BRIDGE_CLI, 'patch', '--json', this.answersFile, '--id', id, '--set', set])
+    assert.equal(patch.status, 0, String(patch.stderr))
+  }
+})
+
+Then('the map shows {int} of {int} screens done', async function (done, total) {
+  await eventually(async () => {
+    assert.equal(await this.browserPage.locator('#tally').innerText(), `${done} of ${total} screens done`)
+    assert.match(await this.browserPage.locator('.node[data-id="s-home"] > .row .status').innerText(), /Done · 3 found/)
+  }, `${done} of ${total} screens are done`)
+})
+
+Then('the same tab shows the report', async function () {
+  await this.browserPage.locator('#f-example .decide').waitFor({ timeout: 5000 })
+})
+
 Given('a Polish report is served on its own', async function () {
   await this.startReportServer(fs.readFileSync(REPORT_TEMPLATE, 'utf8'))
 })

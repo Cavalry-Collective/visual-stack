@@ -35,6 +35,22 @@ Feature: A Polish report answered in its own tab
     Then the answers file approves "f-example"
     And the answers file still holds the level "refined"
 
+  @browser
+  Scenario: R0b — an in-depth review picks its screens on a site map
+    When the reviewer turns on In depth and picks the level "clean"
+    Then the answers file asks for an in-depth review
+    When the agent publishes a site map of a page with a modal and a panel
+    Then the same tab shows the site map with all 3 screens ticked
+    When the reviewer closes the page "s-home" in the map
+    Then the map hides what opens on "s-home"
+    When the reviewer unticks "s-cart" and sets the depth to "deep"
+    And the reviewer starts the review
+    Then the answers file focuses on "s-home,s-signin" at "deep" depth
+    When the agent marks "s-home" done with 3 findings
+    Then the map shows 1 of 2 screens done
+    When the agent publishes the report
+    Then the same tab shows the report
+
   Rule: The reviewer answers the report
 
   Background:

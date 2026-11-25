@@ -8,6 +8,23 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.18.0 — 2026-11-25
+
+**Added**
+
+- **Polish has an in-depth mode, as an experiment.** Turn on **In depth**
+  under Experimental before you pick a level. It is for a whole site or a
+  large web app, where one pass finds too little.
+  - Polish first maps the product: its pages, and the modals, popups and
+    slide-in panels each page opens. Pages that share one layout, such as 200
+    product pages, appear once.
+  - The map opens in your tab. Open any screen to see what sits under it, tick
+    the screens to review, and set the depth to Quick, Standard or Deep.
+  - Each screen you tick gets its own agent, and the map shows each one's
+    progress. The findings then come back as one Polish report.
+
+  While it maps a site you do not own, Polish never submits a form or pays.
+
 ## 6.17.0 — 2026-11-20
 
 **Added**

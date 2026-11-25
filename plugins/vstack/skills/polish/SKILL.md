@@ -45,6 +45,7 @@ The owner also sets these in the page. Each is saved with the pick:
 | **Effort**: Low, Medium or High | `effort` | `medium` | The model and reasoning effort the work runs at. See *Run at the chosen effort* below. |
 | **Proofread** (experimental) | `proofread` | `false` | The report's words and new UI copy go through `vstack:proofread`, in Step 4 and Step 5. |
 | **Trim AI filler** (experimental) | `trimCopy` | `false` | The review adds check CX1 in `lenses.md`. |
+| **In depth** (experimental) | `indepth` | `false` | The review maps the product first, the owner picks the screens, and each screen gets its own agent. Follow [`experimental/polish-indepth/SKILL.md`](../../experimental/polish-indepth/SKILL.md) from Step 3. |
 
 If `.vstack/local/polish/` holds an earlier round for this target, also follow **Later rounds** below. Rounds from before the rename sit in `.vstack/local/design-review/`; read them there and save the next round under `polish/`.
 
@@ -78,7 +79,7 @@ Open the review before you audit:
 5. Recommend a level, as in *Recommending a level* in `lenses.md`, while the owner reads the panels. Write it to the answers file as `recommend`, with a one-sentence reason in both languages. The page marks that panel **Recommended**.
 6. Wait for `SENT`. Do not start Step 2 until the answers file holds a `level`.
 
-The pick also saves `lang`, `en` or `zh`, the language the page showed, and the `delivery`, `effort`, `proofread` and `trimCopy` the owner kept.
+The pick also saves `lang`, `en` or `zh`, the language the page showed, and the `delivery`, `effort`, `proofread`, `trimCopy` and `indepth` the owner kept.
 
 ### Run at the chosen effort
 
@@ -149,6 +150,7 @@ Answer each watcher event:
 | Event | Action |
 |---|---|
 | `SENT`, while `stage` is `choose` | The owner picked. Read `level` and `lang`, start *Show progress*, and continue at Step 2. |
+| `SENT`, while `stage` is `map` | The owner picked the screens for an in-depth review. Continue at Step C of the in-depth file. |
 | `SENT`, with `retry` set | The owner pressed **Retry**. Delete `retry` and try the step that stopped again. |
 | `SENT` | Read the answers file. Revise every steered section and add variations to every `vary` section, as in *How the owner answers* in `report.md`. Do not build anything yet. |
 | `APPROVED` | Build the approved sections, or write the report, in Step 5. |

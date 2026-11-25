@@ -702,6 +702,7 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
         <div class="switches" role="group" aria-labelledby="labsLabel">
           <button class="switch" type="button" role="switch" aria-checked="false" data-lab="proofread"><span class="track"><span class="knob"></span></span><span data-t="labProofread"></span></button>
           <button class="switch" type="button" role="switch" aria-checked="false" data-lab="trimCopy"><span class="track"><span class="knob"></span></span><span data-t="labTrim"></span></button>
+          <button class="switch" type="button" role="switch" aria-checked="false" data-lab="indepth"><span class="track"><span class="knob"></span></span><span data-t="labIndepth"></span></button>
         </div>
         <p class="opt-hint" id="labsHint"></p>
       </div>
@@ -1233,6 +1234,8 @@ window.VSScrub = (function () {
     labTrim: ['Trim AI filler', '删减 AI 套话'],
     labProofreadHint: ['Sends copy to ChatGPT to proofread.', '把文案发给 ChatGPT 校对。'],
     labTrimHint: ['Flags text that explains the screen and is not needed.', '标出解释界面、但并不需要的文字。'],
+    labIndepth: ['In depth', '深度模式'],
+    labIndepthHint: ['Maps every page, popup and panel first. You pick where to look.', '先画出所有页面、弹窗和侧滑面板，再由你选重点。'],
     effortSummary: ['{effort} effort', '投入程度：{effort}'],
     labsOn: ['experiments on', '已开实验功能'],
     change: ['Change', '更改'],
@@ -1368,7 +1371,7 @@ window.VSScrub = (function () {
     if (choosing) return
     choosing = true
     var labs = labsOf()
-    var next = Object.assign({}, doc, { level: id, lang: lang(), delivery: deliveryOf(), effort: effortOf(), proofread: labs.proofread, trimCopy: labs.trimCopy })
+    var next = Object.assign({}, doc, { level: id, lang: lang(), delivery: deliveryOf(), effort: effortOf(), proofread: labs.proofread, trimCopy: labs.trimCopy, indepth: labs.indepth })
     post(BRIDGE.save, next).then(function () {
       doc = next
       render()
@@ -1477,14 +1480,18 @@ window.VSScrub = (function () {
   })
   /* Experiments are off until the owner turns them on. */
   var chosenLabs = null
-  var labsOf = function () { return chosenLabs || { proofread: doc.proofread === true, trimCopy: doc.trimCopy === true } }
+  var labsOf = function () { return chosenLabs || { proofread: doc.proofread === true, trimCopy: doc.trimCopy === true, indepth: doc.indepth === true } }
   var paintLabs = function () {
     var labs = labsOf()
     $$('[data-lab]').forEach(function (button) { button.setAttribute('aria-checked', String(!!labs[button.dataset.lab])) })
     $('[data-lab="proofread"]').title = t('labProofreadHint')
     $('[data-lab="trimCopy"]').title = t('labTrimHint')
-    $('#labsHint').textContent = t('labProofreadHint')
-    $('#labsHint').hidden = !labs.proofread
+    $('[data-lab="indepth"]').title = t('labIndepthHint')
+    var hints = []
+    if (labs.proofread) hints.push(t('labProofreadHint'))
+    if (labs.indepth) hints.push(t('labIndepthHint'))
+    $('#labsHint').textContent = hints.join(' ')
+    $('#labsHint').hidden = !hints.length
     paintSummary()
   }
   /* On a phone the settings fold into one line, so the levels stay on the first screen. */
@@ -1492,7 +1499,7 @@ window.VSScrub = (function () {
   var paintSummary = function () {
     var labs = labsOf()
     var parts = [t(deliveryOf() === 'report' ? 'deliveryReport' : 'deliveryBuild'), t('effortSummary').replace('{effort}', t(effortKey(effortOf())))]
-    if (labs.proofread || labs.trimCopy) parts.push(t('labsOn'))
+    if (labs.proofread || labs.trimCopy || labs.indepth) parts.push(t('labsOn'))
     $('#optSummary').textContent = parts.join(' · ')
     $('#optToggle').textContent = optionsOpen ? t('done') : t('change')
     $('#optToggle').setAttribute('aria-expanded', String(optionsOpen))
@@ -1548,12 +1555,13 @@ window.VSScrub = (function () {
     }).then(function () { retrying = false })
   })
 
-  /* The agent moves the review on by writing the answers file: tasks, ticks, then the report. */
+  /* The agent moves the review on by writing the answers file: tasks, ticks, then the report.
+     An in-depth review shows its site map first, written over this page the same way. */
   var onPush = function (next) {
     if (!next || typeof next !== 'object') return
-    var toReport = doc.stage !== 'report' && next.stage === 'report'
+    var replaced = next.stage !== doc.stage && (next.stage === 'report' || next.stage === 'map')
     doc = next
-    if (toReport) { location.reload(); return }
+    if (replaced) { location.reload(); return }
     render()
   }
 
