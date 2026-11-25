@@ -134,8 +134,10 @@ The owner presses Approve or Reject on each section, or opens Steer. The page se
 | `lang` | `en` or `zh`. The language the owner picked in. |
 | `delivery` | `build` or `report`. Written by you as the default, and by the page with the owner's choice when they pick. |
 | `effort` | `low`, `medium` or `high`. Written by the page when the owner picks. Missing means `medium`. |
+| `failures` | `true` when the owner turned on Failure handling. Written by the page. |
 | `proofread` | `true` when the owner turned on Proofread. Written by the page. |
 | `trimCopy` | `true` when the owner turned on Trim AI filler. Written by the page. |
+| `liveView` | `true` when the owner turned on Live view. Written by the page. |
 | `indepth` | `true` when the owner turned on In depth. Written by the page. Its own keys are in [`experimental/polish-indepth/SKILL.md`](../../experimental/polish-indepth/SKILL.md). |
 | `canBuild` | `false` when the code is not in this repo. The page then offers only **Report only**. |
 | `recommend` | `{"level", "reason": {"en", "zh"}}`. Your quick look at the site. The page marks that panel **Recommended**. |

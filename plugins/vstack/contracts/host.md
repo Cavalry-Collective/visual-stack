@@ -126,10 +126,13 @@ The subagent applies the comments it was given and nothing else. That is one
 comment, or a group of related ones the session put together. The session that started it
 owns `publish` and `reply`, so the review still speaks with one voice.
 
+Polish also starts helpers, which it calls workers, for the parts of an audit that can run side by
+side. Each worker takes one narrow task and reports back. The session that
+started it writes every file the owner's page reads.
+
 A skill may also pass a model and a reasoning effort, taken from the profile's
-`effortLevels`. Polish does this to run its work at the effort level
-the owner picked. A Host whose profile has no `effortLevels` is never passed
-them.
+`effortLevels`. Polish does this to run its workers at the effort level the
+owner picked. A Host whose profile has no `effortLevels` is never passed them.
 
 ### `browser_capture` — **optional**
 

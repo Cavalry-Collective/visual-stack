@@ -42,10 +42,12 @@ The owner also sets these in the page. Each is saved with the pick:
 
 | Setting | Key | Default | What it changes |
 |---|---|---|---|
-| **Effort**: Low, Medium or High | `effort` | `medium` | The model and reasoning effort the work runs at. See *Run at the chosen effort* below. |
+| **Effort**: Low, Medium or High | `effort` | `medium` | The model and reasoning effort the workers run at. See *Run the work in parallel* below. |
+| **Failure handling** | `failures` | `false` | The review forces failures and adds the checks in *Option: Failure handling* in `lenses.md`, at any level. |
 | **Proofread** (experimental) | `proofread` | `false` | The report's words and new UI copy go through `vstack:proofread`, in Step 4 and Step 5. |
 | **Trim AI filler** (experimental) | `trimCopy` | `false` | The review adds check CX1 in `lenses.md`. |
-| **In depth** (experimental) | `indepth` | `false` | The review maps the product first, the owner sets how deep each screen goes, and each screen gets its own agent. Follow [`experimental/polish-indepth/SKILL.md`](../../experimental/polish-indepth/SKILL.md) from Step 3. |
+| **Live view** (experimental) | `liveView` | `false` | The progress page shows what each browser worker sees, as in *Live view* below. |
+| **In depth** (experimental) | `indepth` | `false` | The review maps the product first, the owner switches off the screens to leave out, and each screen gets its own agent. Follow [`experimental/polish-indepth/SKILL.md`](../../experimental/polish-indepth/SKILL.md) from Step 3. |
 
 If `.vstack/local/polish/` holds an earlier round for this target, also follow **Later rounds** below. Rounds from before the rename sit in `.vstack/local/design-review/`; read them there and save the next round under `polish/`.
 
@@ -76,18 +78,54 @@ Open the review before you audit:
    | `pull` | `watch_next` | `node "$LIB/json-bridge.mjs" watch --json "$R.json" --tool polish --next --timeout 25 --seq <seq>` |
 
    A bounded wait returns one event, or `IDLE`, and ends with a `WAIT` line. Run the command on that line to wait again, after you have acted on the event. Keep waiting until `APPROVED` or `CLOSED`, and do not end the turn while the owner is still answering. How the link behaves is in [`contracts/bridge-loop.md`](../../contracts/bridge-loop.md).
-5. Recommend a level, as in *Recommending a level* in `lenses.md`, while the owner reads the panels. Write it to the answers file as `recommend`, with a one-sentence reason in both languages. The page marks that panel **Recommended**.
+5. Start the Step 2 reader, as in *Run the work in parallel* below. Recommend a level, as in *Recommending a level* in `lenses.md`, while the owner reads the panels. Write it to the answers file as `recommend`, with a one-sentence reason in both languages. The page marks that panel **Recommended**.
 6. Wait for `SENT`. Do not start Step 2 until the answers file holds a `level`.
 
-The pick also saves `lang`, `en` or `zh`, the language the page showed, and the `delivery`, `effort`, `proofread`, `trimCopy` and `indepth` the owner kept.
+The pick also saves `lang`, `en` or `zh`, the language the page showed, and the `delivery`, `effort`, `failures`, `proofread`, `trimCopy`, `liveView` and `indepth` the owner kept.
 
-### Run at the chosen effort
+### Run the work in parallel
 
-The Host profile's `effortLevels` names a model and a reasoning effort for each of `low`, `medium` and `high`.
+Split Steps 2 to 5 across workers, so independent parts run at the same time. If the Host profile has `capabilities.subagents: false`, skip this section and do every step yourself, in order.
 
-- If the profile has `effortLevels`, start Steps 2 to 4 with Host op `subagent`, passing the model and effort named for `effort`. Give it this file, the answers file's path and the target. Start Step 5, and each revision after `SENT`, the same way.
-- Keep serving the page and answering watcher events yourself while it works.
-- If the profile has no `effortLevels`, do the work yourself on the session's model.
+Start each worker with Host op `subagent`:
+
+- Pass the model and reasoning effort that the profile's `effortLevels` names for `effort`. If the profile has no `effortLevels`, pass neither.
+- Start the reader at `medium`, the default. It starts before the owner picks, so their `effort` is not saved yet.
+- Give it one narrow task, the target, the files it must read, and a folder of its own for output: `$R-work/<worker id>/`.
+- Say exactly what it returns, as in the table below.
+- Tell it not to write the answers file or `$R.html`, and not to start workers of its own.
+
+Run these parts in workers:
+
+| Part | Workers | Each worker returns |
+|---|---|---|
+| **Step 2: read** | One reader. Start it as soon as the page is served, because it does not depend on the level. | The project's design rules and tokens, and the files behind each screen in scope. |
+| **Step 3: walk** | One per flow or group of screens in the survey. | Its screenshots with their sizes, its measurements and console errors, and a verdict with evidence for every check that applies to its part. |
+| **Step 3: failures** | When `failures` is true, one per dependency or failure in *Option: Failure handling* in `lenses.md`. | A verdict with evidence for each failure check, and screenshots of each failure state. |
+| **Step 4: sections** | One per finding, or per group of findings on one screen. | The section HTML in both languages, its Today and Proposed pictures, its spec block, and the check ID and evidence for the chat reply. |
+| **Revisions** | After `SENT`, one per steered or `vary` section. | The revised section HTML, with its id kept. |
+| **Step 5: build** | One per approved slice, but only when slices change different files. Otherwise build the slices yourself, in order. | The files it changed, the tests it ran, and what it left out. |
+
+Keep this work yourself:
+
+- Serve the page, answer every watcher event, and talk to the owner.
+- Write the survey, the answers file and `$R.html`. Merge what workers return into them, and tick each progress task as its workers report.
+- Choose which failed checks become sections, their categories and their order. In Showcase, name the concept before you start section workers.
+- Run `vstack:proofread`, once over all the copy, because it drives the owner's browser.
+
+Give each browser worker a headless browser of its own, such as a Playwright browser context, so throttling, blocked requests and cookies stay apart. If no headless browser is available, or the target needs the owner's sign-in in `user_browser`, capture yourself in that tab, one screen at a time. Then give workers only the parts that need no browser, working from your saved screenshots.
+
+Run no more than six workers at once. If a worker fails or returns something unusable, do its part yourself and say so in chat.
+
+### Live view
+
+When `liveView` is true, the progress page shows the latest frame from each browser in place of its animation. The page reads the frames from `$R.live/`, one image per browser.
+
+- Tell each browser worker to save a JPEG of its viewport to `$R.live/<worker id>.jpg` about once a second, and after every action. Name the worker after what it walks, such as `checkout-phone`, because the page shows the name as the caption.
+- Write each frame to a temporary file in the same folder, then rename it over the old one, so the page never reads half a frame.
+- Tell the worker to delete its frame when it finishes.
+- Save frames the same way when you capture yourself in a headless browser.
+- Without a headless browser, such as when the audit runs in the owner's `user_browser` tab, save no frames. The page keeps its animation. Say in chat that the owner can watch that tab instead.
 
 ### Show progress
 
@@ -109,7 +147,7 @@ Keep the page current while you work through Steps 2 to 4:
 
 ## Step 2: Read the current instructions
 
-Read the project instructions and anything design-related: the design guide, frontend contract, token file and stylesheets. Then read the code for the screens in scope. The review must fit the rules the project already has.
+The reader worker does this step when workers are available. Read the project instructions and anything design-related: the design guide, frontend contract, token file and stylesheets. Then read the code for the screens in scope. The review must fit the rules the project already has.
 
 ## Step 3: Look at the work
 
@@ -150,9 +188,9 @@ Answer each watcher event:
 | Event | Action |
 |---|---|
 | `SENT`, while `stage` is `choose` | The owner picked. Read `level` and `lang`, start *Show progress*, and continue at Step 2. |
-| `SENT`, while `stage` is `map` | The owner set the plan for an in-depth review. Continue at Step C of the in-depth file. |
+| `SENT`, while `stage` is `map` | The owner chose the screens for an in-depth review. Continue at Step C of the in-depth file. |
 | `SENT`, with `retry` set | The owner pressed **Retry**. Delete `retry` and try the step that stopped again. |
-| `SENT` | Read the answers file. Revise every steered section and add variations to every `vary` section, as in *How the owner answers* in `report.md`. Do not build anything yet. |
+| `SENT` | Read the answers file. Revise every steered section and add variations to every `vary` section, one worker per section, as in *How the owner answers* in `report.md`. Do not build anything yet. |
 | `APPROVED` | Build the approved sections, or write the report, in Step 5. |
 | `CLOSED` | Say the link is closed. The answers file keeps the last send. If it closes during the audit, finish the report, then serve the page and arm the watcher again. |
 

@@ -8,24 +8,100 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
-## 6.18.0 — 2026-11-25
+## 6.20.0 — 2026-11-25
 
 **Added**
 
 - **Polish has an in-depth mode, as an experiment.** Turn on **In depth**
-  under Experimental before you pick a level. It is for a whole site or a
-  large web app, where one pass finds too little.
+  under Experimental before you pick a level, or ask for an in-depth review in
+  chat. It is for a whole site or a large web app, where one pass finds too
+  little.
   - Polish first maps the product: its pages, and the modals, popups and
     slide-in panels each page opens. Pages that share one layout, such as 200
     product pages, appear once, and Polish checks one of them.
-  - The map opens in your tab. Rest the pointer on a screen to see a preview,
-    and open it to see what sits under it.
-  - Every screen is reviewed. Set each one to Quick, Standard or Deep, skip
-    it, or set them all at once.
-  - Each screen gets its own agent, and the map shows each one's progress.
-    The findings then come back as one Polish report.
+  - The map opens in your tab. Rest the pointer on a screen to see it in the
+    preview beside the map, and open it to see what sits under it.
+  - Every screen is reviewed. Switch off any you want left out.
+  - Each screen gets its own agent, and the map shows which ones are being
+    reviewed and which are done. The findings then come back as one Polish
+    report.
 
   While it maps a site you do not own, Polish never submits a form or pays.
+
+## 6.19.0 — 2026-11-24
+
+**Added**
+
+- **Live view in Polish, experimental and off by default.** Turn it on under
+  Experimental. While the audit runs, the progress page shows the latest frame
+  from each of the agent's browsers in place of the animation. The newest frame
+  is outlined. The animation stays when the audit runs in your own browser tab.
+- **Refined checks tooltips and hover content.** Polish hovers, focuses and
+  long-presses every element that reveals something, such as a tooltip, a hover
+  card or row actions. It checks that each one also works by keyboard and on a
+  touch screen, stays on screen, and is never the only way to reach an action.
+- **Refined operates every input.** Polish opens every select and drop-down,
+  types into search fields and comboboxes, picks dates, toggles checkboxes,
+  radio buttons and switches, drags sliders and chooses files, first with the
+  mouse and then with the keyboard. It checks that each one responds to the
+  keys users expect, shows what was chosen, and works on a phone.
+
+**Changed**
+
+- **Clean opens modals, drawers and panels, and steps through stepped forms.**
+  Clean judges how each one looks. It fills each form step with valid sample
+  values and stops before the step that submits, pays or sends.
+- **The Polish survey records what each element opens,** with a screenshot of
+  each state, so every modal, drawer, panel, menu, form step and tooltip gets a
+  verdict.
+
+## 6.18.2 — 2026-11-22
+
+**Fixed**
+
+- **Polish says which effort its first worker runs at.** The worker that reads
+  the project starts before you pick a level, so it runs at Medium, the
+  default. Every worker after the pick runs at the effort you chose.
+
+## 6.18.1 — 2026-11-22
+
+**Fixed**
+
+- **The Polish start page groups its switches in a way screen readers
+  recognise everywhere.** The Checks and Experimental switches now sit in
+  native fieldsets.
+
+## 6.18.0 — 2026-11-22
+
+**Added**
+
+- **Failure handling is an option in Polish, off by default.** Turn it on under
+  Options, beside Effort, and it works at any level. Polish then takes down
+  each backend, embedded service and third-party script in turn, and lets each
+  one hang. It checks that:
+  - the rest of the page still loads and works, with no white screen;
+  - every loader turns into content or an error within about 10 seconds;
+  - a feature that fails says so, and never disappears without a message;
+  - a failure never reads as an empty result, such as "No classes available";
+  - a control that needs missing data is disabled, and says why;
+  - a retry works without reloading the page, and the feature recovers once the
+    service is back;
+  - a flow with steps keeps earlier choices after a failure.
+
+  The option also runs the failure checks that 6.17.0 added to Refined: hung
+  submits, lost connections, expired sessions, missing access, payment declines
+  and failed uploads.
+- **Polish runs its work in parallel.** On a host that can start helper agents,
+  Polish reads the project while you pick a level. It then walks each flow,
+  forces each failure, and builds each report section in a separate worker, so
+  a round finishes sooner. The workers run at the effort you pick. Codex, which
+  cannot start helpers, runs each step in turn as before.
+
+**Changed**
+
+- **Refined no longer forces failures.** Turn on Failure handling to get the
+  checks 6.17.0 added to Refined. Refined still checks that error messages are
+  plain and helpful, and that a failed submit keeps what you typed.
 
 ## 6.17.0 — 2026-11-20
 

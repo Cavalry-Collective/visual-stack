@@ -330,7 +330,7 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .opt-label { font: 700 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
 .opt .seg button { height: 34px; padding: 0 14px; font-size: 14px; }
 .opt .switch { height: 36px; font-size: 14px; }
-.switches { display: flex; flex-wrap: wrap; gap: .5rem; }
+.switches { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0; padding: 0; border: 0; min-width: 0; }
 .delivery .seg button[disabled] { opacity: .45; cursor: default; }
 .opt-hint { max-width: 40ch; font-size: 12px; color: var(--ink-3); }
 .opt-hint[hidden] { display: none; }
@@ -517,6 +517,19 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .stage.lv-showcase .beam { border-image: linear-gradient(90deg, var(--brand), #ff9a5c, #ffd36b, #7c5cff) 1; box-shadow: 0 8px 26px -2px color-mix(in srgb, var(--brand) 80%, transparent); }
 .stage.lv-showcase .win { box-shadow: 0 2px 4px rgba(23,19,32,.05), 0 24px 60px color-mix(in srgb, var(--brand) 25%, transparent); }
 
+/* Live view: the latest frame from each of the agent's browsers, in place of the scene. */
+.live { display: none; position: absolute; inset: 0; flex-direction: column; gap: .5rem; padding: .625rem; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-2); box-shadow: 0 2px 4px rgba(23,19,32,.05), 0 24px 60px rgba(23,19,32,.12); }
+.stage.on-air .win { display: none; }
+.stage.on-air .live { display: flex; }
+.live-badge { display: inline-flex; align-items: center; gap: .375rem; font: 600 12px/1 var(--mono); color: var(--ink-2); text-transform: uppercase; letter-spacing: .06em; }
+.live-badge::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--brand); animation: pulse 1.6s var(--ease) infinite; }
+@keyframes pulse { 50% { opacity: .3; } }
+.live-grid { flex: 1; min-height: 0; display: grid; gap: .5rem; grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); }
+.live-grid figure { position: relative; min-height: 0; margin: 0; border: 2px solid transparent; border-radius: 8px; background: var(--surface); overflow: hidden; transition: border-color 240ms var(--ease); }
+.live-grid figure.newest { border-color: var(--brand); }
+.live-grid img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.live-grid figcaption { position: absolute; left: .375rem; bottom: .375rem; max-width: calc(100% - .75rem); padding: 1px 6px; border-radius: 4px; background: color-mix(in srgb, var(--ink) 75%, transparent); color: var(--surface); font: 500 11px/1.5 var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
 .problem { display: flex; align-items: center; gap: 1rem; margin-top: 1.25rem; padding: .75rem 1rem; border: 1px solid var(--warn-line); border-radius: 10px; background: var(--warn-soft); color: var(--ink); }
 .problem[hidden] { display: none; }
 .problem p { flex: 1; min-width: 0; }
@@ -698,12 +711,20 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
         <p class="opt-hint" id="effortHint"></p>
       </div>
       <div class="opt">
+        <p class="opt-label" id="checksLabel" data-t="checksLabel"></p>
+        <fieldset class="switches" aria-labelledby="checksLabel">
+          <button class="switch" type="button" role="switch" aria-checked="false" data-switch="failures"><span class="track"><span class="knob"></span></span><span data-t="checkFailures"></span></button>
+        </fieldset>
+        <p class="opt-hint" data-t="checkFailuresHint"></p>
+      </div>
+      <div class="opt">
         <p class="opt-label" id="labsLabel" data-t="labsLabel"></p>
-        <div class="switches" role="group" aria-labelledby="labsLabel">
-          <button class="switch" type="button" role="switch" aria-checked="false" data-lab="proofread"><span class="track"><span class="knob"></span></span><span data-t="labProofread"></span></button>
-          <button class="switch" type="button" role="switch" aria-checked="false" data-lab="trimCopy"><span class="track"><span class="knob"></span></span><span data-t="labTrim"></span></button>
-          <button class="switch" type="button" role="switch" aria-checked="false" data-lab="indepth"><span class="track"><span class="knob"></span></span><span data-t="labIndepth"></span></button>
-        </div>
+        <fieldset class="switches" aria-labelledby="labsLabel">
+          <button class="switch" type="button" role="switch" aria-checked="false" data-switch="proofread"><span class="track"><span class="knob"></span></span><span data-t="labProofread"></span></button>
+          <button class="switch" type="button" role="switch" aria-checked="false" data-switch="trimCopy"><span class="track"><span class="knob"></span></span><span data-t="labTrim"></span></button>
+          <button class="switch" type="button" role="switch" aria-checked="false" data-switch="liveView"><span class="track"><span class="knob"></span></span><span data-t="labLive"></span></button>
+          <button class="switch" type="button" role="switch" aria-checked="false" data-switch="indepth"><span class="track"><span class="knob"></span></span><span data-t="labIndepth"></span></button>
+        </fieldset>
         <p class="opt-hint" id="labsHint"></p>
       </div>
     </div>
@@ -730,6 +751,7 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
         <span class="stage-done"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="21"/><path d="M14 25l7 7 13-15"/></svg></span>
       </div>
     </div>
+    <div class="live" id="live"><p class="live-badge" data-t="live"></p><div class="live-grid" id="liveGrid"></div></div>
   </div>
   <div class="progress-text">
     <p class="eyebrow-line" data-t="eyebrow"></p>
@@ -1228,14 +1250,21 @@ window.VSScrub = (function () {
     effortHigh: ['High', '高'],
     runsOn: ['Runs on {model} at {effort} effort.', '使用 {model}，推理强度为{effort}。'],
     ownModel: ['{agent} keeps its current model.', '{agent} 沿用当前模型。'],
+    checksLabel: ['Checks', '检查项'],
+    checkFailures: ['Failure handling', '故障处理'],
+    checkFailuresHint: ['Takes services down on purpose and checks the product copes.', '故意让服务中断，检查产品能否妥善应对。'],
+    failuresOn: ['failure checks on', '已开故障检查'],
     labsLabel: ['Experimental', '实验功能'],
     optionsLabel: ['Options', '选项'],
     labProofread: ['Proofread', '校对'],
     labTrim: ['Trim AI filler', '删减 AI 套话'],
     labProofreadHint: ['Sends copy to ChatGPT to proofread.', '把文案发给 ChatGPT 校对。'],
+    labLive: ['Live view', '实时画面'],
+    labLiveHint: ['Shows what the agent’s browsers see while the audit runs.', '审查进行时，显示智能体的浏览器画面。'],
+    live: ['Live', '实时'],
     labTrimHint: ['Flags text that explains the screen and is not needed.', '标出解释界面、但并不需要的文字。'],
     labIndepth: ['In depth', '深度模式'],
-    labIndepthHint: ['Maps every page, popup and panel first. You pick where to look.', '先画出所有页面、弹窗和侧滑面板，再由你选重点。'],
+    labIndepthHint: ['Maps every page, popup and panel first. You pick which to review.', '先画出所有页面、弹窗和侧滑面板，再由你选择评审哪些。'],
     effortSummary: ['{effort} effort', '投入程度：{effort}'],
     labsOn: ['experiments on', '已开实验功能'],
     change: ['Change', '更改'],
@@ -1370,8 +1399,8 @@ window.VSScrub = (function () {
     if (!BRIDGE) { window.VSShell.toast(t('offline'), 3200); return }
     if (choosing) return
     choosing = true
-    var labs = labsOf()
-    var next = Object.assign({}, doc, { level: id, lang: lang(), delivery: deliveryOf(), effort: effortOf(), proofread: labs.proofread, trimCopy: labs.trimCopy, indepth: labs.indepth })
+    var switches = switchesOf()
+    var next = { ...doc, level: id, lang: lang(), delivery: deliveryOf(), effort: effortOf(), proofread: switches.proofread, trimCopy: switches.trimCopy, liveView: switches.liveView, failures: switches.failures, indepth: switches.indepth }
     post(BRIDGE.save, next).then(function () {
       doc = next
       render()
@@ -1418,7 +1447,53 @@ window.VSScrub = (function () {
     $('#count').textContent = tasks.length ? t('count').replace('{done}', finished).replace('{total}', tasks.length) : ''
     $('#openReport').hidden = !isReport
     $('#openReport').textContent = t('openReport')
+    paintLive()
   }
+
+  /* Live view polls the frames while the audit runs, and keeps the scene until the first one arrives. */
+  var liveFrames = []
+  var liveWanted = function () {
+    return !!(BRIDGE && BRIDGE.live) && doc.liveView === true && doc.stage === 'audit' && !(typeof doc.problem === 'string' && doc.problem.trim())
+  }
+  var frameUrl = function (frame) {
+    return BRIDGE.live + '/' + encodeURIComponent(frame.name) + '?t=' + encodeURIComponent(BRIDGE.token) + '&v=' + frame.at
+  }
+  var paintLive = function () {
+    var frames = liveWanted() ? liveFrames.slice(0, 6) : []
+    $('#stage').classList.toggle('on-air', frames.length > 0)
+    var grid = $('#liveGrid')
+    grid.style.setProperty('--cols', frames.length > 4 ? 3 : frames.length > 1 ? 2 : 1)
+    var newest = frames.reduce(function (latest, frame) { return !latest || frame.at > latest.at ? frame : latest }, null)
+    $$('figure', grid).forEach(function (figure) {
+      if (!frames.some(function (frame) { return frame.name === figure.dataset.name })) figure.remove()
+    })
+    frames.forEach(function (frame, index) {
+      var figure = $$('figure', grid).find(function (each) { return each.dataset.name === frame.name })
+      if (!figure) {
+        figure = document.createElement('figure')
+        figure.dataset.name = frame.name
+        figure.innerHTML = '<img alt=""><figcaption></figcaption>'
+        $('figcaption', figure).textContent = frame.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ')
+      }
+      if (grid.children[index] !== figure) grid.insertBefore(figure, grid.children[index] || null)
+      figure.classList.toggle('newest', frames.length > 1 && frame === newest)
+      /* Swap only once the new frame has loaded, so a tile never blanks between frames. */
+      if (figure.dataset.at !== String(frame.at)) {
+        figure.dataset.at = String(frame.at)
+        var next = new Image()
+        next.onload = function () { if (figure.dataset.at === String(frame.at)) $('img', figure).src = next.src }
+        next.src = frameUrl(frame)
+      }
+    })
+  }
+  var pollLive = function () {
+    if (!liveWanted()) { liveFrames = []; paintLive(); return }
+    fetch(BRIDGE.live + '?t=' + encodeURIComponent(BRIDGE.token))
+      .then(function (response) { return response.ok ? response.json() : [] })
+      .then(function (frames) { liveFrames = Array.isArray(frames) ? frames : []; paintLive() })
+      .catch(function () {})
+  }
+  if (BRIDGE && BRIDGE.live) setInterval(pollLive, 1000)
 
   var paintGo = function () {
     panelList.forEach(function (panel) {
@@ -1478,18 +1553,19 @@ window.VSScrub = (function () {
   $$('[data-effort]').forEach(function (button) {
     button.addEventListener('click', function () { chosenEffort = button.dataset.effort; paintEffort() })
   })
-  /* Experiments are off until the owner turns them on. */
-  var chosenLabs = null
-  var labsOf = function () { return chosenLabs || { proofread: doc.proofread === true, trimCopy: doc.trimCopy === true, indepth: doc.indepth === true } }
-  var paintLabs = function () {
-    var labs = labsOf()
-    $$('[data-lab]').forEach(function (button) { button.setAttribute('aria-checked', String(!!labs[button.dataset.lab])) })
-    $('[data-lab="proofread"]').title = t('labProofreadHint')
-    $('[data-lab="trimCopy"]').title = t('labTrimHint')
-    $('[data-lab="indepth"]').title = t('labIndepthHint')
+  /* Failure checks and experiments are off until the owner turns them on. */
+  var chosenSwitches = null
+  var switchesOf = function () { return chosenSwitches || { proofread: doc.proofread === true, trimCopy: doc.trimCopy === true, liveView: doc.liveView === true, failures: doc.failures === true, indepth: doc.indepth === true } }
+  var paintSwitches = function () {
+    var switches = switchesOf()
+    $$('[data-switch]').forEach(function (button) { button.setAttribute('aria-checked', String(!!switches[button.dataset.switch])) })
+    $('[data-switch="proofread"]').title = t('labProofreadHint')
+    $('[data-switch="trimCopy"]').title = t('labTrimHint')
+    $('[data-switch="liveView"]').title = t('labLiveHint')
+    $('[data-switch="indepth"]').title = t('labIndepthHint')
     var hints = []
-    if (labs.proofread) hints.push(t('labProofreadHint'))
-    if (labs.indepth) hints.push(t('labIndepthHint'))
+    if (switches.proofread) hints.push(t('labProofreadHint'))
+    if (switches.indepth) hints.push(t('labIndepthHint'))
     $('#labsHint').textContent = hints.join(' ')
     $('#labsHint').hidden = !hints.length
     paintSummary()
@@ -1497,21 +1573,22 @@ window.VSScrub = (function () {
   /* On a phone the settings fold into one line, so the levels stay on the first screen. */
   var optionsOpen = false
   var paintSummary = function () {
-    var labs = labsOf()
+    var switches = switchesOf()
     var parts = [t(deliveryOf() === 'report' ? 'deliveryReport' : 'deliveryBuild'), t('effortSummary').replace('{effort}', t(effortKey(effortOf())))]
-    if (labs.proofread || labs.trimCopy || labs.indepth) parts.push(t('labsOn'))
+    if (switches.failures) parts.push(t('failuresOn'))
+    if (switches.proofread || switches.trimCopy || switches.liveView || switches.indepth) parts.push(t('labsOn'))
     $('#optSummary').textContent = parts.join(' · ')
     $('#optToggle').textContent = optionsOpen ? t('done') : t('change')
     $('#optToggle').setAttribute('aria-expanded', String(optionsOpen))
     $('#options').classList.toggle('open', optionsOpen)
   }
   $('#optToggle').addEventListener('click', function () { optionsOpen = !optionsOpen; paintSummary() })
-  $$('[data-lab]').forEach(function (button) {
+  $$('[data-switch]').forEach(function (button) {
     button.addEventListener('click', function () {
-      var labs = Object.assign({}, labsOf())
-      labs[button.dataset.lab] = !labs[button.dataset.lab]
-      chosenLabs = labs
-      paintLabs()
+      var switches = { ...switchesOf() }
+      switches[button.dataset.switch] = !switches[button.dataset.switch]
+      chosenSwitches = switches
+      paintSwitches()
     })
   })
   var paintChooser = function () {
@@ -1519,7 +1596,7 @@ window.VSScrub = (function () {
     paintRecommendation()
     paintDelivery()
     paintEffort()
-    paintLabs()
+    paintSwitches()
     panelList.forEach(function (panel) {
       var level = levelOf(panel.dataset.level)
       $$('[data-l]', panel).forEach(function (el) { el.textContent = pick(level[el.dataset.l]) })

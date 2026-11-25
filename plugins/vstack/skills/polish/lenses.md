@@ -6,7 +6,7 @@ Each level includes every level below it.
 
 | Level | What you do | How you work |
 |---|---|---|
-| **Clean** | Find what looks wrong. | Walk the whole page on an iPhone SE and at 1440 px. Open every menu, drop-down, accordion, tab, carousel and form step, and judge only how each looks. Check the other screen sizes below for overflow and clipping. |
+| **Clean** | Find what looks wrong. | Walk the whole page on an iPhone SE and at 1440 px. Open every menu, drop-down, accordion, tab, carousel, modal, drawer and panel, and step through every stepped form. Judge only how each looks. Check the other screen sizes below for overflow and clipping. |
 | **Refined** | Find what behaves wrong. | Drive every flow. |
 | **Showcase** | Bring it to life. | Start from one idea the brand already owns, and make it move. |
 
@@ -23,6 +23,8 @@ Screen sizes, as width × height:
 | Desktop | 1440 × 900 and 1920 × 1080 |
 
 On a site we do not own, never submit a form, pay or send a message.
+
+To step through a stepped form, fill each step with valid sample values and go to the next. Stop before the step that submits, pays or sends.
 
 ## Recommending a level
 
@@ -53,7 +55,7 @@ Pick the mode for each flow:
 
 ## Covering the page
 
-1. **Survey first.** List every section, component, form and interactive element at each screen size. Save the list beside the answers file as `<target>-round-<n>-survey.md`. Run every check against it.
+1. **Survey first.** List every section, component, form and interactive element at each screen size. For each element that opens something, name what it opens, such as a modal, drawer, panel, menu, form step or tooltip, and screenshot that state. Save the list beside the answers file as `<target>-round-<n>-survey.md`. Run every check against it.
 2. **Give every check a verdict.** Pass with its evidence, fail with each instance, or not applicable with the reason. Save the verdicts as `<target>-round-<n>-checks.md`, and summarise them in chat.
 3. **Report what a visitor can see.** A failed check becomes a report section only if someone who is not a designer can see the problem in the Today picture without reading the caption. List the other failures in chat.
 4. **Confirm what you measure.** A measured failure is a lead. Confirm it in a screenshot before you report it. A fluid type scale or a centred block is not a failure on its own.
@@ -77,7 +79,7 @@ Pick the mode for each flow:
 - **C5 · Type.** No more than two font families. Each text role, such as body, label or heading, has one size at a given screen size, and the sizes form a scale of about five steps. No size is under 12 px. Body text is at least 16 px on a website and at least 14 px in a web app, with a line height between 1.4 and 1.6.
 - **C6 · Colour.** Each status colour has one meaning. If the brand colour is also the error colour, offer the fix as variations, one of which keeps the brand colour. Text has at least 4.5:1 contrast, and large text at least 3:1. Status never depends on colour alone.
 - **C7 · Link style.** All text links share one style, and nothing else uses it.
-- **C8 · Components.** Each kind of component looks the same everywhere it appears. All buttons share one set of heights, radii and padding. The same applies to inputs, cards, chips, menus, error banners and toasts. Open menus, focus rings and selected states use the product's own colours and shapes, never a library's defaults.
+- **C8 · Components.** Each kind of component looks the same everywhere it appears. All buttons share one set of heights, radii and padding. The same applies to inputs, cards, chips, menus, modals, drawers, panels, tooltips, error banners and toasts. Open menus, focus rings and selected states use the product's own colours and shapes, never a library's defaults.
 - **C9 · Imagery.** The product uses one icon set with one stroke weight. Images are sharp and never stretched. Images in the same role share one aspect ratio and crop.
 - **C10 · Responsive.** At each listed screen size:
   - nothing scrolls sideways, clips or overlaps;
@@ -126,20 +128,11 @@ Drive the product as a user would:
 
 - throttle the network, so loaders have time to show;
 - click every link and button;
+- operate every input with the mouse, then with the keyboard: open every select and drop-down, type into every search field and combobox, pick a date, toggle every checkbox, radio button and switch, drag every slider, and choose a file;
 - submit each form empty, then again with wrong values;
-- open every menu, modal and state;
-- press Back and refresh;
-- force each failure: go offline, block or fail a request, let a request time out, and pay with a test card that declines. On a site we do not own, force only the failures that need no submit.
-
-To force a failure, use the browser's developer tools:
-
-| Failure | How |
-|---|---|
-| Offline or slow network | Set network throttling to Offline or Slow 4G. |
-| Backend error | Block the request, or override its response with a 500. |
-| Timeout | Delay the response past the product's own timeout. |
-| Expired session | Delete the session cookie, then submit. |
-| Declined payment | Use the payment provider's test cards in its test mode, such as Stripe's `4000 0000 0000 0002`, generic decline, `4000 0000 0000 9995`, insufficient funds, and `4000 0000 0000 0127`, wrong security code. |
+- open every menu, modal, drawer, panel and state;
+- hover and focus every element that reveals something, such as a tooltip, a hover card or row actions, and long-press it on a phone;
+- press Back and refresh.
 
 ### Both modes
 
@@ -167,8 +160,6 @@ To force a failure, use the browser's developer tools:
   - Pressing it with errors shows every error and scrolls to the first one.
   - Enter submits.
   - A failed submit keeps everything the user typed, and says what went wrong and what to do.
-  - A submit that hangs stops waiting and says so, such as "This is taking longer than usual". The loader never spins forever.
-  - Retrying a failed submit never creates a duplicate or sends the action twice.
   - A successful submit shows a confirmation.
 - **R8 · Loading, by action.**
   - **Links:** a link opens its page straight away, with no spinner or request first.
@@ -191,8 +182,22 @@ To force a failure, use the browser's developer tools:
 - **R12 · Error messages.** Every error the user can meet, in a form or not:
   - shows beside what caused it, where the user is looking;
   - says what happened and what to do next, in plain words, without blaming the user;
-  - never shows a status code, stack trace or internal name, such as "Error 500" or "ECONNRESET";
+  - never shows a status code, stack trace, raw library message or internal name, such as "Error 500", "Network Error" or "ECONNRESET";
+  - uses one wording for the same failure everywhere, such as "This service is temporarily unavailable. Please try again in a few minutes.";
   - stays on screen until the user acts, if the user must act. A toast that fades is only for news the user can miss.
+- **R13 · Tooltips and hover content.** Everything that appears on hover:
+  - also appears on keyboard focus, and has a tap or long-press equivalent on a touch screen;
+  - appears after a short delay and stays open while the pointer moves into it;
+  - fits on screen at every listed size, and never covers the control it describes;
+  - is never the only way to reach an action.
+- **R14 · Input controls.**
+  - **Selects and drop-downs:** open on click, Enter, Space and the arrow keys. The arrow keys move through the options, typing a letter jumps to a match, and Esc closes without changing the value. The chosen value shows after it closes. A long list scrolls, and no option text is clipped. On a phone, a select uses the native picker or a sheet.
+  - **Search fields and comboboxes:** filter as the user types, say when nothing matches, and offer a way to clear. The arrow keys and Enter pick a result.
+  - **Multi-selects and tags:** each chosen item can be removed with a click, and Backspace removes the last one.
+  - **Dates and times:** the user can type a date as well as pick one. Dates outside the allowed range cannot be picked. The format matches the user's locale.
+  - **Checkboxes, radio buttons and switches:** the whole label is clickable, and Space toggles. The arrow keys move between radio buttons in a group.
+  - **Sliders:** the arrow keys move the value, and the current value shows.
+  - **File pickers:** accept a click and a drag and drop. The chosen file's name shows, and the user can remove it.
 
 ### Website
 
@@ -209,27 +214,59 @@ To force a failure, use the browser's developer tools:
 - **RA4 · States.**
   - Loading, empty, error, no match, read-only and signed-out states are each designed.
   - An empty or no-match state says what to do next, such as how to clear a filter.
-  - No label claims data that failed to load, such as "All 0" over an error.
+  - A destructive action asks for confirmation or offers Undo.
+- **RA5 · Unsaved work.** Leaving a form with edits warns first. A saved change shows without a reload.
+- **RA6 · Lists.** A long list can be searched, sorted and filtered, and it pages or scrolls without losing its header. Active filters show, and each one can be removed.
+
+## Option: Failure handling
+
+Run this section only when `failures` is true in the answers file. It adds to any level, and its checks apply in both modes unless a check says otherwise. Drive the flows it needs, even in a Clean round.
+
+Force each failure on purpose: go offline, fail a request, let a request time out or hang, take down each embedded service and third-party script, expire the session, and pay with a test card that declines. On a site we do not own, force only the failures that need no submit.
+
+To force a failure, use the browser's developer tools:
+
+| Failure | How |
+|---|---|
+| Offline or slow network | Set network throttling to Offline or Slow 4G. |
+| Backend error | Block the request, or override its response with a 500. |
+| Timeout | Delay the response past the product's own timeout. |
+| Hung request | Hold the response open so it never arrives. |
+| Embedded service or third-party script down | Block its domain, or block its requests and its script files. |
+| Service back | After a failure, unblock the request and retry without reloading the page. |
+| Expired session | Delete the session cookie, then submit. |
+| Declined payment | Use the payment provider's test cards in its test mode, such as Stripe's `4000 0000 0000 0002`, generic decline, `4000 0000 0000 9995`, insufficient funds, and `4000 0000 0000 0127`, wrong security code. |
+
+- **F1 · Failed dependencies.** Apply this check to every backend, embedded service and third-party script the page depends on. Take each one down in turn, then let it hang.
+  - The rest of the page still renders, navigates and works. No dependency causes a blank or white page.
+  - No third-party script blocks the page from rendering.
+  - Every loader and skeleton turns into content or an error within about 10 seconds.
+  - A feature that fails says so where it would have appeared. It never disappears without a message.
   - A screen that fails to load shows a designed error with a way to retry. It never goes blank.
   - When one panel fails, only that panel shows the error, and the rest of the screen still works.
-  - A destructive action asks for confirmation or offers Undo.
-- **RA5 · Failures.**
+  - A failure never shows an empty state, such as "No data", "All 0" or "No classes available". A list or selector tells "none available" apart from "could not load".
+  - A control that needs data that failed to load is disabled, and says why.
+  - The failed feature offers a retry that works without reloading the page.
+  - Once the service is back, the feature recovers on retry or on its own, without a new browser session or a fresh sign-in.
+- **F2 · Failed submits.**
+  - A submit that hangs stops waiting and says so, such as "This is taking longer than usual". The loader never spins forever.
+  - Retrying a failed submit never creates a duplicate or sends the action twice.
+  - In a flow with steps, a failure keeps the choices made in earlier steps, and a retry resumes at the failed step.
+- **F3 · Connection, session and access.**
   - A lost connection says so and recovers without a reload. An action taken offline is either queued, and shown as waiting, or refused with a message.
   - An expired session keeps what the user typed, and returns them to the same place after sign-in.
   - Missing permission says so, and offers a way to ask for access or switch account.
   - A deleted or missing record shows a page with a route back.
   - A rate limit says when the user can try again.
   - A serious error shows a reference the user can copy, and a way to contact support.
-- **RA6 · Unsaved work.** Leaving a form with edits warns first. A saved change shows without a reload.
-- **RA7 · Lists.** A long list can be searched, sorted and filtered, and it pages or scrolls without losing its header. Active filters show, and each one can be removed.
-- **RA8 · Payment.** Apply this check only to a flow that takes payment.
+- **F4 · Payment.** Apply this check only to a flow that takes payment.
   - A decline says why, such as a wrong security code, not enough funds, or refused by the bank.
   - After a decline, the card details stay filled in except the security code, and the page scrolls to the field to fix.
   - Other payment methods stay available after a decline.
   - Cancelling or failing a bank check or a payment redirect, such as 3-D Secure or PayPal, returns the user to checkout with the cart intact.
   - When the outcome is unknown, such as after a timeout, the page tells the user not to pay again and how they will hear the result.
   - The card is charged or refused before the user sees "Order placed".
-- **RA9 · Uploads.**
+- **F5 · Uploads.**
   - A file that is too large or of the wrong type is refused before it uploads, and the message states the limit.
   - A failed upload can be retried without choosing the file again.
 
