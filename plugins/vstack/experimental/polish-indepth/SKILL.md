@@ -126,11 +126,11 @@ A workflow is a journey someone comes to finish, such as signing up, buying, boo
 
 The map is a stepped form: **Pages**, then **Workflows**. With one of them covered, it has a single step.
 
-- **Pages** shows a tree. Every page has a switch, and every switch starts on. Switching a page off switches off everything under it. **Include all** turns them back on.
+- **Pages** shows a tree. Every page has a switch, and every switch starts on. Clicking anywhere on a row switches it; the arrow opens what sits under it. Switching a page off switches off everything under it. **Include all**, above the list, turns them back on.
 - **Workflows** shows one card per journey, its steps from left to right. The owner removes a card with its bin, steers one with a note, or adds a journey in their own words.
 - Resting the pointer on a row or on a workflow step shows that screen in the preview.
 
-While a steer or a new workflow is waiting, the main button reads **Update workflows**. It saves `workflowEdits`, and the watcher reports `SENT`:
+Each steer, and each journey added, is sent as soon as the owner makes it, the way a steer is in the report. It saves `workflowEdits`, and the watcher reports `SENT`. **Review** waits until you have redrawn them:
 
 ```json
 {"workflowEdits": {"steer": {"w-browser": "Start from the Software products page"}, "add": ["Contact the team"]}}
@@ -140,7 +140,7 @@ Redraw the workflows before the review:
 
 1. For each steer, change that workflow's steps and goal as the note asks. Keep its id.
 2. For each journey added, write a new workflow, with an id starting `w-`, and its steps from the map.
-3. Write `sitemap.workflows`, then delete `workflowEdits`. Keep every other key. The page shows the redrawn cards and offers **Review** again.
+3. Write `sitemap.workflows`, then delete `workflowEdits`. Keep every other key. The page shows the redrawn cards and **Review** works again. Steers that arrive while you redraw are added to `workflowEdits`, so read it again before you delete it.
 
 **Review** saves `exclude`, and the watcher reports `SENT`:
 

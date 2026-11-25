@@ -700,7 +700,7 @@ Then('the preview beside the map shows {string}', async function (id) {
 })
 
 When('the reviewer closes the page {string} in the map', async function (id) {
-  await this.browserPage.locator(`.node[data-id="${id}"] > .row .title`).click()
+  await this.browserPage.locator(`.node[data-id="${id}"] > .row .chev`).click()
 })
 
 Then('the map hides what opens on {string}', async function (id) {
@@ -708,15 +708,17 @@ Then('the map hides what opens on {string}', async function (id) {
   await eventually(async () => {
     assert.equal(await page.locator(`.node[data-id="${id}"] .node`).first().isVisible(), false)
   }, `what opens on ${id} is hidden`)
-  await page.locator(`.node[data-id="${id}"] > .row .title`).click()
+  assert.equal(await page.locator(`.node[data-id="${id}"] > .row .switch`).getAttribute('aria-checked'), 'true', 'the arrow opens and closes, and leaves the page switched on')
+  await page.locator(`.node[data-id="${id}"] > .row .chev`).click()
   await page.locator(`.node[data-id="${id}"] .node`).first().waitFor()
 })
 
 When('the reviewer switches off {string}', async function (id) {
   const page = this.browserPage
-  await page.locator(`.node[data-id="${id}"] > .row .switch`).click()
+  // The whole row is the switch, not only the knob.
+  await page.locator(`.node[data-id="${id}"] > .row .title`).click()
   assert.equal(await page.locator(`.node[data-id="${id}"] > .row .switch`).getAttribute('aria-checked'), 'false')
-  assert.equal(await page.locator('#includeAll').isVisible(), true, 'Include all appears once something is off')
+  assert.equal(await page.locator('#mapHead #includeAll').isVisible(), true, 'Include all appears above the list once something is off')
 })
 
 When('the reviewer moves on to the workflows', async function () {
@@ -730,6 +732,7 @@ Then('step 2, {string}, shows {string} with its {int} steps', async function (ti
   assert.equal(await page.locator('#mapTitle').innerText(), title)
   assert.equal(await page.locator('#tree').isVisible(), false, 'the pages give way to the workflows')
   assert.match(await page.locator('#stepsBar .past').innerText(), /Pages/)
+  assert.equal(await page.locator('.title-row #back').isVisible(), true, 'back sits left of the title')
   assert.equal(await flow.locator('.chip').count(), count)
   assert.equal(await flow.locator('.switch').count(), 0, 'a workflow is steered or removed, not switched')
   assert.match(await page.locator('#start').innerText(), /Review 2 pages and 1 workflow/)
@@ -754,12 +757,13 @@ When('the reviewer presses {string}', async function (label) {
   await button.click()
 })
 
-Then('the answers file asks to steer {string} and add {string}', async function (id, journey) {
+Then('the answers file asks to steer {string} and add {string}, and Review waits', async function (id, journey) {
   await eventually(() => {
     const edits = this.answers().workflowEdits
     assert.deepEqual(edits, { steer: { [id]: 'Start from the cart' }, add: [journey] })
     assert.equal(this.answers().exclude, undefined, 'the review has not started')
-  }, 'the answers file holds the workflow edits')
+  }, 'each edit is sent as it is made')
+  assert.equal(await this.browserPage.locator('#start').isDisabled(), true, 'Review waits for the redraw')
 })
 
 When('the agent redraws the workflows with {string} added', async function (id) {
@@ -779,6 +783,15 @@ Then('the map offers {string}', async function (label) {
 
 When('the reviewer removes the workflow {string}', async function (id) {
   await this.browserPage.locator(`.flow[data-id="${id}"] [data-remove]`).click()
+})
+
+Then('the map is back on step 1, at the first page under review', async function () {
+  const page = this.browserPage
+  await eventually(async () => {
+    assert.match(await page.locator('#stepsBar [aria-current="step"]').innerText(), /1\s*Pages/)
+    assert.equal(await page.locator('#tree').isVisible(), true)
+  }, 'the map goes back to the pages')
+  await page.locator('#stepsBar [data-tab="flows"]').click()
 })
 
 Then('the answers file excludes {string}', async function (ids) {

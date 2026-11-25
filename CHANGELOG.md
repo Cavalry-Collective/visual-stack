@@ -8,6 +8,21 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.20.1 — 2026-11-26
+
+**Changed**
+
+- **In-depth Polish: the map is quicker to work through.**
+  - Click anywhere on a page's row to switch it on or off. The arrow still
+    opens what sits under it.
+  - Include all sits above the list of pages it turns back on.
+  - A steer, or a workflow you add, goes to the agent as soon as you send it,
+    the way a steer does in the report. Review waits until the agent has
+    redrawn it.
+  - Back is a round button to the left of the title.
+  - After Review, the map goes back to the first step and shows the first
+    thing being reviewed.
+
 ## 6.20.0 — 2026-11-25
 
 **Added**

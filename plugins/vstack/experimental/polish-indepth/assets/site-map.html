@@ -370,6 +370,7 @@ h1 { margin-top: .75rem; font-size: 1.75rem; line-height: 1.2; letter-spacing: -
 .row { position: relative; display: flex; align-items: center; gap: .5rem; min-height: 2.5rem; padding: .25rem .75rem; }
 .tree ul .row { padding-left: 1rem; }
 .row:hover { background: var(--surface-2); }
+.tree.picking .row { cursor: pointer; }
 .row.peek .title { color: var(--brand); }
 .node.off > .row .title, .node.off > .row .path { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--line-2); }
 .node.off > .row .kind { opacity: .45; }
@@ -433,6 +434,9 @@ h1 { margin-top: .75rem; font-size: 1.75rem; line-height: 1.2; letter-spacing: -
 .dock.swap img { animation: fadein 160ms var(--ease) both; }
 .dock.swap .shotwrap::after { animation: beam 620ms cubic-bezier(.45, .05, .55, .95) both; }
 @media (hover: none), (max-width: 860px) { .dock { display: none !important; } }
+/* Include all sits above the switches it turns back on. */
+.include-all { margin-left: auto; border: 0; padding: 4px 2px; background: none; color: var(--ink-2); font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.include-all:hover { color: var(--ink); }
 .include-all[hidden] { display: none; }
 .tally { font-size: 1rem; }
 .tally b { font-size: 1.5rem; margin-right: .25rem; }
@@ -499,9 +503,15 @@ h1 { margin-top: .75rem; font-size: 1.75rem; line-height: 1.2; letter-spacing: -
 .steps-bar [aria-current="step"] i { border-color: var(--ink); background: var(--ink); color: var(--surface); }
 .steps-bar .past i { border-color: var(--ok); background: var(--ok); color: #fff; font-size: 0; }
 .steps-bar .past i::before { content: "✓"; font-size: 12px; }
-.next, .back { justify-content: center; }
-.back { justify-self: start; height: 2rem; }
-.back[hidden], .next[hidden], .start[hidden] { display: none; }
+.next { justify-content: center; }
+.next[hidden], .start[hidden] { display: none; }
+/* Back sits left of the title, the way a page goes back a step. */
+.title-row { display: flex; align-items: center; gap: .75rem; margin-top: .75rem; }
+.title-row h1 { margin-top: 0; }
+.back-btn { display: grid; place-items: center; flex: none; width: 2.25rem; height: 2.25rem; border: 1px solid var(--line-2); border-radius: 50%; background: var(--surface); color: var(--ink-2); cursor: pointer; }
+.back-btn:hover { background: var(--surface-2); color: var(--ink); }
+.back-btn svg { width: 16px; height: 16px; }
+.back-btn[hidden] { display: none; }
 @keyframes slide-in { from { opacity: 0; transform: translateX(var(--from, 28px)); } }
 .tree.enter, .flow-step.enter { animation: slide-in 260ms var(--ease) both; }
 .flow-step[hidden] { display: none; }
@@ -642,13 +652,14 @@ h1 { margin-top: .75rem; font-size: 1.75rem; line-height: 1.2; letter-spacing: -
 <main>
   <header>
     <p class="eyebrow-line" data-t="eyebrow"></p>
-    <h1 id="mapTitle"></h1>
+    <div class="title-row"><button class="back-btn" type="button" id="back" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button><h1 id="mapTitle"></h1></div>
   </header>
   <div class="problem" id="problem" hidden><p><b data-t="stopped"></b><span></span></p><button class="btn primary retry" id="retry" type="button" data-t="retry"></button></div>
   <div class="layout">
     <section class="map" aria-labelledby="mapTitle">
       <div class="map-head" id="mapHead">
         <ol class="steps-bar" id="stepsBar"><li><button type="button" data-tab="screens"><i>1</i><span data-t="pages"></span></button></li><li><button type="button" data-tab="flows"><i>2</i><span data-t="flowsTitle"></span></button></li></ol>
+        <button class="include-all" type="button" id="includeAll" data-t="includeAll" hidden></button>
       </div>
       <ul class="tree" id="tree"></ul>
       <div class="flow-step" id="flowStep" hidden>
@@ -658,7 +669,6 @@ h1 { margin-top: .75rem; font-size: 1.75rem; line-height: 1.2; letter-spacing: -
     </section>
     <aside class="plan" id="plan">
       <div class="dock" id="dock" aria-hidden="true" hidden><div class="shotwrap"><img alt=""></div><p class="cap"><b></b><span></span></p></div>
-      <button class="btn include-all" type="button" id="includeAll" data-t="includeAll" hidden></button>
       <div id="count">
         <p class="tally" id="tally"></p>
         <p class="tally-sub" id="tallySub"></p>
@@ -667,7 +677,6 @@ h1 { margin-top: .75rem; font-size: 1.75rem; line-height: 1.2; letter-spacing: -
       <p class="waiting" id="waiting" hidden><span class="spin" aria-hidden="true"></span><span></span></p>
       <button class="btn primary start" type="button" id="next" hidden></button>
       <button class="btn primary start" type="button" id="start"></button>
-      <button class="btn back" type="button" id="back" hidden></button>
       <div class="alldone" id="alldone" role="status" hidden><svg viewBox="0 0 64 64" aria-hidden="true"><g fill="currentColor"><rect class="b3" x="6" y="44" width="52" height="16"/><rect class="b2" x="6" y="24" width="52" height="16"/><rect class="b1" x="6" y="4" width="40" height="16"/></g><rect class="rb" x="46" y="4" width="12" height="16" fill="var(--brand)"/></svg><b id="alldoneTitle"></b><p id="alldoneSub"></p></div>
     </aside>
   </div>
@@ -1168,10 +1177,8 @@ window.VSScrub = (function () {
     and: [' and ', '，'],
     excluded: ['{n} left out', '不评审 {n} 项'],
     next: ['Next: workflows →', '下一步：流程 →'],
-    back: ['← Pages', '← 页面'],
+    back: ['Back to pages', '返回页面'],
     start: ['Review {what}', '评审{what}'],
-    update: ['Update workflows', '更新流程'],
-    edits: ['{n} to update', '{n} 项待更新'],
     pickOne: ['Everything is left out', '全部都不评审'],
     progress: ['{done} of {total} done', '已完成 {done}/{total}'],
     waiting: ['Waiting for {agent}…', '正在等待 {agent}…'],
@@ -1179,7 +1186,7 @@ window.VSScrub = (function () {
     off: ['Left out', '不评审'],
     found: ['{n} found', '发现 {n} 处'],
     step: ['Step {n} of {total}', '第 {n}/{total} 步'],
-    steer: ['Steer', '调整'], undo: ['Undo', '撤销'], send: ['Send', '发送'], remove: ['Remove', '删除'], add: ['Add', '添加'],
+    steer: ['Steer', '调整'], send: ['Send', '发送'], remove: ['Remove', '删除'], add: ['Add', '添加'],
     steerHint: ['What should change?', '要怎么改？'],
     steered: ['Steered: {note}', '已调整：{note}'],
     added: ['New. {agent} will map its steps.', '新流程。{agent} 会画出它的步骤。'],
@@ -1208,9 +1215,9 @@ window.VSScrub = (function () {
   var open = {}
   var tab = null
   var steering = null
-  var edits = { steer: {}, add: [] }
   /* Without hover, or without room beside the map, there is no preview panel, so an opened row shows its picture instead. */
   var inline = window.matchMedia('(hover: none), (max-width: 860px)')
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   var screensOf = function () { return doc.sitemap && Array.isArray(doc.sitemap.screens) ? doc.sitemap.screens : [] }
   var flowsOf = function () { return doc.sitemap && Array.isArray(doc.sitemap.workflows) ? doc.sitemap.workflows : [] }
@@ -1254,7 +1261,14 @@ window.VSScrub = (function () {
 
   /* Steers and new workflows wait for the agent to redraw them. Until it does, the answers file holds them. */
   var sentEdits = function () { var held = doc.workflowEdits; return held && typeof held === 'object' ? held : null }
-  var editCount = function () { return Object.keys(edits.steer).length + edits.add.length }
+  /* Each steer or new workflow is sent as it is made, added to any the agent has not redrawn yet. */
+  var sendEdit = function (kind, value) {
+    var held = sentEdits() || {}
+    var next = { steer: Object.assign({}, held.steer), add: (Array.isArray(held.add) ? held.add : []).slice() }
+    if (kind === 'steer') next.steer[value.id] = value.note
+    else next.add.push(value)
+    send({ workflowEdits: next })
+  }
 
   /* Something that finished since the last paint gets its moment. */
   var lastStatus = {}
@@ -1294,11 +1308,11 @@ window.VSScrub = (function () {
     return '<li class="node' + (excluded ? ' off' : '') + (isOpen ? ' open' : '') + '" data-id="' + esc(screen.id) + '">' +
       '<div class="row' + (status ? ' ' + status : '') + (justDone[screen.id] ? ' just' : '') + '" data-screen="' + esc(screen.id) + '">' +
         '<button class="chev' + (expandable ? '' : ' none') + '" type="button" aria-label="' + esc(t('expand')) + '" aria-expanded="' + String(isOpen) + '"' + (expandable ? '' : ' tabindex="-1"') + '><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M3 1.5 7 5 3 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
-        '<button class="name" type="button" tabindex="-1">' +
+        '<span class="name">' +
           '<span class="kind k-' + kind + '"><i></i>' + esc(t(kind)) + '</span>' +
           '<span class="title">' + esc(name) + '</span>' +
           (count ? '<span class="alike" title="' + esc(t('alikeTitle').replace('{n}', count)) + '">' + esc(t('alike').replace('{n}', count)) + '</span>' : '') +
-        '</button>' +
+        '</span>' +
         right +
       '</div>' +
       (shot ? '<div class="detail"><img src="' + esc(shot) + '" alt=""></div>' : '') +
@@ -1314,7 +1328,7 @@ window.VSScrub = (function () {
     var steps = stepsOf(flow)
     var at = typeof flow.at === 'number' ? flow.at : -1
     var held = sentEdits()
-    var note = edits.steer[flow.id] || (held && held.steer && held.steer[flow.id])
+    var note = held && held.steer && held.steer[flow.id]
     var chips = steps.map(function (step, index) {
       var screen = findScreen(step.screen)
       var kind = screen ? kindOf(screen) : 'page'
@@ -1324,7 +1338,7 @@ window.VSScrub = (function () {
     }).join('')
     var right
     if (started()) right = statusHtml(flow, false)
-    else if (note) right = held ? '' : '<span class="fx"><button class="link" type="button" data-undo="' + esc(flow.id) + '">' + esc(t('undo')) + '</button></span>'
+    else if (note) right = ''
     else right = '<span class="fx"><button class="link" type="button" data-steer="' + esc(flow.id) + '">' + esc(t('steer')) + '</button><button class="trash" type="button" aria-label="' + esc(t('remove') + ' ' + name) + '" data-remove="' + esc(flow.id) + '">' + trash + '</button></span>'
     var where = status === 'running' && at >= 0 ? '<span class="where">' + esc(t('step').replace('{n}', at + 1).replace('{total}', steps.length)) + '</span>' : ''
     var sub = note ? t('steered').replace('{note}', note) : textOf(flow.goal)
@@ -1334,9 +1348,8 @@ window.VSScrub = (function () {
       box + '<div class="steps">' + chips + '</div>' +
       '</li>'
   }
-  var addedHtml = function (text, index, held) {
-    return '<li class="flow new"><div class="flow-head"><div class="flow-name"><b>' + esc(text) + '</b><span>' + esc(t('added')) + '</span></div>' +
-      (held ? '' : '<span class="fx"><button class="trash" type="button" aria-label="' + esc(t('remove') + ' ' + text) + '" data-unadd="' + index + '">' + trash + '</button></span>') + '</div></li>'
+  var addedHtml = function (text) {
+    return '<li class="flow new"><div class="flow-head"><div class="flow-name"><b>' + esc(text) + '</b><span>' + esc(t('added')) + '</span></div></div></li>'
   }
 
   /* The first paint lands the rows one after another, with the red block running down the tree. */
@@ -1348,9 +1361,9 @@ window.VSScrub = (function () {
     tree.innerHTML = screensOf().map(function (screen) { return nodeHtml(screen, off) }).join('')
     var held = sentEdits()
     var shown = flowsOf().filter(function (flow) { return !off[flow.id] })
-    var adds = held && Array.isArray(held.add) ? held.add.map(function (text, index) { return addedHtml(text, index, true) }) : edits.add.map(function (text, index) { return addedHtml(text, index, false) })
+    var adds = held && Array.isArray(held.add) ? held.add.map(addedHtml) : []
     $('#flows').innerHTML = shown.map(function (flow) { return flowHtml(flow, off) }).join('') + adds.join('')
-    $('#addFlow').hidden = started() || !!held
+    $('#addFlow').hidden = started()
     var focusBox = steering && $('[data-steer-form="' + steering + '"] input')
     if (focusBox) focusBox.focus()
     var rows = $$('.row', tree)
@@ -1369,7 +1382,7 @@ window.VSScrub = (function () {
     var list = stepList()
     var now = tabNow()
     $('#stepsBar').hidden = list.length < 2
-    $('#mapHead').hidden = list.length < 2
+    $('#mapHead').hidden = list.length < 2 && $('#includeAll').hidden
     $$('#stepsBar button').forEach(function (button, index) {
       var on = button.dataset.tab === now
       button.setAttribute('aria-current', on ? 'step' : 'false')
@@ -1410,13 +1423,14 @@ window.VSScrub = (function () {
     var finished = started() && n > 0 && done === n
     var list = stepList(), now = tabNow()
     var lastStep = list.indexOf(now) === list.length - 1
-    var pendingEdits = editCount()
     var redrawing = !started() && !!sentEdits()
     $('#includeAll').hidden = started() || !excluded || now !== 'screens'
+    $('#mapHead').hidden = list.length < 2 && $('#includeAll').hidden
+    $('#tree').classList.toggle('picking', !started())
     if (started()) $('#tally').textContent = t('progress').replace('{done}', done).replace('{total}', n)
     else $('#tally').textContent = ''
     $('#tally').hidden = !$('#tally').textContent
-    $('#tallySub').textContent = redrawing ? '' : pendingEdits ? t('edits').replace('{n}', pendingEdits) : excluded ? t('excluded').replace('{n}', excluded) : ''
+    $('#tallySub').textContent = excluded ? t('excluded').replace('{n}', excluded) : ''
     $('#bar').hidden = !started() || finished
     $('#barFill').style.width = (n ? done / n * 100 : 0) + '%'
     $('#count').hidden = finished || (!$('#tally').textContent && !$('#tallySub').textContent)
@@ -1426,11 +1440,13 @@ window.VSScrub = (function () {
     $('#next').hidden = started() || lastStep
     $('#next').textContent = t('next')
     $('#back').hidden = started() || list.indexOf(now) === 0
-    $('#back').textContent = t('back')
+    $('#back').setAttribute('aria-label', t('back'))
+    $('#back').title = t('back')
     var startButton = $('#start')
-    startButton.hidden = started() || !lastStep || redrawing
-    startButton.disabled = !pendingEdits && n === 0
-    startButton.textContent = pendingEdits ? t('update') : n === 0 ? t('pickOne') : t('start').replace('{what}', whatOf(screens.length, flows.length))
+    /* Review waits for the agent to redraw what was steered, so nothing is reviewed against an old journey. */
+    startButton.hidden = started() || !lastStep
+    startButton.disabled = redrawing || n === 0
+    startButton.textContent = n === 0 ? t('pickOne') : t('start').replace('{what}', whatOf(screens.length, flows.length))
     $('#alldone').hidden = !finished
     $('#alldoneTitle').textContent = t('allDone').replace('{what}', whatOf(screens.length, flows.length))
     $('#alldoneSub').textContent = t('writing')
@@ -1487,20 +1503,22 @@ window.VSScrub = (function () {
   }
 
   $('#tree').addEventListener('click', function (event) {
-    var toggle = event.target.closest('.switch[data-for]')
-    if (toggle) { setIncluded(toggle.dataset.for, toggle.getAttribute('aria-checked') !== 'true'); return }
     var node = event.target.closest('.node')
-    if (!node || !event.target.closest('.chev, .name')) return
-    if ($('.chev', node).classList.contains('none')) return
-    open[node.dataset.id] = !node.classList.contains('open')
-    paintLists()
+    if (!node) return
+    if (event.target.closest('.chev')) {
+      if ($('.chev', node).classList.contains('none')) return
+      open[node.dataset.id] = !node.classList.contains('open')
+      paintLists()
+      return
+    }
+    var row = event.target.closest('.row')
+    var toggle = row && $('.switch[data-for]', row)
+    if (toggle) setIncluded(toggle.dataset.for, toggle.getAttribute('aria-checked') !== 'true')
   })
   $('#flows').addEventListener('click', function (event) {
     var button = event.target.closest('button')
     if (!button || started()) return
     if (button.dataset.steer) { steering = steering === button.dataset.steer ? null : button.dataset.steer; paintLists(); return }
-    if (button.dataset.undo) { delete edits.steer[button.dataset.undo]; paintLists(); paintPlan(); return }
-    if (button.dataset.unadd !== undefined) { edits.add.splice(Number(button.dataset.unadd), 1); paintLists(); paintPlan(); return }
     if (button.dataset.remove) {
       var flow = findFlow(button.dataset.remove)
       var next = Object.assign({}, excludedNow())
@@ -1517,10 +1535,8 @@ window.VSScrub = (function () {
     event.preventDefault()
     var note = $('input', form).value.trim()
     if (!note) return
-    edits.steer[form.dataset.steerForm] = note
     steering = null
-    paintLists()
-    paintPlan()
+    sendEdit('steer', { id: form.dataset.steerForm, note: note })
   })
   $('#flows').addEventListener('keydown', function (event) {
     if (event.key === 'Escape' && steering) { steering = null; paintLists() }
@@ -1529,10 +1545,8 @@ window.VSScrub = (function () {
     event.preventDefault()
     var text = $('#addInput').value.trim()
     if (!text) return
-    edits.add.push(text)
     $('#addInput').value = ''
-    paintLists()
-    paintPlan()
+    sendEdit('add', text)
   })
   $('#includeAll').addEventListener('click', function () {
     var next = Object.assign({}, excludedNow())
@@ -1586,14 +1600,17 @@ window.VSScrub = (function () {
     }).then(function () { sending = false })
   }
   $('#start').addEventListener('click', function () {
-    if (editCount()) {
-      send({ workflowEdits: { steer: Object.assign({}, edits.steer), add: edits.add.slice() } }, function () { edits = { steer: {}, add: [] } })
-      return
-    }
     if (!reviewedScreens().length && !reviewedFlows().length) return
     var off = excludedNow()
     var skipped = (hasPages() ? [] : allScreens()).concat(hasFlows() ? [] : flowsOf())
-    send({ exclude: allScreens().concat(flowsOf()).filter(function (item) { return off[item.id] || skipped.indexOf(item) !== -1 }).map(function (item) { return item.id }) })
+    send({ exclude: allScreens().concat(flowsOf()).filter(function (item) { return off[item.id] || skipped.indexOf(item) !== -1 }).map(function (item) { return item.id }) }, function () {
+      /* The review starts where the run does: back on the first step, at the first thing to be reviewed. */
+      tab = stepList()[0]
+      setTimeout(function () {
+        var first = $('#tree .row.queued, #tree .row.running, #flows .flow.queued, #flows .flow.running')
+        if (first) first.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' })
+      }, 0)
+    })
   })
   $('#retry').addEventListener('click', function () { send({ problem: '', retry: true }) })
 

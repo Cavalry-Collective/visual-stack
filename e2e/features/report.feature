@@ -54,14 +54,14 @@ Feature: A Polish report answered in its own tab
     And the reviewer moves on to the workflows
     Then step 2, "Pick the workflows", shows "w-signin" with its 2 steps
     When the reviewer steers "w-signin" with "Start from the cart" and adds "Contact the team"
-    And the reviewer presses "Update workflows"
-    Then the answers file asks to steer "w-signin" and add "Contact the team"
+    Then the answers file asks to steer "w-signin" and add "Contact the team", and Review waits
     When the agent redraws the workflows with "w-contact" added
     Then the map offers "Review 2 pages and 2 workflows"
     When the reviewer removes the workflow "w-contact"
     Then the map offers "Review 2 pages and 1 workflow"
     When the reviewer presses "Review 2 pages and 1 workflow"
     Then the answers file excludes "s-cart,w-contact"
+    And the map is back on step 1, at the first page under review
     When the agent marks "s-home" done with 3 findings
     Then the map shows 1 of 3 done, with the rail on "Review"
     When the agent walks "w-signin" to step 2
