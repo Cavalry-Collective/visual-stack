@@ -612,8 +612,8 @@ const SITE_MAP_PAGE = path.resolve(path.dirname(fileURLToPath(import.meta.url)),
 When('the reviewer turns on In depth and picks the level {string}', async function (level) {
   const page = this.browserPage
   await page.locator('#optToggle').click()
-  await page.locator('[data-lab="indepth"]').click()
-  assert.equal(await page.locator('[data-lab="indepth"]').getAttribute('aria-checked'), 'true')
+  await page.locator('[data-switch="indepth"]').click()
+  assert.equal(await page.locator('[data-switch="indepth"]').getAttribute('aria-checked'), 'true')
   await page.locator(`.panel[data-level="${level}"]`).click()
 })
 
@@ -642,11 +642,12 @@ When('the agent publishes a site map of a page with a modal and a panel', async 
   fs.writeFileSync(this.answersFile, JSON.stringify({ ...this.answers(), stage: 'map', sitemap }, null, 2))
 })
 
-Then('the same tab shows the site map with all {int} screens at {string}', async function (count, depth) {
+Then('the same tab shows the site map with all {int} screens switched on', async function (count) {
   const page = this.browserPage
   await page.locator('#tree .node').first().waitFor({ timeout: 5000 })
   assert.equal(await page.locator('#tree .node').count(), count)
-  assert.equal(await page.locator(`#tree [data-depth="${depth}"][aria-pressed="true"]`).count(), count)
+  assert.equal(await page.locator('#tree .switch[aria-checked="true"]').count(), count)
+  assert.equal(await page.locator('#includeAll').isVisible(), false, 'Include all waits until something is off')
   assert.match(await page.locator('#start').innerText(), new RegExp(`Review ${count} screens`))
 })
 
@@ -654,11 +655,14 @@ When('the reviewer rests the pointer on {string}', async function (id) {
   await this.browserPage.locator(`.node[data-id="${id}"] > .row .title`).hover()
 })
 
-Then('the map shows a preview of {string}', async function (id) {
-  const preview = this.browserPage.locator('#preview.on')
-  await preview.waitFor({ timeout: 2000 })
-  assert.equal(await preview.locator('img').getAttribute('src'), PREVIEW)
+Then('the preview beside the map shows {string}', async function (id) {
+  const dock = this.browserPage.locator('#dock')
+  await eventually(async () => {
+    assert.equal(await dock.locator('img').getAttribute('src'), PREVIEW)
+    assert.equal(await dock.locator('.cap b').innerText(), 'Sign in')
+  }, `the preview shows ${id}`)
   await this.browserPage.mouse.move(0, 0)
+  assert.equal(await dock.locator('img').getAttribute('src'), PREVIEW, 'the preview stays after the pointer leaves')
 })
 
 When('the reviewer closes the page {string} in the map', async function (id) {
@@ -674,10 +678,11 @@ Then('the map hides what opens on {string}', async function (id) {
   await page.locator(`.node[data-id="${id}"] .node`).first().waitFor()
 })
 
-When('the reviewer sets every screen to {string} and skips {string}', async function (depth, id) {
+When('the reviewer switches off {string}', async function (id) {
   const page = this.browserPage
-  await page.locator(`#allSeg [data-depth="${depth}"]`).click()
-  await page.locator(`.node[data-id="${id}"] > .row [data-depth="skip"]`).click()
+  await page.locator(`.node[data-id="${id}"] > .row .switch`).click()
+  assert.equal(await page.locator(`.node[data-id="${id}"] > .row .switch`).getAttribute('aria-checked'), 'false')
+  assert.equal(await page.locator('#includeAll').isVisible(), true, 'Include all appears once something is off')
   assert.match(await page.locator('#start').innerText(), /Review 2 screens/)
 })
 
@@ -685,12 +690,12 @@ When('the reviewer starts the review', async function () {
   await this.browserPage.locator('#start').click()
 })
 
-Then('the answers file plans {string}', async function (entries) {
+Then('the answers file excludes {string}', async function (ids) {
   await eventually(() => {
     const doc = this.answers()
-    assert.deepEqual(doc.plan, Object.fromEntries(entries.split(',').map(entry => entry.split(':'))))
-    assert.equal(doc.level, 'clean', 'the level survives the plan')
-  }, 'the answers file holds the plan')
+    assert.deepEqual(doc.exclude, ids.split(','))
+    assert.equal(doc.level, 'clean', 'the level survives the pick')
+  }, 'the answers file holds what was left out')
   await this.browserPage.locator('#start').waitFor({ state: 'hidden' })
 })
 
@@ -704,8 +709,15 @@ When('the agent marks {string} done with {int} findings', async function (id, fo
 Then('the map shows {int} of {int} screens done', async function (done, total) {
   await eventually(async () => {
     assert.equal(await this.browserPage.locator('#tally').innerText(), `${done} of ${total} screens done`)
-    assert.match(await this.browserPage.locator('.node[data-id="s-home"] > .row .status').innerText(), /Deep · Done · 3 found/)
+    assert.match(await this.browserPage.locator('.node[data-id="s-home"] > .row .status').innerText(), /^Done · 3 found$/)
   }, `${done} of ${total} screens are done`)
+})
+
+Then('the map says all {int} screens are reviewed', async function (count) {
+  const finished = this.browserPage.locator('#alldone')
+  await finished.waitFor({ timeout: 5000 })
+  assert.equal(await finished.locator('b').innerText(), `All ${count} screens reviewed`)
+  assert.equal(await this.browserPage.locator('#tally').isVisible(), false, 'the count gives way to the mark')
 })
 
 Then('the same tab shows the report', async function () {

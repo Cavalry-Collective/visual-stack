@@ -1,11 +1,11 @@
 ---
 name: polish-indepth
-description: Experimental in-depth mode for Visual Stack Polish. Maps a whole site or web app into its pages, modals, popups and slide-in panels, reviews every screen with its own agent at the depth the owner sets for it, or skips it, and merges the findings into one Polish report. Read by vstack:polish when the owner turns on In depth; not a skill of its own.
+description: Experimental in-depth mode for Visual Stack Polish. Maps a whole site or web app into its pages, modals, popups and slide-in panels, reviews every screen the owner leaves switched on with its own agent, and merges the findings into one Polish report. Read by vstack:polish when the owner turns on In depth; not a skill of its own.
 ---
 
 # Polish in depth (experimental)
 
-A normal Polish round audits a product in one pass. On a whole site or a large web app, that pass reaches a few screens and returns few findings. In-depth mode maps the product first, reviews every screen on it with its own agent, and lets the owner set how deep each one goes or skip it.
+A normal Polish round audits a product in one pass. On a whole site or a large web app, that pass reaches a few screens and returns few findings. In-depth mode maps the product first, lets the owner switch off the screens to leave out, and reviews every other screen with its own agent.
 
 Polish reads this file when the answers file holds `"indepth": true`. Follow `../../skills/polish/SKILL.md` as usual, with these changes:
 
@@ -42,10 +42,9 @@ If the target asks for a sign-in, follow Step 3 of Polish.
 
 ### Write the map
 
-1. Take a preview of every screen while you map it: a screenshot at desktop size, with any overlay open, 400 px wide, as a JPEG at quality 60. Put it in the screen's `shot` as a `data:` URL. The owner sees it when the pointer rests on the screen's row.
+1. Take a preview of every screen while you map it: a screenshot at desktop size, with any overlay open, 400 px wide, as a JPEG at quality 60. Put it in the screen's `shot` as a `data:` URL. The map shows it in the preview beside the map when the pointer rests on the screen's row, and inside the row on a phone.
 2. Copy `assets/site-map.html` over `$R.html`.
 3. Write `sitemap` to the answers file, and set `stage` to `map`. Keep every other key. The open tab reloads into the map when `stage` changes, so write the HTML first.
-4. Suggest a depth for a screen that needs more or less than Standard, in its `depth`. Give the main flow and anything that takes payment `deep`. Give a banner or a toast `quick`. Say in chat why.
 
 ```json
 {
@@ -54,7 +53,7 @@ If the target asks for a sign-in, follow Step 3 of Polish.
     "origin": "https://example.com",
     "screens": [
       {
-        "id": "s-home", "kind": "page", "path": "/", "depth": "deep",
+        "id": "s-home", "kind": "page", "path": "/",
         "title": {"en": "Home", "zh": "首页"}, "shot": "data:image/jpeg;base64,…",
         "children": [
           {"id": "s-signin", "kind": "modal", "title": {"en": "Sign in", "zh": "登录"},
@@ -81,31 +80,25 @@ If the target asks for a sign-in, follow Step 3 of Polish.
 | `note` | Optional. One sentence the owner sees when they open the screen in the map, in both languages. |
 | `count` | Optional. How many pages share this layout. |
 | `children` | Pages reached from this one, and what opens on it. |
+| `off` | Optional. `true` starts the screen's switch off. Use it only in a later round. |
 | `shot` | The screen's preview, as a `data:` URL. |
-| `depth` | Optional. Your suggested depth, `quick`, `standard`, `deep` or `skip`. Missing means `standard`. |
 
 ## Step B: The owner picks
 
-The map shows every screen as a tree, each one set to the depth you suggested. The owner rests the pointer on a screen to see its preview, and opens it to see what sits under it. They can set each screen's depth, skip it, or set every screen at once. Setting a page also sets everything under it.
+The map shows every screen as a tree, each with a switch, and every switch starts on. The owner rests the pointer on a screen to see it in the preview, opens a screen to see what sits under it, and switches off the screens to leave out. Switching a page off switches off everything under it. **Include all** turns every switch back on.
 
-**Review** saves `plan`, and the watcher reports `SENT`:
+**Review** saves `exclude`, and the watcher reports `SENT`:
 
 ```json
-{"plan": {"s-home": "deep", "s-signin": "standard", "s-blog-post": "skip"}}
+{"exclude": ["s-blog", "s-blog-post"]}
 ```
 
-`plan` holds every screen on the map, by id. Review every screen not set to `skip`, at its depth. Depth decides how much of a screen its agent covers. It is separate from `effort`, which picks the model.
-
-| Depth | 中文 | Each screen's agent covers |
-|---|---|---|
-| **Quick** | 快速 | Desktop size, as the screen first appears. |
-| **Standard** | 标准 | Every check for the level, at each screen size in `lenses.md`. |
-| **Deep** | 深入 | Standard, plus every state: empty, longest content, error, loading, hover and focus, and both themes. |
+`exclude` holds the ids of the screens switched off. It is an empty list when every screen stays on. Review every other screen.
 
 ## Step C: Review each screen
 
-1. Set `status` to `queued` on every screen `plan` does not skip. Use `patch` with `--set status=queued`.
-2. Start one Host `subagent` per screen, at the model and effort for `effort`, as in *Run at the chosen effort* in Polish. Run at most four at once, each in its own browser tab.
+1. Set `status` to `queued` on every screen that `exclude` does not name. Use `patch` with `--set status=queued`.
+2. Start one Host `subagent` per screen, at the model and effort for `effort`, as in *Run the work in parallel* in Polish. Give each one a headless browser of its own.
 3. Set the screen's `status` to `running` when its agent starts. When it returns, set `status` to `done` and `found` to the number of findings, or `status` to `failed`.
 4. If the Host has no `subagent`, review the screens yourself, one at a time, in map order.
 
@@ -117,7 +110,7 @@ and do not change product code. Never submit a form, pay, delete or sign out.
 
 Screen: <title> (<kind>), id <id>
 Reach it: open <origin><path>, then <open>
-Level: <level>. Mode: <mode>. Depth: <depth>, which means <the depth row above>.
+Level: <level>. Mode: <mode>.
 Checks: <path to skills/polish/lenses.md>, the sections for this level and mode.
 Pictures: <path to skills/polish/report.md>, the section "Pictures".
 
@@ -144,7 +137,7 @@ Return the number of findings, and anything you could not open or measure.
 
 - Reuse the last round's `sitemap`, with its ids, and copy `site-map.html` over the new round's page.
 - Rebuild the map only when the owner asks, or when the product has new pages. Keep the ids of screens that are still there.
-- Start the map with the last round's `plan` as each screen's `depth`.
+- Start the map with the switches the owner left off last round: give each of those screens `off: true`.
 
 ## Notes
 

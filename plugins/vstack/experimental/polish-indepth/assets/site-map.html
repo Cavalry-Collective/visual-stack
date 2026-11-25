@@ -297,12 +297,16 @@
 /* /vstack:shell css */
 
 /* The site map of an in-depth Polish review: every page, modal, popup and
-   panel the agent found. Every screen is reviewed unless the owner skips it,
-   and each one can take its own depth. The agent writes the report over this
-   page at the same address, and the tab reloads into it. */
+   panel the agent found. Every screen is reviewed unless the owner switches
+   it off. The agent writes the report over this page at the same address,
+   and the tab reloads into it.
+
+   The motion comes from the Visual Stack mark, three stacked bars and a red
+   block: rows land like bars, and the red block marks where the agent is
+   looking. */
 :root { --warn: #8a5c06; --warn-soft: #fef5e6; --warn-line: #fbd38d;
   --k-page: #3b5bdb; --k-modal: #9c36b5; --k-popup: #c2410c; --k-panel: #0b8157;
-  --ease: cubic-bezier(0.2, 0, 0, 1); }
+  --ease: cubic-bezier(0.2, 0, 0, 1); --spring: cubic-bezier(.34, 1.56, .64, 1); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --warn: #d29a3f; --warn-soft: rgba(210,154,63,.14); --warn-line: rgba(210,154,63,.4);
   --k-page: #8ea4ff; --k-modal: #d68cf0; --k-popup: #f59e6b; --k-panel: #2fb89b; } }
 :root[data-theme=dark] { --warn: #d29a3f; --warn-soft: rgba(210,154,63,.14); --warn-line: rgba(210,154,63,.4);
@@ -337,15 +341,16 @@ h1 { margin-top: .75rem; font-size: 1.75rem; line-height: 1.2; letter-spacing: -
 .legend { display: flex; flex-wrap: wrap; gap: .375rem .875rem; flex: 1; min-width: 0; color: var(--ink-2); font-size: 13px; }
 .legend span { display: inline-flex; align-items: center; gap: .375rem; }
 .legend i, .kind i { width: 8px; height: 8px; border-radius: 2px; background: var(--k); flex: none; }
-.tree { padding: .5rem 0; }
+.tree { position: relative; padding: .5rem 0; }
 .tree ul { margin-left: 1.375rem; border-left: 1px dashed var(--line-2); }
 .node { position: relative; }
 .tree ul > .node::before { content: ""; position: absolute; left: 0; top: 1.25rem; width: .75rem; border-top: 1px dashed var(--line-2); }
-.row { display: flex; align-items: center; gap: .5rem; min-height: 2.5rem; padding: .25rem .75rem; }
+.row { position: relative; display: flex; align-items: center; gap: .5rem; min-height: 2.5rem; padding: .25rem .75rem; }
 .tree ul .row { padding-left: 1rem; }
-.row:hover, .row.peek { background: var(--surface-2); }
-.node.skip > .row .title, .node.skip > .row .path { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--line-2); }
-.node.skip > .row .kind { opacity: .45; }
+.row:hover { background: var(--surface-2); }
+.row.peek .title { color: var(--brand); }
+.node.off > .row .title, .node.off > .row .path { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--line-2); }
+.node.off > .row .kind { opacity: .45; }
 .chev { width: 1.25rem; height: 1.25rem; flex: none; display: grid; place-items: center; border: 0; padding: 0; background: none; border-radius: 4px; color: var(--ink-3); cursor: pointer; }
 .chev svg { width: 10px; height: 10px; transition: transform 160ms var(--ease); }
 .node.open > .row .chev svg { transform: rotate(90deg); }
@@ -356,36 +361,60 @@ h1 { margin-top: .75rem; font-size: 1.75rem; line-height: 1.2; letter-spacing: -
 .title { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: none; max-width: 60%; }
 .path { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 12px/1.4 var(--mono); color: var(--ink-3); }
 .alike { flex: none; padding: 1px 6px; border-radius: 6px; border: 1px solid var(--line-2); font: 500 11px/1.4 var(--mono); color: var(--ink-2); white-space: nowrap; }
-.row .seg { flex: none; }
-.row .seg button { height: 26px; padding: 0 8px; font-size: 12px; }
-.row .seg button[data-depth="skip"][aria-pressed="true"] { background: var(--surface-2); color: var(--ink-3); }
-.status { flex: none; display: inline-flex; align-items: center; gap: .375rem; font: 500 12px/1 var(--mono); color: var(--ink-3); white-space: nowrap; }
+.row .switch { flex: none; height: 28px; padding: 0 8px; }
+.row .switch[aria-checked="true"] .track { background: var(--ok); }
+.status { position: relative; z-index: 1; flex: none; display: inline-flex; align-items: center; gap: .375rem; font: 500 12px/1 var(--mono); color: var(--ink-3); white-space: nowrap; }
 .status.done { color: var(--ok); }
 .status.failed { color: var(--warn); }
 .status.running { color: var(--brand); }
-.status .spin { width: .75rem; height: .75rem; }
+.tick { width: 14px; height: 14px; flex: none; }
+.tick circle { fill: var(--ok); }
+.tick path { fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 14; }
 .detail { display: flex; gap: .75rem; align-items: flex-start; margin: 0 1rem .5rem 3.25rem; padding: .5rem .75rem; border-radius: 8px; background: var(--surface-2); color: var(--ink-2); font-size: 13px; }
 .tree ul .detail { margin-left: 3.5rem; }
 .detail img { width: 9rem; flex: none; border-radius: 6px; border: 1px solid var(--line); }
 .node:not(.open) > .detail, .node:not(.open) > ul { display: none; }
 
-/* The preview that follows the pointer. Touch screens show the picture in the opened row instead. */
-.preview { position: fixed; z-index: 20; width: 22rem; pointer-events: none; padding: .5rem; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: var(--window-shadow); opacity: 0; transform: translateY(4px); transition: opacity 120ms var(--ease), transform 120ms var(--ease); }
-.preview.on { opacity: 1; transform: none; }
-.preview img { display: block; width: 100%; border-radius: 8px; }
-.preview p { margin-top: .375rem; padding: 0 .25rem; font-size: 12px; color: var(--ink-2); }
-@media (hover: none) { .preview { display: none; } }
+/* The map arrives in layers: each row lands like a bar of the mark, and the red block rides down the tree. */
+@keyframes layer { from { opacity: 0; transform: translateY(-10px) scale(.985); } }
+@keyframes block { 0% { opacity: 1; transform: translateY(0); } 85% { opacity: 1; } 100% { opacity: 0; transform: translateY(var(--h, 600px)); } }
+.tree.arrive .row { animation: layer 340ms var(--ease) both; animation-delay: calc(var(--i, 0) * 30ms); }
+.tree.arrive::after { content: ""; position: absolute; left: 0; top: 0; width: 4px; height: 2.5rem; background: var(--brand); border-radius: 0 3px 3px 0; animation: block calc(var(--n, 10) * 30ms + 340ms) cubic-bezier(.4, 0, .2, 1) both; }
 
-/* ── the plan ── */
+/* A screen under review: the beam passes along its row. */
+@keyframes sweep { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+.row.running { overflow: hidden; }
+.row.running::after { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 40%; pointer-events: none; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand) 12%, transparent) 70%, color-mix(in srgb, var(--brand) 55%, transparent) 98%, transparent); animation: sweep 1.8s cubic-bezier(.45, .05, .55, .95) infinite; }
+
+/* A screen that has just finished flashes green, and its tick pops in. */
+@keyframes landed { from { background: color-mix(in srgb, var(--ok) 22%, transparent); } to { background: transparent; } }
+@keyframes pop { 0% { transform: scale(.3); opacity: 0; } 60% { transform: scale(1.25); opacity: 1; } 100% { transform: scale(1); } }
+@keyframes draw { from { stroke-dashoffset: 14; } }
+.row.just { animation: landed 900ms var(--ease) both; }
+.row.just .tick { animation: pop 420ms var(--spring) both; }
+.row.just .tick path { animation: draw 300ms var(--ease) 200ms both; }
+
+/* ── the side panel ── */
 .plan { position: sticky; top: calc(46px + 1rem); display: grid; gap: 1rem; padding: 1.25rem; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); }
 .plan-label { font: 700 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
-.plan .seg { margin-top: .625rem; display: flex; }
-.plan .seg button { flex: 1; height: 32px; }
-.depths { margin-top: .625rem; display: grid; gap: .25rem; font-size: 12px; color: var(--ink-2); }
-.depths b { color: var(--ink); }
+.dock { display: grid; gap: .5rem; }
+.dock[hidden] { display: none; }
+.shotwrap { position: relative; overflow: hidden; aspect-ratio: 8 / 5; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); }
+.shotwrap img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cap { display: flex; align-items: baseline; gap: .5rem; min-width: 0; font-size: 13px; }
+.cap b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cap span { font: 400 12px/1.4 var(--mono); color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@keyframes fadein { from { opacity: 0; } }
+@keyframes beam { from { transform: translateY(-100%); opacity: 1; } 90% { opacity: 1; } to { transform: translateY(560%); opacity: 0; } }
+.shotwrap::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 18%; background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--brand) 18%, transparent)); border-bottom: 2px solid var(--brand); opacity: 0; pointer-events: none; }
+.dock.swap img { animation: fadein 160ms var(--ease) both; }
+.dock.swap .shotwrap::after { animation: beam 620ms cubic-bezier(.45, .05, .55, .95) both; }
+@media (hover: none), (max-width: 860px) { .dock { display: none !important; } }
+.include-all[hidden] { display: none; }
 .tally { font-size: 1rem; }
 .tally b { font-size: 1.5rem; margin-right: .25rem; }
 .tally-sub { margin-top: .125rem; font-size: 12px; color: var(--ink-3); }
+.tally-sub:empty { display: none; }
 .start { height: 2.5rem; justify-content: center; font-size: 14px; }
 .bar { height: 6px; border-radius: 999px; background: var(--line); overflow: hidden; }
 .bar[hidden] { display: none; }
@@ -395,7 +424,21 @@ h1 { margin-top: .75rem; font-size: 1.75rem; line-height: 1.2; letter-spacing: -
 .waiting { display: flex; align-items: center; gap: .5rem; color: var(--ink-2); }
 .waiting[hidden] { display: none; }
 
-@media (pointer: coarse) { .row { min-height: 2.75rem; } .row .seg button { height: 2.25rem; } .start { height: 2.75rem; } }
+/* The last screen builds the mark: the bars stack from the bottom, and the red block lands last. */
+@keyframes bar-in { from { transform: translateY(-160%); opacity: 0; } }
+@keyframes block-in { from { transform: translateX(260%); opacity: 0; } }
+.alldone { display: grid; justify-items: center; gap: .75rem; padding: .5rem 0 .25rem; text-align: center; }
+.alldone[hidden] { display: none; }
+.alldone svg { width: 64px; height: 64px; color: var(--ink); }
+.alldone b { font-size: 1.125rem; }
+.alldone p { color: var(--ink-2); font-size: 13px; }
+.alldone .b1, .alldone .b2, .alldone .b3 { animation: bar-in 360ms cubic-bezier(.34, 1.4, .64, 1) both; }
+.alldone .b2 { animation-delay: 120ms; }
+.alldone .b1 { animation-delay: 240ms; }
+.alldone .rb { animation: block-in 420ms var(--spring) 520ms both; }
+.alldone b, .alldone p { animation: fadein 300ms var(--ease) 820ms both; }
+
+@media (pointer: coarse) { .row { min-height: 2.75rem; } .row .switch { height: 2.25rem; } .start { height: 2.75rem; } }
 @media (max-width: 860px) {
   .layout { grid-template-columns: minmax(0, 1fr); }
   .plan { position: static; order: -1; }
@@ -404,15 +447,16 @@ h1 { margin-top: .75rem; font-size: 1.75rem; line-height: 1.2; letter-spacing: -
   main { padding: 1rem 1rem 2rem; gap: 1rem; }
   h1 { font-size: 1.25rem; }
   .path { display: none; }
-  .title { max-width: none; flex: 0 1 auto; }
+  .title { max-width: 70%; flex: none; }
+  .alike { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   .kind { font-size: 0; gap: 0; padding: 4px; }
-  .row { flex-wrap: wrap; }
-  .row .seg { flex-basis: 100%; display: flex; padding: 0 0 .25rem 1.75rem; }
-  .row .seg button { flex: 1; }
   .tree ul { margin-left: .875rem; }
   .detail, .tree ul .detail { margin-left: 1rem; }
 }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+  .tree.arrive::after, .row.running::after { display: none; }
+}
 </style>
 </head>
 <body>
@@ -519,21 +563,18 @@ h1 { margin-top: .75rem; font-size: 1.75rem; line-height: 1.2; letter-spacing: -
       <ul class="tree" id="tree"></ul>
     </section>
     <aside class="plan" id="plan">
-      <div id="setAll">
-        <p class="plan-label" id="allLabel" data-t="allLabel"></p>
-        <div class="seg" role="group" aria-labelledby="allLabel" id="allSeg"></div>
-        <div class="depths" id="depths"></div>
-      </div>
-      <div>
+      <div class="dock" id="dock" aria-hidden="true" hidden><p class="plan-label" data-t="preview"></p><div class="shotwrap"><img alt=""></div><p class="cap"><b></b><span></span></p></div>
+      <button class="btn include-all" type="button" id="includeAll" data-t="includeAll" hidden></button>
+      <div id="count">
         <p class="tally" id="tally"></p>
         <p class="tally-sub" id="tallySub"></p>
       </div>
       <div class="bar" id="bar" hidden><i id="barFill"></i></div>
       <p class="waiting" id="waiting" hidden><span class="spin" aria-hidden="true"></span><span></span></p>
       <button class="btn primary start" type="button" id="start"></button>
+      <div class="alldone" id="alldone" role="status" hidden><svg viewBox="0 0 64 64" aria-hidden="true"><g fill="currentColor"><rect class="b3" x="6" y="44" width="52" height="16"/><rect class="b2" x="6" y="24" width="52" height="16"/><rect class="b1" x="6" y="4" width="40" height="16"/></g><rect class="rb" x="46" y="4" width="12" height="16" fill="var(--brand)"/></svg><b id="alldoneTitle"></b><p id="alldoneSub"></p></div>
     </aside>
   </div>
-  <div class="preview" id="preview" aria-hidden="true"><img alt=""><p></p></div>
 </main>
 
 <script>
@@ -1003,30 +1044,30 @@ window.VSScrub = (function () {
   var STR = {
     tool: ['Polish', 'Polish'],
     eyebrow: ['Polish · In depth', '打磨 · 深度模式'],
-    title: ['How deep should {agent} look?', '{agent} 每个界面看多深？'],
+    title: ['Which screens should {agent} review?', '{agent} 要评审哪些界面？'],
     titleAudit: ['Reviewing the screens', '正在评审各个界面'],
-    sub: ['{agent} found {total} screens on {origin}. Every screen is reviewed. Set how deep, or skip one.', '{agent} 在 {origin} 上找到 {total} 个界面，每个都会评审。可以调整深度，或跳过某个界面。'],
-    subAudit: ['{agent} is reviewing each screen. This page becomes the report.', '{agent} 正在逐个评审界面，完成后此页即为报告。'],
+    sub: ['{total} screens on {origin}', '{origin} · {total} 个界面'],
+    subAudit: ['This page becomes the report.', '完成后此页即为报告。'],
     page: ['Page', '页面'], modal: ['Modal', '对话框'], popup: ['Popup', '弹出层'], panel: ['Panel', '侧滑面板'],
     pages: ['Pages', '页面'], modals: ['Modals', '对话框'], popups: ['Popups', '弹出层'], panels: ['Panels', '侧滑面板'],
     alike: ['1 checked of {n} alike', '{n} 个同类，查 1 个'],
     alikeTitle: ['{n} pages share this layout. {agent} checks one, the one with the most content, for all of them.', '{n} 个页面共用此布局。{agent} 只查其中内容最多的一个，结果适用于全部。'],
-    allLabel: ['Set every screen to', '全部设为'],
-    skip: ['Skip', '跳过'], quick: ['Quick', '快速'], standard: ['Standard', '标准'], deep: ['Deep', '深入'],
-    quickHint: ['Desktop size, as it first appears.', '只看桌面尺寸和初始状态。'],
-    standardHint: ['Every check at phone, tablet and desktop.', '在手机、平板和桌面上做全部检查。'],
-    deepHint: ['Standard, plus every state and both themes.', '在标准之上，再看每种状态和深浅主题。'],
+    review: ['Review', '评审'],
+    preview: ['Preview', '预览'],
+    includeAll: ['Include all', '全部包含'],
     screens: ['screens', '个界面'],
     screen: ['screen', '个界面'],
-    tallySub: ['One agent reviews each screen.', '每个界面由一个智能体评审。'],
-    skipped: ['{n} skipped.', '跳过 {n} 个。'],
+    excluded: ['{n} excluded', '排除 {n} 个'],
     start: ['Review {n} screens', '评审 {n} 个界面'],
     startOne: ['Review 1 screen', '评审 1 个界面'],
-    pickOne: ['Every screen is skipped', '所有界面都已跳过'],
+    pickOne: ['Every screen is off', '所有界面都已关闭'],
     progress: ['{done} of {total} screens done', '已完成 {done}/{total} 个界面'],
     waiting: ['Waiting for {agent}…', '正在等待 {agent}…'],
     queued: ['Queued', '排队中'], running: ['Reviewing', '评审中'], done: ['Done', '完成'], failed: ['Stopped', '已停止'],
+    off: ['Excluded', '已排除'],
     found: ['{n} found', '发现 {n} 处'],
+    allDone: ['All {n} screens reviewed', '{n} 个界面全部评审完毕'],
+    writing: ['{agent} is writing your report.', '{agent} 正在撰写报告。'],
     stopped: ['Stopped.', '已停止。'],
     retry: ['Retry', '重试'],
     offline: ['Start the review from {agent} first.', '请先在 {agent} 中开始评审。'],
@@ -1040,13 +1081,12 @@ window.VSScrub = (function () {
   }
 
   var KINDS = ['page', 'modal', 'popup', 'panel']
-  var DEPTHS = ['quick', 'standard', 'deep']
-  var CHOICES = ['skip'].concat(DEPTHS)
+  var STATUSES = ['queued', 'running', 'done', 'failed']
   var doc = { decisions: {}, overall: '', revised: {} }
   var chosen = null
   var open = {}
-  /* Without hover there is no preview, so an opened row shows the picture instead. */
-  var touch = window.matchMedia('(hover: none)').matches
+  /* Without hover, or without room beside the map, there is no preview panel, so an opened row shows its picture instead. */
+  var inline = window.matchMedia('(hover: none), (max-width: 860px)')
 
   var screensOf = function () { return doc.sitemap && Array.isArray(doc.sitemap.screens) ? doc.sitemap.screens : [] }
   var walk = function (list, visit) {
@@ -1058,45 +1098,61 @@ window.VSScrub = (function () {
   var allScreens = function () { var out = []; walk(screensOf(), function (screen) { out.push(screen) }); return out }
   var findScreen = function (id) { return allScreens().filter(function (screen) { return screen.id === id })[0] || null }
   var kindOf = function (screen) { return KINDS.indexOf(screen.kind) !== -1 ? screen.kind : 'page' }
-  var started = function () { return !!doc.plan && typeof doc.plan === 'object' }
+  var started = function () { return Array.isArray(doc.exclude) }
 
-  /* Every screen starts at the depth the agent suggested for it, or Standard. */
-  var planNow = function () {
-    if (started()) return doc.plan
-    if (!chosen) {
-      chosen = {}
-      allScreens().forEach(function (screen) { chosen[screen.id] = CHOICES.indexOf(screen.depth) !== -1 ? screen.depth : 'standard' })
+  /* Every screen starts included, except one the agent marks off from a past round.
+     Once the review starts, the answers file says what was left out. */
+  var excludedNow = function () {
+    if (!started()) {
+      if (!chosen) {
+        chosen = {}
+        allScreens().forEach(function (screen) { if (screen.off === true) chosen[screen.id] = true })
+      }
+      return chosen
     }
-    return chosen
+    var out = {}
+    doc.exclude.forEach(function (id) { out[id] = true })
+    return out
   }
-  var reviewed = function () { var plan = planNow(); return allScreens().filter(function (screen) { return plan[screen.id] && plan[screen.id] !== 'skip' }) }
+  var reviewed = function () { var off = excludedNow(); return allScreens().filter(function (screen) { return !off[screen.id] }) }
 
-  var segHtml = function (id, value) {
-    return '<span class="seg" role="group">' + CHOICES.map(function (choice) {
-      return '<button type="button" data-depth="' + choice + '"' + (id ? ' data-for="' + esc(id) + '"' : '') + ' aria-pressed="' + String(choice === value) + '">' + esc(t(choice)) + '</button>'
-    }).join('') + '</span>'
+  /* A screen that finished since the last paint gets its moment. */
+  var lastStatus = {}
+  var justDone = {}
+  var noteStatuses = function () {
+    justDone = {}
+    allScreens().forEach(function (screen) {
+      if (screen.status === 'done' && lastStatus[screen.id] && lastStatus[screen.id] !== 'done') justDone[screen.id] = true
+      lastStatus[screen.id] = screen.status || 'queued'
+    })
   }
 
-  var nodeHtml = function (screen, plan) {
+  var tick = '<svg class="tick" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9"/><path d="M6 10.5l2.6 2.6L14 7.5"/></svg>'
+
+  var nodeHtml = function (screen, off) {
     var kind = kindOf(screen)
     var kids = Array.isArray(screen.children) ? screen.children : []
     var note = textOf(screen.note)
-    var shot = touch && screen.shot ? screen.shot : ''
-    var expandable = kids.length > 0 || !!note || !!shot
+    var pictured = inline.matches && !!screen.shot
+    /* A page opens by default to show what sits under it; its picture waits until the owner opens it. */
+    var shot = pictured && open[screen.id] === true ? screen.shot : ''
+    var expandable = kids.length > 0 || !!note || pictured
     var isOpen = expandable && (open[screen.id] !== undefined ? open[screen.id] : kids.length > 0)
-    var value = plan[screen.id] || 'skip'
-    var right = ''
-    if (started()) {
-      if (value !== 'skip') {
-        var status = ['queued', 'running', 'done', 'failed'].indexOf(screen.status) !== -1 ? screen.status : 'queued'
-        var label = t(value) + ' · ' + t(status)
-        if (status === 'done' && typeof screen.found === 'number') label += ' · ' + t('found').replace('{n}', screen.found)
-        right = '<span class="status ' + status + '">' + (status === 'running' ? '<span class="spin" aria-hidden="true"></span>' : '') + esc(label) + '</span>'
-      } else right = '<span class="status">' + esc(t('skip')) + '</span>'
-    } else right = segHtml(screen.id, value)
+    var excluded = !!off[screen.id]
+    var status = started() && !excluded ? (STATUSES.indexOf(screen.status) !== -1 ? screen.status : 'queued') : ''
+    var right
+    if (!started()) {
+      right = '<button class="switch" type="button" role="switch" aria-label="' + esc(t('review') + ' ' + (textOf(screen.title) || screen.id)) + '" aria-checked="' + String(!excluded) + '" data-for="' + esc(screen.id) + '"><span class="track"><span class="knob"></span></span></button>'
+    } else if (excluded) {
+      right = '<span class="status">' + esc(t('off')) + '</span>'
+    } else {
+      var label = t(status)
+      if (status === 'done' && typeof screen.found === 'number') label += ' · ' + t('found').replace('{n}', screen.found)
+      right = '<span class="status ' + status + '">' + (status === 'done' ? tick : '') + esc(label) + '</span>'
+    }
     var count = typeof screen.count === 'number' && screen.count > 1 ? screen.count : 0
-    return '<li class="node' + (value === 'skip' ? ' skip' : '') + (isOpen ? ' open' : '') + '" data-id="' + esc(screen.id) + '">' +
-      '<div class="row">' +
+    return '<li class="node' + (excluded ? ' off' : '') + (isOpen ? ' open' : '') + '" data-id="' + esc(screen.id) + '">' +
+      '<div class="row' + (status ? ' ' + status : '') + (justDone[screen.id] ? ' just' : '') + '">' +
         '<button class="chev' + (expandable ? '' : ' none') + '" type="button" aria-label="' + esc(t('expand')) + '" aria-expanded="' + String(isOpen) + '"' + (expandable ? '' : ' tabindex="-1"') + '><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M3 1.5 7 5 3 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
         '<button class="name" type="button" tabindex="-1">' +
           '<span class="kind k-' + kind + '"><i></i>' + esc(t(kind)) + '</span>' +
@@ -1107,13 +1163,25 @@ window.VSScrub = (function () {
         right +
       '</div>' +
       (note || shot ? '<div class="detail">' + (shot ? '<img src="' + esc(shot) + '" alt="">' : '') + (note ? '<p>' + esc(note) + '</p>' : '') + '</div>' : '') +
-      (kids.length ? '<ul>' + kids.map(function (kid) { return nodeHtml(kid, plan) }).join('') + '</ul>' : '') +
+      (kids.length ? '<ul>' + kids.map(function (kid) { return nodeHtml(kid, off) }).join('') + '</ul>' : '') +
       '</li>'
   }
 
+  /* The first paint lands the rows one after another, with the red block running down the tree. */
+  var arrived = false
   var paintTree = function () {
-    var plan = planNow()
-    $('#tree').innerHTML = screensOf().map(function (screen) { return nodeHtml(screen, plan) }).join('')
+    noteStatuses()
+    var tree = $('#tree')
+    tree.innerHTML = screensOf().map(function (screen) { return nodeHtml(screen, excludedNow()) }).join('')
+    var rows = $$('.row', tree)
+    /* A repaint while the rows are still landing keeps their order, so they stay staggered. */
+    rows.forEach(function (row, index) { row.style.setProperty('--i', index) })
+    if (arrived || !rows.length) return
+    arrived = true
+    tree.style.setProperty('--n', rows.length)
+    tree.style.setProperty('--h', Math.max(0, tree.offsetHeight - 40) + 'px')
+    tree.classList.add('arrive')
+    setTimeout(function () { tree.classList.remove('arrive') }, rows.length * 30 + 800)
   }
 
   var paintLegend = function () {
@@ -1125,31 +1193,53 @@ window.VSScrub = (function () {
   }
 
   var paintPlan = function () {
-    var plan = planNow()
     var picked = reviewed()
     var n = picked.length
-    var skipped = allScreens().length - n
-    var values = allScreens().map(function (screen) { return plan[screen.id] })
-    var same = values.every(function (value) { return value === values[0] }) ? values[0] : null
-    $('#setAll').hidden = started()
-    $('#allSeg').innerHTML = segHtml(null, same).replace(/^<span class="seg" role="group">|<\/span>$/g, '')
-    $('#depths').innerHTML = DEPTHS.map(function (depth) { return '<p><b>' + esc(t(depth)) + '</b> ' + esc(t(depth + 'Hint')) + '</p>' }).join('')
+    var excluded = allScreens().length - n
     var done = picked.filter(function (screen) { return screen.status === 'done' || screen.status === 'failed' }).length
+    var finished = started() && n > 0 && done === n
+    $('#includeAll').hidden = started() || !excluded
     if (started()) {
       $('#tally').textContent = t('progress').replace('{done}', done).replace('{total}', n)
-      $('#tallySub').textContent = skipped ? t('skipped').replace('{n}', skipped) : ''
     } else {
       $('#tally').innerHTML = '<b>' + n + '</b>' + esc(t(n === 1 ? 'screen' : 'screens'))
-      $('#tallySub').textContent = t('tallySub') + (skipped ? ' ' + t('skipped').replace('{n}', skipped) : '')
     }
-    $('#bar').hidden = !started()
+    $('#tallySub').textContent = excluded ? t('excluded').replace('{n}', excluded) : ''
+    $('#count').hidden = finished
+    $('#bar').hidden = !started() || finished
     $('#barFill').style.width = (n ? done / n * 100 : 0) + '%'
-    $('#waiting').hidden = !started() || picked.some(function (screen) { return screen.status })
+    $('#waiting').hidden = !started() || finished || picked.some(function (screen) { return screen.status })
     $('#waiting span:last-child').textContent = t('waiting')
     var startButton = $('#start')
     startButton.hidden = started()
     startButton.disabled = n === 0
     startButton.textContent = n === 0 ? t('pickOne') : n === 1 ? t('startOne') : t('start').replace('{n}', n)
+    $('#alldone').hidden = !finished
+    $('#alldoneTitle').textContent = t('allDone').replace('{n}', n)
+    $('#alldoneSub').textContent = t('writing')
+  }
+
+  /* The preview has one fixed place beside the map, and keeps the last screen shown. */
+  var docked = null
+  var showDock = function (screen, quiet) {
+    var dock = $('#dock')
+    dock.hidden = false
+    if (docked === screen.id) return
+    docked = screen.id
+    $('img', dock).src = screen.shot
+    $('.cap b', dock).textContent = textOf(screen.title) || screen.id
+    $('.cap span', dock).textContent = screen.path || ''
+    dock.classList.remove('swap')
+    if (quiet) return
+    void dock.offsetWidth
+    dock.classList.add('swap')
+  }
+  var paintDock = function () {
+    var shown = docked ? findScreen(docked) : null
+    var first = shown && shown.shot ? shown : allScreens().filter(function (screen) { return screen.shot })[0]
+    if (!first) { $('#dock').hidden = true; return }
+    docked = null
+    showDock(first, true)
   }
 
   var render = function () {
@@ -1165,63 +1255,43 @@ window.VSScrub = (function () {
     paintLegend()
     paintTree()
     paintPlan()
+    paintDock()
   }
 
-  /* Setting a page's depth sets everything under it too; a modal or panel can then take its own. */
-  var setDepth = function (id, depth) {
+  /* Switching a page switches everything under it; a modal or panel can then be switched on its own. */
+  var setIncluded = function (id, on) {
     if (started()) return
-    var plan = Object.assign({}, planNow())
-    if (id) walk([findScreen(id)], function (screen) { plan[screen.id] = depth })
-    else allScreens().forEach(function (screen) { plan[screen.id] = depth })
-    chosen = plan
+    var next = Object.assign({}, excludedNow())
+    walk([findScreen(id)], function (screen) { if (on) delete next[screen.id]; else next[screen.id] = true })
+    chosen = next
     paintTree()
     paintPlan()
   }
 
   $('#tree').addEventListener('click', function (event) {
-    var choice = event.target.closest('[data-depth]')
-    if (choice) { setDepth(choice.dataset.for, choice.dataset.depth); return }
+    var toggle = event.target.closest('.switch[data-for]')
+    if (toggle) { setIncluded(toggle.dataset.for, toggle.getAttribute('aria-checked') !== 'true'); return }
     var node = event.target.closest('.node')
     if (!node || !event.target.closest('.chev, .name')) return
     if ($('.chev', node).classList.contains('none')) return
     open[node.dataset.id] = !node.classList.contains('open')
     paintTree()
   })
-  $('#allSeg').addEventListener('click', function (event) {
-    var choice = event.target.closest('[data-depth]')
-    if (choice) setDepth(null, choice.dataset.depth)
-  })
+  $('#includeAll').addEventListener('click', function () { chosen = {}; paintTree(); paintPlan() })
 
-  /* The preview sits beside the row under the pointer, kept inside the window. */
-  var preview = $('#preview')
   var peeked = null
-  var hidePreview = function () {
-    preview.classList.remove('on')
-    if (peeked) peeked.classList.remove('peek')
-    peeked = null
-  }
   $('#tree').addEventListener('pointerover', function (event) {
     if (event.pointerType === 'touch') return
     var row = event.target.closest('.row')
-    if (row === peeked) return
-    hidePreview()
-    if (!row) return
+    if (!row || row === peeked) return
     var screen = findScreen(row.parentElement.dataset.id)
     if (!screen || !screen.shot) return
+    if (peeked) peeked.classList.remove('peek')
     peeked = row
     row.classList.add('peek')
-    $('img', preview).src = screen.shot
-    $('p', preview).textContent = textOf(screen.title) + (screen.path ? ' · ' + screen.path : '')
-    var box = $('.title', row).getBoundingClientRect()
-    var width = preview.offsetWidth, height = preview.offsetHeight || 240
-    var left = Math.min(box.right + 16, window.innerWidth - width - 16)
-    var top = Math.max(56, Math.min(box.top - 16, window.innerHeight - height - 16))
-    preview.style.left = Math.max(16, left) + 'px'
-    preview.style.top = top + 'px'
-    preview.classList.add('on')
+    showDock(screen)
   })
-  $('#tree').addEventListener('pointerleave', hidePreview)
-  window.addEventListener('scroll', hidePreview, { passive: true })
+  $('#tree').addEventListener('pointerleave', function () { if (peeked) peeked.classList.remove('peek'); peeked = null })
 
   var post = function (path, body) {
     return fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-VSTACK-Token': BRIDGE.token }, body: JSON.stringify(body) })
@@ -1242,9 +1312,8 @@ window.VSScrub = (function () {
   }
   $('#start').addEventListener('click', function () {
     if (!reviewed().length) return
-    var plan = {}
-    allScreens().forEach(function (screen) { plan[screen.id] = planNow()[screen.id] || 'standard' })
-    send({ plan: plan })
+    var off = excludedNow()
+    send({ exclude: allScreens().filter(function (screen) { return off[screen.id] }).map(function (screen) { return screen.id }) })
   })
   $('#retry').addEventListener('click', function () { send({ problem: '', retry: true }) })
 
@@ -1259,6 +1328,7 @@ window.VSScrub = (function () {
 
   var start = function () {
     window.VSShell.init({ name: t('tool'), onLang: render })
+    if (inline.addEventListener) inline.addEventListener('change', paintTree)
     render()
     if (BRIDGE) {
       window.VSShell.setLink(false, null, BRIDGE.watching)
