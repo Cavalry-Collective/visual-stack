@@ -16,19 +16,16 @@ Feature: A Polish report answered in its own tab
     When the agent recommends the level "refined"
     Then the panel "refined" shows as recommended
     When the reviewer chooses Report only
-    And the reviewer sets the effort to "high" and turns on failure handling, Proofread and Live view
+    And the reviewer sets the effort to "high" and turns on failure handling and Proofread
     Then the effort hint names the model for "high"
     And Done folds the options into one line under the panels, on a phone as well
     When the reviewer picks the level "refined"
     Then the answers file holds the level "refined" in "zh"
     And the answers file asks for a report
-    And the answers file runs at "high" effort, with only failure handling, Proofread and Live view on
+    And the answers file runs at "high" effort, with only failure handling and Proofread on
     When the agent lists 3 tasks and ticks the first
     Then the review shows 1 of 3 tasks done
-    When a browser worker saves the frame "home-phone"
-    Then the review shows the live frame captioned "home phone"
     When the agent stops with a problem
-    Then the live view gives way to the problem
     And the reviewer presses Retry
     Then the answers file asks the agent to retry
     When the agent publishes the report
@@ -54,14 +51,14 @@ Feature: A Polish report answered in its own tab
     And the reviewer moves on to the workflows
     Then step 2, "Pick the workflows", shows "w-signin" with its 2 steps
     When the reviewer steers "w-signin" with "Start from the cart" and adds "Contact the team"
-    And the reviewer presses "Update workflows"
-    Then the answers file asks to steer "w-signin" and add "Contact the team"
+    Then the answers file asks to steer "w-signin" and add "Contact the team", and Review waits
     When the agent redraws the workflows with "w-contact" added
     Then the map offers "Review 2 pages and 2 workflows"
     When the reviewer removes the workflow "w-contact"
     Then the map offers "Review 2 pages and 1 workflow"
     When the reviewer presses "Review 2 pages and 1 workflow"
     Then the answers file excludes "s-cart,w-contact"
+    And the map is back on step 1, at the first page under review
     When the agent marks "s-home" done with 3 findings
     Then the map shows 1 of 3 done, with the rail on "Review"
     When the agent walks "w-signin" to step 2

@@ -38,13 +38,6 @@
  *   GET /history      the index — [{n, origin, at}], oldest first
  *   GET /history/<n>  that version's document
  *
- * A page can also show what the agent's browsers see. Each one keeps its
- * latest screenshot in <stem>.live/ beside the bookkeeping, one file per
- * browser, and the page polls:
- *
- *   GET /live         the frames — [{name, at}], by name
- *   GET /live/<name>  that frame's image
- *
  * `origin` is who moved it: `opened` (the state the link started in), `sent`
  * (the page pressed Send) or `agent` (the session rewrote the file; readers
  * accept legacy `claude`). The page labels them; the server only records what
@@ -207,10 +200,6 @@ const WATCH_FILE = path.join(BRIDGE_DIR, STEM + '.watching')
 const someoneWatching = () => watchingRecently(WATCH_FILE)
 const HIST_DIR = path.join(BRIDGE_DIR, STEM + '.history')
 const HIST_INDEX = path.join(HIST_DIR, 'index.json')
-const LIVE_DIR = path.join(BRIDGE_DIR, STEM + '.live')
-/* A plain file name only, so a request can never reach outside LIVE_DIR. */
-const LIVE_FRAME = /^([A-Za-z0-9_-]+)\.(jpe?g|png)$/
-const LIVE_TYPE = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png' }
 fs.mkdirSync(BRIDGE_DIR, { recursive: true })
 // Created only if it is not there, in one step: a second session starting at
 // the same moment must not reset a counter the first one is already using.
@@ -261,7 +250,7 @@ function page () {
   const body = fs.readFileSync(TEMPLATE, 'utf8')
   const handle = `<script>window.__VSTACK_BRIDGE__=${JSON.stringify({
     token: TOKEN, name: NAME, doc: '/doc', save: '/save', events: '/events', history: '/history',
-    live: '/live', approve: '/approve', watching: someoneWatching(),
+    approve: '/approve', watching: someoneWatching(),
   })}</script>\n`
   const doc = /^\s*<!doctype/i.test(body)
     ? body.replace(/(<head[^>]*>)/i, `$1\n${handle}`)
@@ -301,26 +290,6 @@ const server = http.createServer((req, res) => {
     const f = path.join(HIST_DIR, `v${Number(hv[1])}.json`)
     if (!fs.existsSync(f)) return send(res, 404, 'application/json', '{"error":"no such version"}')
     return send(res, 200, 'application/json', fs.readFileSync(f, 'utf8'))
-  }
-
-  if (req.method === 'GET' && url.pathname === '/live') {
-    if (!okToken(url) && !okHeader(req)) return send(res, 403, 'application/json', '{"error":"bad token"}')
-    let names = []
-    try { names = fs.readdirSync(LIVE_DIR).filter(name => LIVE_FRAME.test(name)).sort() } catch {}
-    const frames = names.flatMap(name => {
-      try { return [{ name, at: fs.statSync(path.join(LIVE_DIR, name)).mtimeMs }] } catch { return [] }
-    })
-    return send(res, 200, 'application/json', JSON.stringify(frames))
-  }
-
-  const lv = url.pathname.match(/^\/live\/([^/]+)$/)
-  if (req.method === 'GET' && lv) {
-    if (!okToken(url) && !okHeader(req)) return send(res, 403, 'application/json', '{"error":"bad token"}')
-    const frame = lv[1].match(LIVE_FRAME)
-    if (!frame) return send(res, 404, 'text/plain', 'not found')
-    let image
-    try { image = fs.readFileSync(path.join(LIVE_DIR, lv[1])) } catch { return send(res, 404, 'text/plain', 'not found') }
-    return send(res, 200, LIVE_TYPE[frame[2]], image)
   }
 
   /* "Not now" for the release this page was offered — recorded beside the
