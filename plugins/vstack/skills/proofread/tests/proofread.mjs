@@ -19,7 +19,7 @@ const firstLine = result => result.stdout.split('\n')[0]
 
 // Runs a page script in Node with a stand-in for the page's window.
 function runInPage (script, storedReply) {
-  const harness = `const window = { __proofreadReply: ${JSON.stringify(storedReply)} }\nconst result = ${script}\nconsole.log(JSON.stringify(result))`
+  const harness = `const crypto = globalThis.crypto ?? (await import('node:crypto')).webcrypto\nconst window = { __proofreadReply: ${JSON.stringify(storedReply)} }\nconst result = ${script}\nconsole.log(JSON.stringify(result))`
   const run = spawnSync(process.execPath, ['--input-type=module'], { input: harness, encoding: 'utf8' })
   assert.equal(run.status, 0, run.stderr)
   return JSON.parse(run.stdout)
