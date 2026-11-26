@@ -14,6 +14,10 @@ await (async () => {
   if (!composer) return { verified: false, reason: 'Message box not found.' }
   if (composer.innerText.trim().length > 0) return { verified: false, reason: 'Message box is not empty.' }
 
+  // A reply left from an earlier batch must not be mistaken for this batch's reply.
+  delete window.__proofreadSent
+  delete window.__proofreadReply
+
   const paste = text => {
     composer.focus()
     const data = new DataTransfer()

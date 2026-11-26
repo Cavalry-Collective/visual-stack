@@ -37,7 +37,7 @@ node plugins/vstack/skills/review/tests/workdir.mjs            # .vstack/local w
 node plugins/vstack/skills/review/tests/round-gate.mjs         # `unanswered` and the Stop hook that runs it
 node plugins/vstack/skills/review/tests/update-check.mjs       # per-host update detection and the banner it produces
 node plugins/vstack/skills/review/tests/design-tokens.mjs      # the shell's palette still matches design/tokens.css
-node plugins/vstack/skills/proofread/tests/proofread.mjs       # proofread's insert script and host rules
+node plugins/vstack/skills/proofread/tests/proofread.mjs       # proofread's batches, reply checks, restore and host rules
 ```
 
 The Gherkin end-to-end suite lives in `e2e/` — the one directory with a
