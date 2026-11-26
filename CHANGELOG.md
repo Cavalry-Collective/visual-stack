@@ -8,6 +8,27 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 6.22.0 — 2026-11-27
+
+**Changed**
+
+- **Proofread uses ChatGPT's wording.** The reply becomes your copy. The agent
+  keeps its own text only where ChatGPT changed a fact, name, number, code,
+  command, URL or link, broke a required format, or added something new.
+
+**Fixed**
+
+- **Long replies arrive whole.** The agent reads the reply back in small
+  slices and checks the saved text against the page by length and SHA-256.
+  It stops and reads again if anything is missing.
+- **Long copy is sent in batches** of about 12,000 characters, each in its own
+  temporary chat.
+- **Code blocks, links and frontmatter survive.** Code blocks are left out of
+  what ChatGPT sees and put back afterwards. Links ChatGPT dropped, escaped
+  frontmatter and bolded headings are repaired from your original.
+- **No notes or code fences around the reply.** ChatGPT is asked for the copy
+  only, and anything it adds is removed.
+
 ## 6.21.0 — 2026-11-26
 
 **Removed**

@@ -34,7 +34,7 @@ Default when unset is `claude`, so existing installs keep working without this.
 | Step | Tool | How |
 | --- | --- | --- |
 | `open(url)` | `tabs_context_mcp`, `tabs_create_mcp`, `navigate` | Get the tab context first, then work in a new tab. If the tool reports several browsers and none selected, ask the user which one, as the tool requires |
-| `run_script` | `javascript_tool`, action `javascript_exec` | A script times out at 45 seconds. Output that looks like a secret or encoded data can be redacted |
+| `run_script` | `javascript_tool`, action `javascript_exec` | A script times out at 45 seconds. A result is cut to about 1,000 characters and marked `[TRUNCATED]`. Output that looks like a secret or encoded data can be redacted. Send several reads in one `browser_batch` call |
 | `screenshot` | `computer`, action `screenshot` | |
 | `close` | `tabs_close_mcp` | |
 

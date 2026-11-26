@@ -15,6 +15,16 @@ const PAGE_DIRECTORY = path.join(SKILL_DIRECTORY, 'assets', 'page')
 const proofread = (...commandArguments) => spawnSync(process.execPath, [CLI, ...commandArguments], { encoding: 'utf8' })
 const parses = script => spawnSync(process.execPath, ['--check', '--input-type=module'], { input: script, encoding: 'utf8' }).status === 0
 
+const firstLine = result => result.stdout.split('\n')[0]
+
+// Runs a page script in Node with a stand-in for the page's window.
+function runInPage (script, storedReply) {
+  const harness = `const window = { __proofreadReply: ${JSON.stringify(storedReply)} }\nconst result = ${script}\nconsole.log(JSON.stringify(result))`
+  const run = spawnSync(process.execPath, ['--input-type=module'], { input: harness, encoding: 'utf8' })
+  assert.equal(run.status, 0, run.stderr)
+  return JSON.parse(run.stdout)
+}
+
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'vstack-proofread-test-'))
 
 try {
@@ -25,11 +35,13 @@ try {
   // State follows the workdir rule, beside the copy and under .vstack/local.
   const prepared = proofread('prepare', copyPath)
   assert.equal(prepared.status, 0, prepared.stderr)
-  const runDirectory = prepared.stdout.trim()
+  const [runDirectory, ...insertPaths] = prepared.stdout.trim().split('\n')
   assert.equal(runDirectory, path.join(temp, '.vstack', 'local', 'proofread', 'guide'))
+  assert.deepEqual(insertPaths, [path.join(runDirectory, 'insert-1.js')], 'short copy is one batch')
+  assert.equal(fs.readFileSync(path.join(runDirectory, 'source.md'), 'utf8'), copyText, 'the source is kept for restore')
 
   // The insert script carries the copy, the prompt, and the copy's digest, and is valid JavaScript.
-  const insertScript = fs.readFileSync(path.join(runDirectory, 'insert.js'), 'utf8')
+  const insertScript = fs.readFileSync(insertPaths[0], 'utf8')
   const prompt = fs.readFileSync(path.join(SKILL_DIRECTORY, 'assets', 'prompt.md'), 'utf8').trim()
   assert.ok(!/__[A-Z0-9_]+__/.test(insertScript), 'every placeholder is filled')
   assert.ok(insertScript.includes(JSON.stringify(copyText)), 'the copy is embedded exactly')
@@ -40,16 +52,62 @@ try {
   // Copy saved inside .vstack uses that directory rather than nesting a second one.
   const savedCopyPath = path.join(temp, '.vstack', 'local', 'proofread', 'copy.md')
   fs.writeFileSync(savedCopyPath, copyText)
-  assert.equal(proofread('prepare', savedCopyPath).stdout.trim(), path.join(temp, '.vstack', 'local', 'proofread', 'copy'))
+  assert.equal(firstLine(proofread('prepare', savedCopyPath)), path.join(temp, '.vstack', 'local', 'proofread', 'copy'))
 
-  // The copy's own `$` sequences and backticks survive rendering.
+  // The copy's own `$` sequences survive rendering, and a fenced code block is replaced by a numbered line.
   const trickyText = 'Cost $& and $1 and $`\n```\ncode\n```\n'
   const trickyPath = path.join(temp, 'tricky.md')
   fs.writeFileSync(trickyPath, trickyText)
-  const trickyDirectory = proofread('prepare', trickyPath).stdout.trim()
-  const trickyScript = fs.readFileSync(path.join(trickyDirectory, 'insert.js'), 'utf8')
-  assert.ok(trickyScript.includes(JSON.stringify(trickyText)), '$ sequences are not treated as patterns')
+  const trickyDirectory = firstLine(proofread('prepare', trickyPath))
+  const trickyBatch = fs.readFileSync(path.join(trickyDirectory, 'batch-1.md'), 'utf8')
+  assert.equal(trickyBatch, 'Cost $& and $1 and $`\n[code block 1]\n', 'the code block is replaced')
+  const trickyScript = fs.readFileSync(path.join(trickyDirectory, 'insert-1.js'), 'utf8')
+  assert.ok(trickyScript.includes(JSON.stringify(trickyBatch)), '$ sequences are not treated as patterns')
   assert.ok(parses(trickyScript), 'tricky copy still parses')
+
+  // Long copy splits at blank lines into batches of at most 12,000 characters, and a rerun replaces the old batches.
+  const paragraph = 'Plain sentence. '.repeat(60).trim()
+  const longPath = path.join(temp, 'long.md')
+  fs.writeFileSync(longPath, Array.from({ length: 30 }, () => paragraph).join('\n\n'))
+  const [longDirectory, ...longInserts] = proofread('prepare', longPath).stdout.trim().split('\n')
+  assert.ok(longInserts.length >= 3, 'long copy is split')
+  const longBatches = longInserts.map((_, index) => fs.readFileSync(path.join(longDirectory, `batch-${index + 1}.md`), 'utf8'))
+  assert.ok(longBatches.every(batch => batch.length <= 12000), 'each batch fits the limit')
+  assert.equal(longBatches.join('\n\n'), fs.readFileSync(longPath, 'utf8'), 'batches cover the copy in order')
+  fs.writeFileSync(longPath, paragraph)
+  proofread('prepare', longPath)
+  assert.ok(!fs.existsSync(path.join(longDirectory, 'batch-2.md')), 'a rerun removes stale batches')
+
+  // Verify rejects a truncated reply, and its page script accepts only the exact reply stored in the page.
+  const replyText = '# Guide\n\nRun `run` and read the docs.\n'
+  const replyPath = path.join(runDirectory, 'reply-1.md')
+  fs.writeFileSync(replyPath, 'Start of reply [TRUNCATED]')
+  const truncated = proofread('verify', replyPath)
+  assert.equal(truncated.status, 1)
+  assert.ok(truncated.stderr.includes('[TRUNCATED]'))
+  fs.writeFileSync(replyPath, replyText)
+  const verified = proofread('verify', replyPath)
+  assert.equal(verified.status, 0, verified.stderr)
+  const verifyScript = fs.readFileSync(verified.stdout.trim(), 'utf8')
+  assert.deepEqual(runInPage(verifyScript, replyText), { verified: true, length: replyText.length })
+  assert.deepEqual(runInPage(verifyScript, `${replyText}More text`), { verified: false, storedLength: replyText.length + 9, savedLength: replyText.length, firstDifference: replyText.length })
+  assert.equal(runInPage(verifyScript, undefined).verified, false, 'no stored reply fails')
+
+  // Restore repairs what ChatGPT breaks: a wrapping fence, escaped frontmatter, bold headings, code blocks, and links.
+  const sourceText = '---\ntitle: Guide\n---\n\n# Guide\n\nRead [the docs](https://example.com/docs).\n\n```bash\nnpm test\n```\n\nSee [the API](https://example.com/api).\n'
+  const sourcePath = path.join(temp, 'restore.md')
+  fs.writeFileSync(sourcePath, sourceText)
+  const restoreDirectory = firstLine(proofread('prepare', sourcePath))
+  assert.equal(proofread('restore', restoreDirectory).status, 1, 'restore needs a reply for every batch')
+  fs.writeFileSync(path.join(restoreDirectory, 'reply-1.md'), '```markdown\n\\---\ntitle: Guide\n\\---\n\n# **Guide**\n\nRead the docs.\n\n\\[code block 1\\]\n\nThe API is described elsewhere.\n```')
+  const restored = proofread('restore', restoreDirectory)
+  assert.equal(restored.status, 0, restored.stderr)
+  const report = JSON.parse(restored.stdout)
+  assert.equal(fs.readFileSync(report.restored, 'utf8'), '---\ntitle: Guide\n---\n\n# Guide\n\nRead [the docs](https://example.com/docs).\n\n```bash\nnpm test\n```\n\nThe API is described elsewhere.\n')
+  assert.equal(report.codeBlocksRestored, 1)
+  assert.deepEqual(report.codeBlocksMissing, [])
+  assert.equal(report.linksRestored, 1)
+  assert.deepEqual(report.linksNotFound, ['[the API](https://example.com/api)'], 'a link whose text is gone is reported')
 
   // Every page script parses, as the host will run it.
   for (const name of fs.readdirSync(PAGE_DIRECTORY)) {

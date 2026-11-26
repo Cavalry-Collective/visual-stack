@@ -1,6 +1,6 @@
 {
   "name": "vstack",
-  "version": "6.21.0",
+  "version": "6.22.0",
   "description": "It’s easier to show than explain. Visual Stack is an open-source toolbox for reviewing, polishing and building with your agent, right on the screen, in a browser tab beside Codex. Review: you point, Codex fixes. Comment on a wireframe or an app you already have running, and Codex publishes each fix into the same tab, with every comment attached to the element, route, and version it refers to. Polish: a design audit, with before-and-after previews. Codex audits the UI at a Clean, Refined, or Showcase level and shows every proposed fix as a picture beside your screen today. You approve, steer, or reject each one, and nothing in your code changes until you say yes. For a site you can't edit, you get a report to share instead. Wireframes are self-contained HTML and review state stays in your project.",
   "author": {
     "name": "Cavalry Collective",
